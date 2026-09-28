@@ -1,0 +1,70 @@
+{
+  // --- ANTYGRAVITY IDE & EDITOR FULL PERFORMANCE ---
+  "editor.minimap.enabled": false,
+  "editor.smoothScrolling": false,
+  "editor.cursorBlinking": "smooth",
+  "editor.renderWhitespace": "selection",
+  "editor.renderControlCharacters": false,
+  "editor.guides.bracketPairs": "active",
+  "editor.bracketPairColorization.enabled": true,
+  "editor.fastScrollSensitivity": 7,
+  "editor.inlineSuggest.enabled": true,
+  "editor.suggest.snippetsPreventQuickSuggestions": false,
+  "editor.quickSuggestionsDelay": 0,
+  "editor.hover.delay": 300,
+
+  // --- ZAKAZ OTWIERANIA NOWYCH KART (SINGLE TAB & PREVIEW MODE) ---
+  "workbench.editor.showTabs": "single",
+  "workbench.editor.enablePreview": true,
+  "workbench.editor.enablePreviewFromQuickOpen": true,
+  "workbench.editor.enablePreviewFromCodeNavigation": true,
+  "workbench.editor.limit.enabled": true,
+  "workbench.editor.limit.value": 1,
+  "workbench.editor.limit.perEditorGroup": true,
+  "workbench.editor.closeEmptyEditorGroups": true,
+
+  // --- TYPESCRIPT & LANGUAGE SERVER FULL PERFORMANCE ---
+  "typescript.tsserver.maxTsServerMemory": 4096,
+  "typescript.disableAutomaticTypeAcquisition": false,
+  "typescript.validate.enable": true,
+  "typescript.suggest.completeFunctionCalls": true,
+  "javascript.suggest.completeFunctionCalls": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+
+  // --- FILE WATCHERS & INDEXING EXCLUSIONS (CPU & RAM SAVINGS) ---
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/src-tauri/target/**": true,
+    "**/.agents/.system_generated/**": true,
+    "**/coverage/**": true,
+    "**/*.db-wal": true,
+    "**/*.db-shm": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/src-tauri/target": true,
+    "**/.git": true,
+    "**/*.db": true,
+    "**/*.db-wal": true,
+    "**/*.db-shm": true,
+    "**/package-lock.json": true,
+    "**/pnpm-lock.yaml": true
+  },
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/node_modules": true
+  },
+
+  // --- TERMINAL & WORKSPACE RESPONSIVENESS ---
+  "terminal.integrated.gpuAcceleration": "on",
+  "terminal.integrated.smoothScrolling": false,
+  "terminal.integrated.fastScrollSensitivity": 5,
+  "workbench.list.smoothScrolling": false
+}

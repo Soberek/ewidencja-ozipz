@@ -1,0 +1,26 @@
+/* Tylko rejestr działań — nie zmienia pozostałych tabel aplikacji. */
+.actions-register table :is(th, td) {
+  border: 1px solid #94a3b8;
+}
+.actions-register table th {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+.actions-register table :is(th, td),
+.actions-register table :is(th, td) :is(div, span, p, button) {
+  font-size: var(--actions-font-size) !important;
+  line-height: 1.3;
+}
+.actions-register table td {
+  padding: 5px 8px;
+}
+.actions-register table th {
+  padding: 7px 8px;
+}
+.dark .actions-register table :is(th, td) {
+  border-color: #64748b;
+}
+.dark .actions-register table th {
+  background: #334155;
+  color: #f8fafc;
+}

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Ewidencja OZiPZ",
+  "version": "../package.json",
+  "identifier": "pl.gov.pis.ewidencja.ozipz",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1421",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Ewidencja OZiPZ – Oświata Zdrowotna i Promocja Zdrowia (PSSE)",
+        "width": 1280,
+        "height": 840,
+        "minWidth": 960,
+        "minHeight": 640,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self' ipc: http://ipc.localhost",
+        "connect-src": "'self' ipc: http://ipc.localhost",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data: blob: asset: http://asset.localhost",
+        "font-src": "'self' data:",
+        "object-src": "'none'",
+        "base-uri": "'self'",
+        "frame-src": "'none'"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "Sekcja OZiPZ",
+    "shortDescription": "Ewidencja OZiPZ",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "Polish"
+        ],
+        "displayLanguageSelector": false
+      }
+    }
+  },
+  "plugins": {
+    "sql": {},
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDRCOEZEODc3REMxRjE4QzgKUldUSUdCL2NkOWlQUzAva2IvM2ExdWJObEdSR2tHdlJvRlgrUHJZSk5BRzl1SDZSRHhwQ0RNNjcK",
+      "endpoints": [
+        "https://github.com/Soberek/ewidencja-ozipz/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

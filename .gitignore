@@ -1,0 +1,74 @@
+# Node & dependencies
+node_modules
+node_modules/
+**/node_modules/**
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Build outputs
+dist
+dist/
+**/dist/**
+dist-ssr
+dist-ssr/
+build/
+out/
+.vite/
+.next/
+**/.next/**
+*.local
+
+# Tauri / Rust
+src-tauri/target/
+**/src-tauri/target/**
+src-tauri/gen/
+**/src-tauri/gen/**
+target/
+**/target/**
+**/*.rs.bk
+
+# SQLite & databases (the working database lives in Documents\Ewidencja OZiPZ, never in the repo)
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.sqlite3
+*.db
+!src-tauri/**/*.db
+
+# Secrets & Env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*serviceAccount*.json
+
+# Logs & Cache
+logs/
+*.log
+coverage/
+.turbo/
+.cache/
+
+# OS & Editors
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Recovery copies contain local records
+*.before-migration-*.db
+*.before-restore
+*.restore
+*.backup-pending
+
+*.verified-backup-*.db
