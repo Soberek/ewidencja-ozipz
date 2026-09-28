@@ -1,6 +1,6 @@
 [package]
 name = "ewidencja-ozipz"
-version = "1.0.0"
+version = "1.0.1"
 description = "Ewidencja OZiPZ – Oświata Zdrowotna i Promocja Zdrowia (Państwowa Inspekcja Sanitarna)"
 authors = ["Sekcja OZiPZ"]
 edition = "2021"
