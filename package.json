@@ -11,6 +11,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "tauri": "tauri",
+    "release": "node scripts/release.js",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
