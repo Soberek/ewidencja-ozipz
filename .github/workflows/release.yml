@@ -1,5 +1,5 @@
-# Buduje instalator Windows i publikuje wydanie z plikiem latest.json dla auto-aktualizacji.
-# Testy, podbicie wersji i tag robi lokalnie `pnpm release patch` — tutaj tylko build.
+# Buduje podpisany instalator Windows i zostawia go jako artefakt przebiegu.
+# Testy, wersję, tag i samo wydanie (z latest.json dla auto-aktualizacji) robi lokalnie `pnpm release`.
 name: Wydanie
 
 on:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   windows:
@@ -38,16 +38,17 @@ jobs:
         shell: bash
         run: test "${{ github.ref_name }}" = "v$(node -p "require('./package.json').version")"
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: Build instalatora
+        run: pnpm tauri build --bundles nsis
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - uses: actions/upload-artifact@v4
         with:
-          tagName: v__VERSION__
-          releaseName: Ewidencja OZiPZ v__VERSION__
-          releaseBody: Pobierz plik *_x64-setup.exe i uruchom go. Zainstalowana aplikacja sama powiadamia o kolejnych wersjach.
-          releaseDraft: false
-          prerelease: false
-          includeUpdaterJson: true
-          args: --bundles nsis
+          name: instalator-${{ github.ref_name }}
+          path: |
+            src-tauri/target/release/bundle/nsis/*-setup.exe
+            src-tauri/target/release/bundle/nsis/*-setup.exe.sig
+          if-no-files-found: error
+          retention-days: 30
