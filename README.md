@@ -36,10 +36,9 @@
 | **Kancelaria** | Pisma, znaki spraw (JRWA), rejestry, skany, publikacje |
 | **Materiały** | Katalog materiałów edukacyjnych, rozdzielniki i ich wydruk |
 | **Placówki i programy** | Baza placówek, szkoły w programach, programy zdrowotne, kontakty |
-| **Konfiguracja** | Słowniki, opisy zadań (szablony), kadra, ustawienia i kopie zapasowe |
-| **Asystent AI** | Asystent pracujący na wskazanych folderach z dokumentami (OpenRouter, klucz w systemowym magazynie haseł) |
+| **Konfiguracja** | Słowniki, opisy zadań (szablony), kadra, ustawienia i kopie zapasowe, historia zmian i kosz |
 
-Dodatkowo: skróty klawiszowe, leniwe ładowanie modułów z prefetchem po najechaniu w menu, tryb awaryjny przy niedostępnej bazie oraz obsługa dostępności (skip-link, role ARIA).
+Dodatkowo: globalna wyszukiwarka we wszystkich modułach (**Ctrl+K**), przypomnienia o terminach na pulpicie (odpowiedzi na pisma, zaległe zadania harmonogramu, blokada poprzedniego miesiąca), import placówek i kontaktów z Excela/CSV, skróty klawiszowe, leniwe ładowanie modułów z prefetchem po najechaniu w menu, tryb awaryjny przy niedostępnej bazie oraz obsługa dostępności (skip-link, role ARIA).
 
 ## 📥 Instalacja
 
@@ -54,10 +53,14 @@ Dodatkowo: skróty klawiszowe, leniwe ładowanie modułów z prefetchem po najec
 
 Folder bazy można zmienić w **Ustawieniach** (np. na dysk sieciowy lub zsynchronizowany folder). Aplikacja kopiuje aktualną bazę do nowego miejsca albo przejmuje istniejący tam plik `ozipz.db` po sprawdzeniu jego poprawności. Zmiana obowiązuje po ponownym uruchomieniu.
 
+Na dysku sieciowym lub w folderze synchronizowanym z chmurą aplikacja przełącza SQLite z WAL na klasyczny dziennik i zakłada plik `ozipz.db.lock`: bazę może mieć otwartą tylko jeden komputer naraz. Drugi zobaczy, kto z niej korzysta, i może ją świadomie przejąć (np. po awarii tamtego komputera) — pierwsze okno zostaje wtedy zablokowane.
+
 ### Kopie zapasowe i przywracanie
 
+- **Kopie automatyczne** — codziennie (kilkadziesiąt sekund po starcie i co godzinę sprawdzane) w `Dokumenty\Ewidencja OZiPZ\Kopie automatyczne`, także gdy sama baza leży na dysku sieciowym. Zostaje 14 ostatnich dni i po jednej kopii z 12 ostatnich miesięcy; listę i przywracanie znajdziesz w **Ustawieniach**.
 - **Kopia** — wykonywana przez `VACUUM INTO`, więc jest spójna nawet podczas pracy; przed zapisaniem przechodzi `PRAGMA integrity_check`.
 - **Przywracanie** — wybrana kopia jest walidowana i przygotowywana, a podmiana następuje przy kolejnym starcie. Poprzednia baza zostaje zachowana jako `ozipz.before-restore`.
+- **Historia zmian i kosz** — każde dodanie, zmiana i usunięcie rekordu jest zapisywane (kto, kiedy, co) przez triggery SQLite. Usunięte rekordy można przywrócić razem z rekordami usuniętymi w tej samej operacji, a zmienione — cofnąć do poprzedniej wersji. Wpisy starsze niż 2 lata są usuwane.
 - **Migracje** — przed każdą migracją schematu tworzona jest kopia `ozipz.db.before-migration-<wersja>-<znacznik>.db` (przechowywana najnowsza dla każdej wersji).
 
 ## 🛠 Uruchomienie w trybie deweloperskim
@@ -92,6 +95,7 @@ W trybie przeglądarkowym Vite udostępnia bazę SQLite przez wbudowany plugin (
 | `pnpm build` | Kontrola typów i build produkcyjny frontendu |
 | `pnpm tauri build` | Instalator aplikacji desktopowej |
 | `pnpm test` | Testy (Vitest + Testing Library) |
+| `pnpm test:coverage` | Testy z raportem pokrycia (`coverage/`) |
 | `pnpm typecheck` | Kontrola typów TypeScript |
 
 ### Zmienne środowiskowe
@@ -116,7 +120,6 @@ ewidencja-ozipz/
 ├── src-tauri/                   # Backend (Rust + Tauri 2)
 │   └── src/
 │       ├── lib.rs               # Lokalizacja bazy, kopie, przywracanie, komendy Tauri
-│       ├── assistant/           # Asystent AI: indeks dokumentów, routing, rozmowy
 │       └── publication_fetch.rs # Pobieranie źródeł publikacji
 ├── scripts/                     # Skrypty pomocnicze
 └── .github/workflows/           # CI: build instalatora i publikacja wydania
@@ -124,17 +127,16 @@ ewidencja-ozipz/
 
 ### Stos technologiczny
 
-- **Desktop:** Tauri 2, Rust, sqlx, keyring, pluginy `sql` / `dialog` / `fs` / `updater` / `process`
+- **Desktop:** Tauri 2, Rust, sqlx, pluginy `sql` / `dialog` / `updater` / `process`
 - **Frontend:** React 19, TypeScript, Vite 6, React Router 7, Zustand, React Hook Form + Zod
 - **UI:** Tailwind CSS, Radix UI, lucide-react, sonner
-- **Dokumenty:** docxtemplater (Word), ExcelJS / SheetJS (Excel)
-- **Baza danych:** SQLite (WAL, klucze obce, wersjonowane migracje), Drizzle ORM
+- **Dokumenty:** docxtemplater (Word), ExcelJS (Excel)
+- **Baza danych:** SQLite (WAL, klucze obce, wersjonowane migracje)
 - **Testy:** Vitest, Testing Library, jsdom, testy jednostkowe w Rust
 
 ### Bezpieczeństwo
 
 - Restrykcyjna polityka **CSP** w oknie aplikacji — brak zewnętrznych skryptów i ramek
-- Klucz API asystenta przechowywany w **systemowym magazynie haseł** (Windows Credential Manager / macOS Keychain), nie w bazie
 - Aktualizacje **podpisane kryptograficznie** i weryfikowane przed instalacją
 - Serwer deweloperski chroniony tokenem sesji i kluczem parowania LAN
 

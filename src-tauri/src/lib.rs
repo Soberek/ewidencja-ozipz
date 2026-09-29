@@ -1,5 +1,7 @@
-mod assistant;
+mod auto_backup;
+mod db_lock;
 mod publication_fetch;
+mod storage_kind;
 use sqlx::{Connection, SqliteConnection, sqlite::SqliteConnectOptions};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -187,14 +189,28 @@ fn set_database_location(app: tauri::AppHandle, directory: String) -> Result<(),
 
 #[tauri::command]
 fn reveal_database_file() -> Result<(), String> {
-    let path = database_path()?;
+    open_in_file_manager(&database_path()?, true)
+}
+
+/// Otwiera folder w menedżerze plików; `select` zaznacza wskazany plik zamiast otwierać folder.
+fn open_in_file_manager(path: &std::path::Path, select: bool) -> Result<(), String> {
     #[cfg(target_os = "windows")]
-    let result = std::process::Command::new("explorer").arg("/select,").arg(&path).spawn();
+    let result = if select {
+        std::process::Command::new("explorer").arg("/select,").arg(path).spawn()
+    } else {
+        std::process::Command::new("explorer").arg(path).spawn()
+    };
     #[cfg(target_os = "macos")]
-    let result = std::process::Command::new("open").arg("-R").arg(&path).spawn();
+    let result = if select {
+        std::process::Command::new("open").arg("-R").arg(path).spawn()
+    } else {
+        std::process::Command::new("open").arg(path).spawn()
+    };
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
-    let result = std::process::Command::new("xdg-open").arg(path.parent().unwrap_or(std::path::Path::new("."))).spawn();
-    result.map(|_| ()).map_err(|e| format!("Nie udało się otworzyć folderu bazy: {}", e))
+    let result = std::process::Command::new("xdg-open")
+        .arg(if select { path.parent().unwrap_or(std::path::Path::new(".")) } else { path })
+        .spawn();
+    result.map(|_| ()).map_err(|e| format!("Nie udało się otworzyć folderu: {}", e))
 }
 
 #[tauri::command]
@@ -270,26 +286,35 @@ async fn create_local_pool(path: &std::path::Path) -> Result<sqlx::SqlitePool, S
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .manage(assistant::AssistantState::default())
         .setup(|app| {
             // An unavailable database folder is reported in the window instead of aborting startup.
             let resolved = resolve_database_path(app.handle());
             if let Ok(path) = &resolved {
                 activate_staged_restore(path).map_err(std::io::Error::other)?;
                 prune_migration_backups(path);
+                // Kopie trafiają na dysk lokalny (Dokumenty), także gdy baza leży na dysku sieciowym.
+                if development_database_path().is_none() {
+                    if let Ok(documents) = app.path().document_dir() {
+                        auto_backup::start(path.clone(), documents.join(DATABASE_FOLDER).join(auto_backup::FOLDER));
+                    }
+                }
             }
             let _ = DATABASE_PATH.set(resolved);
-            assistant::start(app.handle().clone());
             Ok(())
         })
         .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![assistant::assistant_call, publication_fetch::fetch_publication_source, open_local_database, get_database_path, set_database_location, reveal_database_file, backup_database, queue_database_restore, has_restored_database, acknowledge_database_restore])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .invoke_handler(tauri::generate_handler![publication_fetch::fetch_publication_source, open_local_database, get_database_path, set_database_location, reveal_database_file, backup_database, queue_database_restore, has_restored_database, acknowledge_database_restore,
+            auto_backup::get_auto_backups, auto_backup::create_auto_backup_now, auto_backup::open_auto_backup_folder,
+            db_lock::acquire_database_lock, db_lock::database_lock_status, db_lock::get_session_actor,
+            storage_kind::get_database_storage_kind])
+        .build(tauri::generate_context!())
+        .expect("error while running tauri application")
+        .run(|_, event| {
+            if let tauri::RunEvent::Exit = event { db_lock::release(); }
+        });
 }
 
 #[cfg(test)]
@@ -355,7 +380,7 @@ mod tests {
         std::fs::create_dir_all(&directory).unwrap();
         let source = directory.join("source.db");
         let database_path = directory.join("ozipz.db");
-        let mut connection = tauri::async_runtime::block_on(async {
+        let connection = tauri::async_runtime::block_on(async {
             let mut connection = SqliteConnection::connect_with(&SqliteConnectOptions::new().filename(&source).create_if_missing(true)).await.unwrap();
             sqlx::query("CREATE TABLE ozipz_actions (id TEXT, title TEXT, date TEXT)").execute(&mut connection).await.unwrap();
             sqlx::query("PRAGMA journal_mode=WAL").execute(&mut connection).await.unwrap();

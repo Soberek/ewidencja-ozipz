@@ -1,5 +1,3 @@
-import PizZip from "pizzip";
-import Docxtemplater from "docxtemplater";
 import type { OzipzAction, OzipzFacility } from "../types/ozipz.types";
 import { formatAdresIzrz, extractLocalityFromFacilityName, toAsciiSlug } from "./izrzUtils";
 import { buildIzrzAudienceDescription, sumAudienceCounts } from "./izrzAudience";
@@ -181,6 +179,8 @@ export async function generateIzrzDocxBlob(
   templateArrayBuffer: ArrayBuffer,
   data: IzrzGeneratorData
 ): Promise<Blob> {
+  // Biblioteki .docx (~280 kB) ładujemy dopiero przy generowaniu, nie przy otwarciu rejestru działań.
+  const [{ default: PizZip }, { default: Docxtemplater }] = await Promise.all([import("pizzip"), import("docxtemplater")]);
   const zip = new PizZip(templateArrayBuffer);
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,

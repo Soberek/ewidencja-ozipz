@@ -261,7 +261,7 @@ export function ParticipationDialog({
     };
 
     if (findDuplicateParticipation(participations, payload, editingParticipation?.id)) {
-      setError("facilityName", { message: "Ta placówka jest już zgłoszona do tego programu w wybranym roku szkolnym. Edytuj istniejące zgłoszenie." });
+      setError("facilityName", { message: "Ta placówka ma już zgłoszenie do tego programu w wybranym roku z tym samym koordynatorem. Edytuj istniejące zgłoszenie." });
       return;
     }
     try {

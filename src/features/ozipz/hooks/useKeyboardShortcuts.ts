@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useModalStore } from "../store/useModalStore";
+import { useGlobalSearchStore } from "../store/useGlobalSearchStore";
 
 interface KeyboardShortcutsOptions {
   onSearchFocus?: () => void;
@@ -11,6 +12,7 @@ export function useKeyboardShortcuts(options?: KeyboardShortcutsOptions) {
   const openModal = useModalStore((s) => s.openModal);
   const activeModal = useModalStore((s) => s.activeModal);
   const closeModal = useModalStore((s) => s.closeModal);
+  const openGlobalSearch = useGlobalSearchStore((s) => s.open);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -45,21 +47,25 @@ export function useKeyboardShortcuts(options?: KeyboardShortcutsOptions) {
         return;
       }
 
-      // 3. CMD+K / CTRL+K: Focus Search or Command Palette
+      // 3. CMD+K / CTRL+K: globalna wyszukiwarka we wszystkich modułach
       if (isCmdOrCtrl && e.key.toLowerCase() === "k") {
         e.preventDefault();
         if (options?.onSearchFocus) {
           options.onSearchFocus();
         } else {
-          // Focus first visible search input on the page
-          const searchInput = document.querySelector<HTMLInputElement>(
-            'input[type="text"][placeholder*="szukaj" i], input[type="text"][placeholder*="Szukaj" i], input[type="search"]'
-          );
-          if (searchInput) {
-            searchInput.focus();
-            searchInput.select();
-          }
+          openGlobalSearch();
         }
+        return;
+      }
+
+      // 3b. "/" poza polami formularza: wyszukiwarka bieżącego modułu
+      if (e.key === "/" && !isInputFocused && !isCmdOrCtrl && !activeModal) {
+        e.preventDefault();
+        const searchInput = document.querySelector<HTMLInputElement>(
+          'input[type="text"][placeholder*="szukaj" i], input[type="search"]'
+        );
+        searchInput?.focus();
+        searchInput?.select();
         return;
       }
 
@@ -76,5 +82,5 @@ export function useKeyboardShortcuts(options?: KeyboardShortcutsOptions) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [openModal, activeModal, closeModal, options]);
+  }, [openModal, activeModal, closeModal, openGlobalSearch, options]);
 }

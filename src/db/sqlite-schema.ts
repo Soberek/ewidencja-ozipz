@@ -3,12 +3,20 @@ import type { ISqlDatabase } from "./types";
 import { getProgramJrwaSymbol, KNOWN_JRWA_CATALOG } from "../features/ozipz/utils/programJrwaUtils";
 import type { OzipzProgram } from "../features/ozipz/types/ozipz.types";
 import { cleanupPoisonedJrwaCases } from "./sqlite-seed";
+import { dropAuditTriggers, installAuditTriggers, pruneChangeLog } from "./change-log";
 
-export async function initTables(db: ISqlDatabase): Promise<void> {
+export interface InitTablesOptions {
+  /** WAL wymaga pamięci współdzielonej, której nie mają dyski sieciowe; tam używamy klasycznego dziennika. */
+  journalMode?: "WAL" | "DELETE";
+}
+
+export async function initTables(db: ISqlDatabase, options: InitTablesOptions = {}): Promise<void> {
   await db.execute("PRAGMA foreign_keys = ON;");
-  await db.execute("PRAGMA journal_mode = WAL;");
+  await db.execute(`PRAGMA journal_mode = ${options.journalMode ?? "WAL"};`);
   await db.execute("PRAGMA synchronous = NORMAL;");
 
+  // Porządki startowe i migracje nie trafiają do historii zmian.
+  await dropAuditTriggers(db);
   await migrateDatabase(db);
 
   await runOnce(db, "jrwa_cleanup_v1", () => cleanupPoisonedJrwaCases(db));
@@ -70,6 +78,8 @@ export async function initTables(db: ISqlDatabase): Promise<void> {
     throw error;
   }
   await importStoredClosedMonths(db);
+  await pruneChangeLog(db);
+  await installAuditTriggers(db);
 }
 
 async function importStoredClosedMonths(db: ISqlDatabase): Promise<void> {

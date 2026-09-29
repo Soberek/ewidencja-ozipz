@@ -107,8 +107,9 @@ export function ConfirmDialog({
               </DialogTitle>
             </div>
           </div>
-          <DialogDescription className="text-xs text-muted-foreground mt-2 leading-relaxed">
-            {description}
+          {/* div zamiast p: opis bywa listą lub kilkoma akapitami, a <p> nie może ich zawierać. */}
+          <DialogDescription asChild>
+            <div className="text-xs text-muted-foreground mt-2 leading-relaxed">{description}</div>
           </DialogDescription>
           {confirmError && (
             <p role="alert" className="mt-2 text-xs font-medium text-destructive">

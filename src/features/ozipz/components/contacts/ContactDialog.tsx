@@ -3,8 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ModalDialog } from "@/components/ui/modal-dialog";
 import { Input } from "@/components/ui/input";
-import { Select, type SelectOption } from "@/components/ui/select";
-import { Autocomplete, type AutocompleteOption } from "@/components/ui/autocomplete";
+import { Select } from "@/components/ui/select";
+import { Autocomplete } from "@/components/ui/autocomplete";
 import {
   User,
   Phone,
@@ -14,7 +14,6 @@ import {
   Briefcase,
   FileText,
   Contact,
-  School,
   AlertTriangle,
   Wand2,
 } from "lucide-react";
@@ -22,6 +21,7 @@ import type { OzipzContact, OzipzFacility, OzipzDictionaryItem } from "../../typ
 import { ContactSchema } from "../../schemas/ozipz.schemas";
 import { z } from "zod";
 import { findDuplicateContacts, formatPhone, isValidEmail } from "./contactUtils";
+import { useContactDialogOptions } from "./useContactDialogOptions";
 
 const ContactFormSchema = ContactSchema.omit({
   id: true,
@@ -67,55 +67,7 @@ export function ContactDialog({
   onSave,
   onUpdate,
 }: ContactDialogProps) {
-  const dynamicPositions: string[] = useMemo(() => {
-    return Array.from(
-      new Set(
-        positions
-          .map((p) => {
-            if (typeof p === "string") return p.trim();
-            if (p && typeof p === "object") return (p.label || p.code || "").trim();
-            return "";
-          })
-          .filter(Boolean)
-      )
-    );
-  }, [positions]);
-
-  const dynamicMunicipalities: string[] = useMemo(() => {
-    return Array.from(
-      new Set(
-        municipalities
-          .map((m) => (typeof m === "string" ? m.trim() : ""))
-          .filter(Boolean)
-      )
-    );
-  }, [municipalities]);
-
-  const facilityAutocompleteOptions: AutocompleteOption[] = useMemo(() => {
-    return facilities.map((f) => {
-      const groupLabel = f.municipality
-        ? f.municipality.toLowerCase().startsWith("gmina")
-          ? f.municipality
-          : `Gmina ${f.municipality}`
-        : "Inne";
-
-      return {
-        value: f.id,
-        label: f.name,
-        group: groupLabel,
-        description: `${f.address}, ${f.city}`,
-        icon: f.isComplex ? Building2 : School,
-        badge: f.isComplex ? "Zespół" : undefined,
-      };
-    });
-  }, [facilities]);
-
-  const municipalityOptions: SelectOption[] = useMemo(() => {
-    return dynamicMunicipalities.map((m) => ({
-      value: m,
-      label: m,
-    }));
-  }, [dynamicMunicipalities]);
+  const { dynamicPositions, facilityAutocompleteOptions, municipalityOptions } = useContactDialogOptions(positions, municipalities, facilities);
 
   const {
     register,

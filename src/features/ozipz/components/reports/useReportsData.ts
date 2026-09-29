@@ -1,4 +1,6 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { toast } from "sonner";
+import { OzipzDbService } from "../../../../db/client";
 import type { OzipzAction } from "../../types/ozipz.types";
 import { isProgramAction } from "../../utils/ozipzCalculations";
 import {
@@ -39,7 +41,6 @@ export function useReportsData({
   const effectiveNamesMap = customInterventionNames ?? dictStore.jrwaInterventionNamesMap;
 
   const [metricPlan, setMetricPlan] = useState<MetricPlanState>(emptyMetricPlan);
-  const metricPlanDirtyRef = useRef(false);
   const [preparedPersonId, setPreparedPersonId] = useState<string>("");
 
 
@@ -55,34 +56,25 @@ export function useReportsData({
     return list.map((name) => ({ id: name, name }));
   }, [allActions]);
 
-  // Wczytywanie planu z localStorage
+  // Plan miernika trzymamy w bazie, więc trafia do kopii zapasowej.
   useEffect(() => {
-    const key = `ozipz_metric_plan_${year}`;
-    const raw = localStorage.getItem(key);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        setMetricPlan({
-          razemDzialania: parsed.razemDzialania ?? null,
-          razemUczestnicy: parsed.razemUczestnicy ?? null,
-          programyDzialania: parsed.programyDzialania ?? null,
-          programyUczestnicy: parsed.programyUczestnicy ?? null,
-        });
-        metricPlanDirtyRef.current = false;
-        return;
-      } catch {
-        // błąd parsowania
-      }
-    }
-    setMetricPlan(emptyMetricPlan);
-    metricPlanDirtyRef.current = false;
+    let cancelled = false;
+    OzipzDbService.getMetricPlan(year)
+      .then((plan) => {
+        if (!cancelled) setMetricPlan(plan ?? emptyMetricPlan);
+      })
+      .catch(() => {
+        if (!cancelled) setMetricPlan(emptyMetricPlan);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [year]);
 
   const handlePersistMetricPlan = (updatedPlan?: MetricPlanState) => {
-    const planToSave = updatedPlan || metricPlan;
-    const key = `ozipz_metric_plan_${year}`;
-    localStorage.setItem(key, JSON.stringify(planToSave));
-    metricPlanDirtyRef.current = false;
+    OzipzDbService.saveMetricPlan(year, updatedPlan || metricPlan).catch(() => {
+      toast.error("Nie udało się zapisać planu miernika");
+    });
   };
 
   // Helper do bezpiecznego wyciągania roku i miesiąca

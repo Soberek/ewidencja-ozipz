@@ -85,7 +85,7 @@ export function ParticipationProgramFacilityFields({
   }, [facilities, registeredFacilityIds]);
 
   const selectedFacility = facilities.find((f) => f.id === selectedFacId);
-  const duplicate = selectedFacId ? programYearEntries.find((p) => p.facilityId === selectedFacId) : undefined;
+  const existingEntries = selectedFacId ? programYearEntries.filter((p) => p.facilityId === selectedFacId) : [];
   const yearTotals = useMemo(
     () => ({
       facilities: programYearEntries.length,
@@ -172,11 +172,14 @@ export function ParticipationProgramFacilityFields({
             Gmina {selectedFacility.municipality} · {selectedFacility.address}, {selectedFacility.postalCode} {selectedFacility.city}
           </p>
         )}
-        {duplicate && (
+        {existingEntries.length > 0 && (
           <p role="alert" className="flex items-start gap-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-            Ta placówka jest już zgłoszona do tego programu w roku {duplicate.schoolYear}
-            {duplicate.schoolCoordinatorName ? ` (koordynator: ${duplicate.schoolCoordinatorName})` : ""}. Edytuj istniejące zgłoszenie.
+            <span>
+              Ta placówka jest już zgłoszona do tego programu w roku {schoolYear}
+              {" "}(koordynator: {existingEntries.map((p) => p.schoolCoordinatorName || "—").join(", ")}).
+              Kolejne zgłoszenie dodaj tylko z innym koordynatorem, np. dla drugiego budynku — lokalizację wpisz w uwagach.
+            </span>
           </p>
         )}
       </div>

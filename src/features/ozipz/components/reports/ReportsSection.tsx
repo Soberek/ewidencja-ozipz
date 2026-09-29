@@ -55,7 +55,7 @@ export function ReportsSection(props: ReportsSectionProps) {
   const municipalities = props.municipalities ?? dictStore.municipalities.map((m) => m.label || m.code);
 
   const [exportOpen, setExportOpen] = useState(false);
-  const [year, setYear] = useState<number>(2026);
+  const [year, setYear] = useState<number>(() => new Date().getFullYear());
   const [months, setMonths] = useState<number[]>([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   const [reportMode, setReportMode] = useState<ReportViewMode>(props.initialMode ?? "summary");
   const [breakdownSelection, setBreakdownSelection] = useState("");

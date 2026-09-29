@@ -289,7 +289,9 @@ describe("ParticipationDialog – szkolny koordynator ze Spisu Kontaktów", () =
 
   it("od razu ostrzega, że placówka jest już zgłoszona do programu w tym roku", () => {
     renderDialog({ participations: [participation({ id: "existing" })] });
-    expect(screen.getByRole("alert").textContent).toContain("jest już zgłoszona do tego programu");
+    const alert = screen.getByRole("alert").textContent;
+    expect(alert).toContain("jest już zgłoszona do tego programu");
+    expect(alert).toContain("Kolejne zgłoszenie dodaj tylko z innym koordynatorem");
   });
 
   it("nie zapisuje zgłoszenia powiązanego z usuniętym programem", async () => {

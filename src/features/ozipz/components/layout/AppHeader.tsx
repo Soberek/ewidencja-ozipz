@@ -8,6 +8,7 @@ import { useFontSize, MIN_FONT_SIZE, MAX_FONT_SIZE } from "../../hooks/useFontSi
 import { useUIStore } from "../../store/useUIStore";
 import { cn } from "@/lib/utils";
 import { resolveCurrentPage } from "./navigation";
+import { HeaderQuickTools } from "./HeaderQuickTools";
 
 const APP_TITLE = "Ewidencja OZiPZ";
 
@@ -86,6 +87,8 @@ export function AppHeader({ isLoading }: AppHeaderProps) {
       </div>
 
       <div className="relative flex items-center gap-1">
+        <HeaderQuickTools />
+
         {/* Skalowanie interfejsu */}
         <div className="flex items-center gap-0.5 rounded-[3px] border border-border bg-muted/60 p-0.5">
           <Button

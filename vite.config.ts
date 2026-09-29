@@ -28,6 +28,12 @@ export default defineConfig({
     globals: true,
     testTimeout: 15000,
     hookTimeout: 15000,
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/**/*.test.{ts,tsx}", "src/**/*.d.ts", "src/main.tsx"],
+      reporter: ["text-summary", "html"],
+    },
     poolOptions: {
       forks: {
         maxForks: 4,

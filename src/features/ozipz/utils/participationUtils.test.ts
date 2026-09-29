@@ -25,6 +25,11 @@ describe("udział placówki w programie", () => {
     expect(findDuplicateParticipation([entry], { ...entry, schoolYear: "2027/2028" })).toBeUndefined();
     expect(findDuplicateParticipation([entry], { ...entry, programId: "inny" })).toBeUndefined();
   });
+  it("pozwala zgłosić tę samą szkołę drugi raz z innym koordynatorem (np. drugi budynek)", () => {
+    const withCoordinator = { ...entry, schoolCoordinatorName: "Anna Nowak" };
+    expect(findDuplicateParticipation([withCoordinator], { ...withCoordinator, schoolCoordinatorName: "Jan Kowalski" })).toBeUndefined();
+    expect(findDuplicateParticipation([withCoordinator], { ...withCoordinator, schoolCoordinatorName: " anna  NOWAK " })).toBe(withCoordinator);
+  });
   it("rozpoznaje starsze wpisy bez identyfikatora i rozróżnia placówki", () => {
     expect(findDuplicateParticipation([{ ...entry, facilityId: "" }], { ...entry, facilityName: " SZKOŁA " })).toBeDefined();
     expect(findDuplicateParticipation([entry], { ...entry, facilityId: "inna" })).toBeUndefined();

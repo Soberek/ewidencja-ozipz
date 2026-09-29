@@ -6,6 +6,10 @@ import { executeConfirmedAction } from "@/components/ui/confirmHelper";
 import type { ColumnDef } from "@/components/ui/data-table";
 import type { OzipzLetter } from "../../../types/ozipz.types";
 import { RowActionButton } from "@/components/ui/row-action-button";
+import { describeDaysLeft, letterDeadlineState } from "../../../utils/deadlineUtils";
+import { formatDatePl } from "../../../utils/dateUtils";
+
+const DEADLINE_VARIANTS = { overdue: "destructive-soft", today: "warning-soft", soon: "info-soft" } as const;
 
 interface CreateLetterColumnsOptions {
   onEdit: (letter: OzipzLetter) => void;
@@ -92,6 +96,23 @@ export function createLetterColumns({
           {row.assignedPerson}
         </span>
       ),
+    },
+    {
+      id: "responseDueDate",
+      header: "Termin",
+      sortable: true,
+      accessorKey: "responseDueDate",
+      width: "120px",
+      cell: ({ row }) => {
+        if (!row.responseDueDate) return <span className="text-muted-foreground">—</span>;
+        const state = letterDeadlineState(row);
+        return (
+          <span className="flex flex-col items-start gap-0.5 text-xs">
+            <span>{formatDatePl(row.responseDueDate)}</span>
+            {state && state.daysLeft <= 7 && <Badge variant={DEADLINE_VARIANTS[state.severity]} className="text-[10px]">{describeDaysLeft(state.daysLeft)}</Badge>}
+          </span>
+        );
+      },
     },
     {
       id: "status",

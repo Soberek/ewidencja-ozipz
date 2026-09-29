@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { DictionaryDialog } from "./DictionaryDialog";
 import type { OzipzDictionaryItem } from "../../types/ozipz.types";
 import { useOzipzDbStore } from "../../store/useOzipzDbStore";
@@ -193,6 +193,7 @@ describe("DictionaryDialog Component", () => {
     fireEvent.click(screen.getByRole("button", { name: /Dodaj do Słownika/i }));
     await waitFor(() => expect(screen.getAllByText(/jest już używany przez pozycję/).length).toBeGreaterThan(0));
     expect(handleSave).not.toHaveBeenCalled();
+    cleanup();
     useOzipzDbStore.setState({ dictionaryItems: [] });
   });
 });

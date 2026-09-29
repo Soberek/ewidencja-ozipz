@@ -1,2 +1,5 @@
 allowBuilds:
   esbuild: true
+overrides:
+  # exceljs zależy od uuid 8 (GHSA-w5hq-g745-h8pq); API v4 jest zgodne.
+  uuid: ">=11.1.1"

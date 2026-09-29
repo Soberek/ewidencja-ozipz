@@ -7,6 +7,7 @@ import type {
 } from "../features/ozipz/types/ozipz.types";
 import type { IOzipzDatabaseService, CompanionDistributionPayload, SaveActionWithRelationsParams, SaveActionWithRelationsResult } from "./types";
 import type { OzipzYearlyMonthlyTargets } from "../features/ozipz/utils/monthlyTargetsUtils";
+import type { MetricPlanState } from "../features/ozipz/components/reports/components/reportConstants";
 import { FallbackActionsRepository } from "./repositories/fallback/fallback-actions.repository";
 import { FallbackProgramsRepository } from "./repositories/fallback/fallback-programs.repository";
 import { FallbackMaterialsRepository } from "./repositories/fallback/fallback-materials.repository";
@@ -18,6 +19,7 @@ import { FallbackStaffContactsRepository } from "./repositories/fallback/fallbac
 import { FallbackRegistryRepository } from "./repositories/fallback/fallback-registry.repository";
 import { FallbackMonthlyTargetsRepository } from "./repositories/fallback/fallback-monthly-targets.repository";
 import { getStoredClosedMonths } from "../features/ozipz/utils/dateUtils";
+import type { ChangeLogEntry } from "./change-log";
 
 export class FallbackDatabaseService implements IOzipzDatabaseService {
   private readonly actionsRepo: FallbackActionsRepository;
@@ -141,4 +143,11 @@ export class FallbackDatabaseService implements IOzipzDatabaseService {
   // Monthly Targets
   getMonthlyTargets(year?: number): Promise<OzipzMonthlyTarget[]> { return this.monthlyTargetsRepo.getMonthlyTargets(year); }
   saveMonthlyTargets(year: number, targets: OzipzYearlyMonthlyTargets): Promise<OzipzMonthlyTarget[]> { return this.monthlyTargetsRepo.saveMonthlyTargets(year, targets); }
+  getMetricPlan(year: number): Promise<MetricPlanState | null> { return this.monthlyTargetsRepo.getMetricPlan(year); }
+  saveMetricPlan(year: number, plan: MetricPlanState): Promise<void> { return this.monthlyTargetsRepo.saveMetricPlan(year, plan); }
+  // Historia zmian wymaga SQLite; tryb awaryjny jej nie prowadzi.
+  async getChangeLog(): Promise<ChangeLogEntry[]> { return []; }
+  async getRecordHistory(): Promise<ChangeLogEntry[]> { return []; }
+  async getRestoreGroup(): Promise<ChangeLogEntry[]> { return []; }
+  async restoreChange(): Promise<number> { throw new Error("Kosz i historia zmian są dostępne tylko w bazie SQLite."); }
 }

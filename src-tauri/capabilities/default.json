@@ -9,7 +9,6 @@
     "sql:allow-execute",
     "sql:allow-select",
     "dialog:default",
-    "fs:default",
     "updater:default",
     "process:allow-restart"
   ]

@@ -24,15 +24,25 @@ export function schoolYearOptions(used: Array<string | null | undefined> = [], d
   return Array.from(years).sort().reverse();
 }
 
-type ParticipationIdentity = Pick<OzipzSchoolParticipation, "programId" | "facilityId" | "facilityName" | "municipality" | "schoolYear">;
-const normalize = (value: string) => value.trim().replace(/\s+/g, " ").toLocaleLowerCase("pl");
+type FacilityIdentity = Pick<OzipzSchoolParticipation, "facilityId" | "facilityName" | "municipality">;
+type ParticipationIdentity = FacilityIdentity & Pick<OzipzSchoolParticipation, "programId" | "schoolYear" | "schoolCoordinatorName">;
+const normalize = (value: string | null | undefined) => String(value ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase("pl");
 
+function sameFacility(a: FacilityIdentity, b: FacilityIdentity): boolean {
+  return a.facilityId && b.facilityId
+    ? a.facilityId === b.facilityId
+    : normalize(a.facilityName) === normalize(b.facilityName) && normalize(a.municipality) === normalize(b.municipality);
+}
+
+/**
+ * Szkoła może mieć w jednym programie i roku kilka zgłoszeń — np. dwa budynki z osobnymi koordynatorami.
+ * Duplikatem jest dopiero zgłoszenie tej samej placówki z tym samym koordynatorem.
+ */
 export function findDuplicateParticipation(entries: OzipzSchoolParticipation[], candidate: ParticipationIdentity, editingId?: string) {
   return entries.find((entry) => entry.id !== editingId &&
     entry.programId === candidate.programId && entry.schoolYear.trim() === candidate.schoolYear.trim() &&
-    (entry.facilityId && candidate.facilityId
-      ? entry.facilityId === candidate.facilityId
-      : normalize(entry.facilityName) === normalize(candidate.facilityName) && normalize(entry.municipality) === normalize(candidate.municipality)));
+    sameFacility(entry, candidate) &&
+    normalize(entry.schoolCoordinatorName) === normalize(candidate.schoolCoordinatorName));
 }
 
 /** „telefon / e-mail” – zapis kontaktu koordynatora przechowywany w zgłoszeniu (ten sam format co trigger SQLite). */

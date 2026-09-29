@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
+import { OzipzDbService } from "../../../../db/client";
+import { emptyMetricPlan } from "./components/reportConstants";
 import { useReportsData } from "./useReportsData";
 import type { OzipzAction } from "../../types/ozipz.types";
 
@@ -196,29 +198,24 @@ describe("useReportsData Hook", () => {
     expect(result.current.metricSummary.programPeoplePercent).toBe(50);
   });
 
-  it("persists metricPlan to localStorage with handlePersistMetricPlan", () => {
-    const { result } = renderHook(() =>
-      useReportsData({
-        allActions: mockActions,
-        year: 2026,
-        months: [5],
-      })
-    );
-
+  it("persists metricPlan in the database and loads it back for the same year", async () => {
     const newPlan = {
       razemDzialania: 10,
       razemUczestnicy: 500,
       programyDzialania: 5,
       programyUczestnicy: 250,
     };
-
+    const first = renderHook(() => useReportsData({ allActions: mockActions, year: 2026, months: [5] }));
     act(() => {
-      result.current.handlePersistMetricPlan(newPlan);
+      first.result.current.handlePersistMetricPlan(newPlan);
     });
+    await waitFor(async () => expect(await OzipzDbService.getMetricPlan(2026)).toEqual(newPlan));
+    first.unmount();
 
-    const stored = localStorage.getItem("ozipz_metric_plan_2026");
-    expect(stored).toBeDefined();
-    expect(JSON.parse(stored!)).toEqual(newPlan);
+    const reopened = renderHook(() => useReportsData({ allActions: mockActions, year: 2026, months: [5] }));
+    await waitFor(() => expect(reopened.result.current.metricPlan).toEqual(newPlan));
+    const otherYear = renderHook(() => useReportsData({ allActions: mockActions, year: 2027, months: [5] }));
+    await waitFor(() => expect(otherYear.result.current.metricPlan).toEqual(emptyMetricPlan));
   });
 
   it("handles XLSX export call and sets success message", async () => {

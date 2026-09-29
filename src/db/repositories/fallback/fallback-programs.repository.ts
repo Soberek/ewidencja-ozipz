@@ -11,6 +11,7 @@ import type {
 import type { IProgramsRepository } from "../interfaces";
 import { generateId } from "../id-generator";
 import { loadFromStorage, saveToStorage } from "./storage";
+import { findDuplicateParticipation } from "../../../features/ozipz/utils/participationUtils";
 
 export class FallbackProgramsRepository implements IProgramsRepository {
   async getPrograms(): Promise<OzipzProgram[]> {
@@ -82,9 +83,9 @@ export class FallbackProgramsRepository implements IProgramsRepository {
     saveToStorage("participations", list.map((p) => (p.id === id ? { ...p, ...updates, updatedAt: now } : p)));
   }
 
-  private assertUniqueParticipation(list: OzipzSchoolParticipation[], part: Pick<OzipzSchoolParticipation, "programId" | "facilityId" | "schoolYear">): void {
-    if (list.some((row) => row.programId === part.programId && row.facilityId === part.facilityId && row.schoolYear === part.schoolYear)) {
-      throw new Error("Placówka jest już zgłoszona do tego programu w wybranym roku szkolnym.");
+  private assertUniqueParticipation(list: OzipzSchoolParticipation[], part: Omit<OzipzSchoolParticipation, "id" | "createdAt" | "updatedAt">): void {
+    if (findDuplicateParticipation(list, part)) {
+      throw new Error("Placówka ma już zgłoszenie do tego programu w wybranym roku z tym samym koordynatorem.");
     }
   }
 

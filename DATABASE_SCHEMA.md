@@ -513,18 +513,3 @@ W systemie występuje **11 aktywnych kategorii słowników**:
 
 > [!WARNING]
 > Symbole `070` oraz `9010` **nie istnieją** w systemie OZiPZ. Sprawozdawczość statystyczna ma symbol **`0442`**.
-
-## Moduł Asystent AI — oddzielna baza lokalna
-
-Asystent korzysta z `<app_data_dir>/assistant/assistant.db`, niezależnie od `ozipz.db`; nie zmienia dotychczasowych tabel ewidencji. Migracja idempotentna znajduje się w `src-tauri/src/assistant/storage.rs`.
-
-| Tabela | Pola / przeznaczenie |
-|---|---|
-| `assistant_settings` | `id` (jedyny rekord: 1), `value` (JSON konfiguracji wspólnego folderu `rootFolder`, automatycznie wykrywanych podfolderów programów, modelu, domen, szablonu i zatwierdzonego stylu; bez klucza API) |
-| `assistant_documents` | `path`, `program` (stabilny identyfikator podfolderu programu), `version` (SHA-256), `status`; klucz złożony `(path, program)` |
-| `assistant_chunks` | FTS5: `id`, `program`, `path`, `location`, `version`, `text`; pełnotekstowo indeksowany tylko `text` |
-| `assistant_drafts` | `id`, `value` (JSON projektu, faktów, źródeł, braków, kontroli i rozmowy), `updated_at` |
-| `assistant_usage` | `id`, `month` (UTC YYYY-MM), `cost` (USD), `status`, `model`; indeks po miesiącu |
-| `assistant_web` | `url`, `value` (JSON pobranej treści, daty pobrania i wersji) |
-
-Identyfikator `program` w indeksie oznacza podfolder programu odkryty we wspólnym folderze materiałów, nie klucz obcy do tabeli z osobnej bazy. Dalsze podfoldery (np. roczniki) pozostają w obrębie tego programu. Starsza konfiguracja bez `rootFolder` jest nadal odczytywana; po wskazaniu folderu głównego lista programów jest wyliczana automatycznie. Rejestracja pisma korzysta z istniejącego formularza i relacji `ozipz_letters.program_id`; nie tworzy automatycznie rekordu. Standardowa kopia zapasowa `ozipz.db` nie zawiera danych asystenta. Instrukcja konfiguracji i odbioru: `docs/ASYSTENT_AI.md`.

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { ActionEditorSection } from "./ActionEditorSection";
@@ -88,10 +88,12 @@ describe("Quick form integration", () => {
     expect(screen.getByLabelText("Tytuł działania *")).toBeDisabled();
   });
 
-  it("does not turn a stale edit link into a new action", () => {
+  it("does not turn a stale edit link into a new action", async () => {
     render(<MemoryRouter initialEntries={["/dzialania/missing/edytuj"]}><Routes>
       <Route path="/dzialania/:id/edytuj" element={<ActionEditorSection />} />
     </Routes></MemoryRouter>);
+    // Edytor po wyrenderowaniu wczytuje w tle blokady miesięcy — czekamy, aż skończy.
+    await act(async () => {});
     expect(screen.getByRole("alert")).toHaveTextContent("Nie znaleziono działania");
     expect(screen.queryByRole("button", { name: "Zapisz działanie" })).toBeNull();
   });

@@ -4,9 +4,45 @@ import { Mappers } from "../../mappers";
 import type { IMonthlyTargetsRepository } from "../interfaces";
 import type { OzipzYearlyMonthlyTargets } from "../../../features/ozipz/utils/monthlyTargetsUtils";
 import { generateId } from "../id-generator";
+import { parseMetricPlan, type MetricPlanState } from "../../../features/ozipz/components/reports/components/reportConstants";
+
+const metricPlanKey = (year: number) => `metric_plan:${year}`;
+
+function parseJsonPlan(value: string): MetricPlanState | null {
+  try {
+    return parseMetricPlan(JSON.parse(value));
+  } catch {
+    return null;
+  }
+}
 
 export class SqliteMonthlyTargetsRepository implements IMonthlyTargetsRepository {
   constructor(private readonly db: ISqlDatabase) {}
+
+  async getMetricPlan(year: number): Promise<MetricPlanState | null> {
+    const rows = await this.db.select<Array<{ value: string }>>("SELECT value FROM ozipz_meta WHERE key = $1", [metricPlanKey(year)]);
+    if (rows[0]) return parseJsonPlan(rows[0].value);
+    return this.importLegacyMetricPlan(year);
+  }
+
+  /** Wersje do 1.1.0 trzymały plan w pamięci przeglądarki — przenosimy go do bazy przy pierwszym odczycie. */
+  private async importLegacyMetricPlan(year: number): Promise<MetricPlanState | null> {
+    const legacyKey = `ozipz_metric_plan_${year}`;
+    let legacy: MetricPlanState | null = null;
+    try {
+      legacy = parseJsonPlan(globalThis.localStorage?.getItem(legacyKey) ?? "null");
+    } catch {
+      return null;
+    }
+    if (!legacy) return null;
+    await this.saveMetricPlan(year, legacy);
+    try { globalThis.localStorage.removeItem(legacyKey); } catch { /* plan jest już w bazie */ }
+    return legacy;
+  }
+
+  async saveMetricPlan(year: number, plan: MetricPlanState): Promise<void> {
+    await this.db.execute("INSERT OR REPLACE INTO ozipz_meta (key, value) VALUES ($1, $2)", [metricPlanKey(year), JSON.stringify(plan)]);
+  }
 
   async getMonthlyTargets(year?: number): Promise<OzipzMonthlyTarget[]> {
     const query = year !== undefined

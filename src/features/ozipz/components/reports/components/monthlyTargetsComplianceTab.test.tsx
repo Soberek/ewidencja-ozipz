@@ -93,6 +93,7 @@ describe("MonthlyTargetsComplianceTab", () => {
     fireEvent.click(confirmBtn);
 
     // Save button should now be enabled (dirty state)
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Wyczyść plan" })).toBeNull());
     const saveButton = screen.getByRole("button", { name: /Zapisz Plan/i });
     expect(saveButton.hasAttribute("disabled")).toBe(false);
   });

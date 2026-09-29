@@ -1,3 +1,4 @@
+import { parseRow } from "./parse-row";
 import {
   LetterSchema,
   ScanSchema,
@@ -39,10 +40,11 @@ export const SecondaryMappers = {
       assignedPerson: row.assigned_person || "",
       status: row.status || "nowe",
       notes: row.notes || undefined,
+      responseDueDate: row.response_due_date || undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-    return LetterSchema.parse(raw);
+    return parseRow(LetterSchema, raw, "Letter");
   },
 
   toScan(row: ScanSqlRow): OzipzScan {
@@ -61,7 +63,7 @@ export const SecondaryMappers = {
       notes: row.notes || undefined,
       createdAt: row.created_at,
     };
-    return ScanSchema.parse(raw);
+    return parseRow(ScanSchema, raw, "Scan");
   },
 
   toTemplate(row: TemplateSqlRow): OzipzTemplate {
@@ -85,7 +87,7 @@ export const SecondaryMappers = {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-    return TemplateSchema.parse(raw);
+    return parseRow(TemplateSchema, raw, "Template");
   },
 
   toStaff(row: StaffSqlRow): OzipzStaff {
@@ -100,7 +102,7 @@ export const SecondaryMappers = {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-    return StaffSchema.parse(raw);
+    return parseRow(StaffSchema, raw, "Staff");
   },
 
   toContact(row: ContactSqlRow): OzipzContact {
@@ -117,7 +119,7 @@ export const SecondaryMappers = {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-    return ContactSchema.parse(raw);
+    return parseRow(ContactSchema, raw, "Contact");
   },
 
   toRegister(row: RegisterSqlRow): OzipzRegisterItem {
@@ -142,7 +144,7 @@ export const SecondaryMappers = {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-    return RegisterItemSchema.parse(raw);
+    return parseRow(RegisterItemSchema, raw, "RegisterItem");
   },
 
   toMonthlyTarget(row: MonthlyTargetSqlRow): OzipzMonthlyTarget {
@@ -158,6 +160,6 @@ export const SecondaryMappers = {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-    return MonthlyTargetSchema.parse(raw);
+    return parseRow(MonthlyTargetSchema, raw, "MonthlyTarget");
   },
 };

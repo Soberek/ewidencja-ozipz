@@ -7,7 +7,6 @@ export const HealthPromotionTabSchema = z.enum([
   "dzialania",
   "harmonogram",
   "pisma",
-  "asystent",
   "rozdzielniki",
   "rejestry",
   "sprawozdania",
@@ -26,6 +25,7 @@ export const HealthPromotionTabSchema = z.enum([
   "ustawienia",
   "lista-obecnosci",
   "druk-rozdzielnika",
+  "historia",
 ]);
 
 export const OzipzActionTypeSchema = z.string().min(1, "Typ działania jest wymagany");

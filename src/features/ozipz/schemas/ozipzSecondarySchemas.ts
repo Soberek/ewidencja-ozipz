@@ -102,6 +102,8 @@ export const LetterSchema = z.object({
   assignedPerson: z.string().optional().default(""),
   status: z.string().default("nowe"),
   notes: z.string().optional(),
+  /** Termin odpowiedzi lub załatwienia sprawy (RRRR-MM-DD) — źródło przypomnień na pulpicie. */
+  responseDueDate: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

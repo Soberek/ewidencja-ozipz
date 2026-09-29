@@ -48,6 +48,22 @@ export interface MetricPlanState {
   programyUczestnicy: number;
 }
 
+/** Plan z zapisu (JSON) — brakujące lub błędne pola dostają wartości domyślne. */
+export function parseMetricPlan(value: unknown): MetricPlanState | null {
+  if (typeof value !== "object" || value === null) return null;
+  const raw = value as Record<string, unknown>;
+  const pick = (key: keyof MetricPlanState) => {
+    const n = Number(raw[key]);
+    return Number.isFinite(n) && n >= 0 ? Math.round(n) : emptyMetricPlan[key];
+  };
+  return {
+    razemDzialania: pick("razemDzialania"),
+    razemUczestnicy: pick("razemUczestnicy"),
+    programyDzialania: pick("programyDzialania"),
+    programyUczestnicy: pick("programyUczestnicy"),
+  };
+}
+
 export const emptyMetricPlan: MetricPlanState = {
   razemDzialania: 300,
   razemUczestnicy: 8000,

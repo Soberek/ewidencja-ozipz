@@ -1,3 +1,4 @@
+import { parseRow } from "./parse-row";
 import {
   ActionSchema,
   ProgramSchema,
@@ -93,7 +94,7 @@ export const Mappers = {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-    return ProgramSchema.parse(raw);
+    return parseRow(ProgramSchema, raw, "Program");
   },
 
   toParticipation(row: ParticipationSqlRow): OzipzSchoolParticipation {
@@ -118,7 +119,7 @@ export const Mappers = {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-    return SchoolParticipationSchema.parse(raw);
+    return parseRow(SchoolParticipationSchema, raw, "SchoolParticipation");
   },
 
   toMaterial(row: MaterialSqlRow): OzipzMaterial {
@@ -133,7 +134,7 @@ export const Mappers = {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-    return MaterialSchema.parse(raw);
+    return parseRow(MaterialSchema, raw, "Material");
   },
 
   toDistribution(row: DistributionSqlRow): OzipzDistribution {
@@ -155,7 +156,7 @@ export const Mappers = {
       createdAt: row.created_at,
       updatedAt: row.updated_at || undefined,
     };
-    return DistributionSchema.parse(raw);
+    return parseRow(DistributionSchema, raw, "Distribution");
   },
 
   toSchedule(row: ScheduleSqlRow): OzipzScheduleEvent {
@@ -192,7 +193,7 @@ export const Mappers = {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-    return ScheduleEventSchema.parse(raw);
+    return parseRow(ScheduleEventSchema, raw, "ScheduleEvent");
   },
 
   toJrwa(row: JrwaSqlRow): OzipzJrwaCase {
@@ -220,7 +221,7 @@ export const Mappers = {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-    return JrwaCaseSchema.parse(raw);
+    return parseRow(JrwaCaseSchema, raw, "JrwaCase");
   },
 
   toPublication(row: PublicationSqlRow): OzipzPublication {
@@ -238,7 +239,7 @@ export const Mappers = {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-    return PublicationSchema.parse(raw);
+    return parseRow(PublicationSchema, raw, "Publication");
   },
 
   toFacility(row: FacilitySqlRow): OzipzFacility {
@@ -276,7 +277,7 @@ export const Mappers = {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-    return FacilitySchema.parse(raw);
+    return parseRow(FacilitySchema, raw, "Facility");
   },
 
   toDictionary(row: DictionarySqlRow): OzipzDictionaryItem {
@@ -293,7 +294,7 @@ export const Mappers = {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-    return DictionaryItemSchema.parse(raw);
+    return parseRow(DictionaryItemSchema, raw, "DictionaryItem");
   },
 
   ...SecondaryMappers,

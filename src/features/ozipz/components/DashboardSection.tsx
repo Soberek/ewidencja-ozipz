@@ -16,6 +16,8 @@ import { DashboardQuickActions } from "./dashboard/DashboardQuickActions";
 import { DashboardRecentActionsCard } from "./dashboard/DashboardRecentActionsCard";
 import { DashboardActivityTypeCard } from "./dashboard/DashboardActivityTypeCard";
 import { DashboardCurrentMonthPlanCard } from "./dashboard/DashboardCurrentMonthPlanCard";
+import { DashboardDeadlinesCard } from "./dashboard/DashboardDeadlinesCard";
+import { collectDeadlines } from "../utils/deadlineUtils";
 
 export interface DashboardSectionProps {
   actions?: OzipzAction[];
@@ -62,7 +64,6 @@ export function DashboardSection(props: DashboardSectionProps) {
         "slownik-dzialania": "/slowniki?kategoria=activityType",
         "opisy-zadan": "/opisy-zadan",
         pisma: "/pisma",
-        asystent: "/asystent",
         skany: "/skany",
         publikacje: "/publikacje",
         osoby: "/osoby",
@@ -79,6 +80,12 @@ export function DashboardSection(props: DashboardSectionProps) {
   const onOpenAddDistribution = props.onOpenAddDistribution ?? (() => openModal("distribution"));
   const onNavigateTab = handleNavigateTab;
   const recipients = useMemo(() => calculateTotalRecipients(actions), [actions]);
+  const letters = store.letters;
+  const closedMonths = store.closedMonths;
+  const deadlines = useMemo(
+    () => collectDeadlines({ letters: letters ?? [], scheduleEvents, actions, programs, closedMonths: closedMonths ?? [] }),
+    [letters, scheduleEvents, actions, programs, closedMonths]
+  );
 
   const recentActions = useMemo(() => {
     return [...actions]
@@ -127,6 +134,9 @@ export function DashboardSection(props: DashboardSectionProps) {
           onOpenAddParticipation={onOpenAddParticipation}
           onOpenAddDistribution={onOpenAddDistribution}
         />
+
+        {/* Terminy: pisma, harmonogram, blokada miesiąca */}
+        <DashboardDeadlinesCard deadlines={deadlines} />
 
         {/* Plan Pracy i Zadania na Bieżący Miesiąc */}
         <DashboardCurrentMonthPlanCard

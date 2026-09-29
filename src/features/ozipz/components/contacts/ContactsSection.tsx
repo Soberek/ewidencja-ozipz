@@ -8,6 +8,7 @@ import { getTodayIsoDate } from "../../utils/dateUtils";
 import { ContactsStatsHeader } from "./components/ContactsStatsHeader";
 import { ContactsFilterBar } from "./components/ContactsFilterBar";
 import { ContactsTableView } from "./components/ContactsTableView";
+import { ContactImportDialog } from "./ContactImportDialog";
 import { ContactsGroupedView } from "./components/ContactsGroupedView";
 import { ContactsResultsBar, type ContactsViewMode } from "./components/ContactsResultsBar";
 import {
@@ -72,6 +73,7 @@ export function ContactsSection(props: ContactsSectionProps) {
   const [muniFilter, setMuniFilter] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<ContactRoleFilter>("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [viewMode, setViewMode] = useState<ContactsViewMode>(() =>
@@ -223,6 +225,7 @@ export function ContactsSection(props: ContactsSectionProps) {
         onRoleFilterChange={setRoleFilter}
         incompleteCount={stats.incomplete}
         onOpenAdd={onOpenAdd}
+        onOpenImport={() => setIsImportOpen(true)}
         onClearFilters={handleClearFilters}
         isFiltered={isFiltered}
         activeFiltersCount={activeFiltersCount}
@@ -263,6 +266,7 @@ export function ContactsSection(props: ContactsSectionProps) {
           isFiltered={isFiltered}
         />
       )}
+      <ContactImportDialog isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} />
     </div>
   );
 }

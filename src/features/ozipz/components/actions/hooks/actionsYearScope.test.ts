@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act, waitFor, cleanup } from "@testing-library/react";
 import { filterActionsList, computeActiveFiltersCount, generateActiveFilterChips, type FilterChipSetters } from "./actionsFilterLogic";
 import { useActionsFiltering } from "./useActionsFiltering";
 import { useClosedMonths } from "./useClosedMonths";
@@ -61,7 +61,11 @@ describe("Filtr roku w rejestrze działań", () => {
 
 describe("Blokady miesięcy odświeżane w tle", () => {
   const originalRefresh = useOzipzDbStore.getState().refreshClosedMonths;
-  afterEach(() => useOzipzDbStore.setState({ refreshClosedMonths: originalRefresh }));
+  afterEach(() => {
+    // Odmontowanie przed przywróceniem store — inaczej hook odświeża się już po zakończeniu testu.
+    cleanup();
+    useOzipzDbStore.setState({ refreshClosedMonths: originalRefresh });
+  });
 
   it("po powrocie do okna formularz nie przechodzi w tryb wczytywania", async () => {
     let release: () => void = () => {};

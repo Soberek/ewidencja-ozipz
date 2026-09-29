@@ -32,7 +32,7 @@ export interface MonthlySummaryResult {
 
 export function calculateMonthlySummary(
   actions: OzipzAction[],
-  yearFilter: string = "2026",
+  yearFilter: string = String(new Date().getFullYear()),
   categoryFilter: ActionCategoryFilter = "all"
 ): MonthlySummaryResult {
   const monthsMeta = [

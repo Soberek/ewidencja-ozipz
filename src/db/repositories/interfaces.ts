@@ -20,6 +20,7 @@ import type {
 } from "../../features/ozipz/types/ozipz.types";
 import type { CompanionDistributionPayload, SaveActionWithRelationsParams, SaveActionWithRelationsResult } from "../types";
 import type { OzipzYearlyMonthlyTargets } from "../../features/ozipz/utils/monthlyTargetsUtils";
+import type { MetricPlanState } from "../../features/ozipz/components/reports/components/reportConstants";
 
 export interface IActionsRepository {
   getActions(): Promise<OzipzAction[]>;
@@ -124,4 +125,7 @@ export interface IRegistryRepository {
 export interface IMonthlyTargetsRepository {
   getMonthlyTargets(year?: number): Promise<OzipzMonthlyTarget[]>;
   saveMonthlyTargets(year: number, targets: OzipzYearlyMonthlyTargets): Promise<OzipzMonthlyTarget[]>;
+  /** Roczny plan miernika (działania i uczestnicy); null, gdy dla roku nie zapisano planu. */
+  getMetricPlan(year: number): Promise<MetricPlanState | null>;
+  saveMetricPlan(year: number, plan: MetricPlanState): Promise<void>;
 }

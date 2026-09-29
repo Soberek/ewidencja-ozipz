@@ -2,15 +2,15 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ModalDialog } from "@/components/ui/modal-dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect, type SelectOption } from "@/components/ui/select";
-import { Sparkles, BookOpen, Key, FileText, MapPin, Lock, AlertTriangle, Info } from "lucide-react";
+import { BookOpen, FileText, AlertTriangle, Info } from "lucide-react";
 import type { OzipzDictionaryItem, OzipzDictionaryType } from "../../types/ozipz.types";
 import { DICTIONARY_CATEGORIES_CONFIG } from "../../constants";
 import { useOzipzDbStore } from "../../store/useOzipzDbStore";
 import { normalizeDictionaryValue } from "../../utils/dictionaryUsage";
 import { JrwaClassificationFields } from "./components/JrwaClassificationFields";
+import { DictionaryCodeField, DictionaryPostalCodeField, DictionarySystemToggle } from "./components/DictionaryDialogFields";
 import { DictionaryItemSchema } from "../../schemas/ozipz.schemas";
 import { isJrwaCategory, isMunicipalityCategory } from "./dictionaryCategoryMeta";
 import { useDictionaryUsageIndex } from "./useDictionaryUsageIndex";
@@ -323,29 +323,7 @@ export function DictionaryDialog({
           )}
         </div>
 
-        {showPostalCode && (
-          <div className="space-y-1.5 p-3 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/70 dark:border-blue-800/40 rounded-[3px]">
-            <label className="text-xs font-semibold text-foreground flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-blue-950 dark:text-blue-200">
-                <MapPin className="size-3.5 text-blue-600" />
-                <span>Domyślny Kod Pocztowy Gminy</span>
-              </span>
-              <span className="text-[10.5px] font-mono text-blue-600 dark:text-blue-400 font-semibold">
-                Format: 74-XXX
-              </span>
-            </label>
-            <Input
-              type="text"
-              placeholder="np. 74-300 (Myślibórz), 74-320 (Barlinek), 74-400 (Dębno)..."
-              {...register("postalCode")}
-              className="h-8 text-xs font-mono font-semibold bg-background"
-            />
-            <p className="text-[10.5px] text-blue-800/90 dark:text-blue-300/80 leading-tight">
-              Kod pocztowy przypisany do tej gminy będzie automatycznie podpowiadany i uzupełniany przy wprowadzaniu
-              placówek oświatowych.
-            </p>
-          </div>
-        )}
+        {showPostalCode && <DictionaryPostalCodeField field={register("postalCode")} />}
 
         {showJrwaFields && (
           <JrwaClassificationFields
@@ -355,53 +333,13 @@ export function DictionaryDialog({
           />
         )}
 
-        {/* Kod / Symbol */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-foreground flex items-center justify-between">
-            <span className="flex items-center gap-1.5">
-              <Key className="size-3.5 text-primary" />
-              <span>
-                Kod / Identyfikator w Systemie <span className="text-destructive">*</span>
-              </span>
-            </span>
-            {!isCodeLocked && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleGenerateCode}
-                className="h-6 text-[11px] px-2 text-primary hover:bg-primary/10 gap-1 font-medium cursor-pointer"
-              >
-                <Sparkles className="size-3" /> Generuj z nazwy
-              </Button>
-            )}
-          </label>
-          <div className="relative">
-            <Input
-              type="text"
-              placeholder="np. prelekcja_multimedialna lub kod edu-report (np. 5xwky)"
-              {...register("code", {
-                onChange: () => {
-                  codeTouched.current = true;
-                },
-              })}
-              readOnly={isCodeLocked}
-              className={`h-9 text-xs font-mono ${isCodeLocked ? "pr-8 bg-muted/50 text-muted-foreground" : ""}`}
-            />
-            {isCodeLocked && <Lock className="absolute right-2.5 top-2.5 size-4 text-muted-foreground" />}
-          </div>
-          {errors.code && <p className="text-[10px] text-destructive font-semibold">{errors.code.message}</p>}
-          {!errors.code && duplicateCode && (
-            <p className="text-[10px] text-destructive font-semibold">
-              Kod jest już zajęty przez pozycję „{duplicateCode.label}”.
-            </p>
-          )}
-          <p className="text-[10px] text-muted-foreground">
-            {isCodeLocked
-              ? "Kod pozycji systemowej jest zablokowany — korzystają z niego raporty i automatyczne klasyfikacje."
-              : "Unikalny kod identyfikujący pozycję w relacyjnej bazie danych i filtrach. Uzupełnia się automatycznie z nazwy."}
-          </p>
-        </div>
+        <DictionaryCodeField
+          codeField={register("code", { onChange: () => { codeTouched.current = true; } })}
+          isCodeLocked={isCodeLocked}
+          codeError={errors.code?.message}
+          duplicateCode={duplicateCode}
+          onGenerateCode={handleGenerateCode}
+        />
 
         {renamedWhileUsed && (
           <div className="flex gap-2 rounded-[3px] border border-amber-300 bg-amber-50 p-2.5 text-[11px] text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
@@ -427,19 +365,7 @@ export function DictionaryDialog({
           />
         </div>
 
-        {/* Opcja pozycji systemowej */}
-        <div className="flex items-center justify-between p-3 rounded-[3px] border border-border/80 bg-muted/30">
-          <div>
-            <div className="text-xs font-semibold text-foreground">Pozycja systemowa</div>
-            <div className="text-[11px] text-muted-foreground">
-              Pozycje systemowe są chronione przed usunięciem, a ich kod nie może być zmieniany
-            </div>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" checked={isSystem} {...register("isSystem")} className="sr-only peer" />
-            <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-          </label>
-        </div>
+        <DictionarySystemToggle field={register("isSystem")} checked={Boolean(isSystem)} />
       </div>
     </ModalDialog>
   );

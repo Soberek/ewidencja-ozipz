@@ -19,6 +19,8 @@ import type {
   OzipzMonthlyTarget,
 } from "../../features/ozipz/types/ozipz.types";
 import type { OzipzYearlyMonthlyTargets } from "../../features/ozipz/utils/monthlyTargetsUtils";
+import type { MetricPlanState } from "../../features/ozipz/components/reports/components/reportConstants";
+import type { ChangeLogEntry, ChangeLogFilter } from "../change-log";
 
 /** Osobne działanie „Dystrybucja” zapisywane razem z działaniem głównym i powiązane z nim przez `linkedActionId`. */
 export type CompanionDistributionPayload = Omit<OzipzAction, "id" | "createdAt" | "updatedAt" | "linkedActionId">;
@@ -135,6 +137,14 @@ export interface IOzipzDatabaseService {
 
   getMonthlyTargets(year?: number): Promise<OzipzMonthlyTarget[]>;
   saveMonthlyTargets(year: number, targets: OzipzYearlyMonthlyTargets): Promise<OzipzMonthlyTarget[]>;
+  getMetricPlan(year: number): Promise<MetricPlanState | null>;
+  saveMetricPlan(year: number, plan: MetricPlanState): Promise<void>;
 
   getFacilityActivitySummary(facilityId: string): Promise<FacilityActivitySummary>;
+
+  /** Historia zmian i kosz (tylko SQLite). */
+  getChangeLog(filter?: ChangeLogFilter): Promise<ChangeLogEntry[]>;
+  getRecordHistory(tableName: string, rowId: string): Promise<ChangeLogEntry[]>;
+  getRestoreGroup(changeId: number): Promise<ChangeLogEntry[]>;
+  restoreChange(changeId: number): Promise<number>;
 }

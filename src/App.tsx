@@ -1,10 +1,12 @@
 import { Suspense, lazy, useCallback, useEffect, useState, ComponentType } from "react";
-import { getDatabaseInfo, retryDatabaseConnection, type DatabaseInfo } from "./db/client";
+import { getDatabaseInfo, getDatabaseLockConflict, retryDatabaseConnection, type DatabaseInfo } from "./db/client";
 import { HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import { OzipzSidebar } from "./features/ozipz/components/layout/OzipzSidebar";
 import { AppHeader } from "./features/ozipz/components/layout/AppHeader";
 import { OzipzModalRoot } from "./features/ozipz/components/modals/OzipzModalRoot";
+import { DatabaseLockedPanel, DatabaseTakeoverOverlay } from "./features/ozipz/components/layout/DatabaseLockNotice";
+import { GlobalSearchDialog } from "./features/ozipz/components/layout/GlobalSearchDialog";
 import { useOzipzDbStore } from "./features/ozipz/store/useOzipzDbStore";
 import { useKeyboardShortcuts } from "./features/ozipz/hooks/useKeyboardShortcuts";
 import { useStartupUpdateCheck } from "./hooks/useStartupUpdateCheck";
@@ -37,7 +39,6 @@ const FacilitiesSection = lazyExport(() => import("./features/ozipz/components/f
 const ReportsSection = lazyExport(() => import("./features/ozipz/components/reports/ReportsSection"), "ReportsSection");
 const JrwaSection = lazyExport(() => import("./features/ozipz/components/jrwa/JrwaSection"), "JrwaSection");
 const DictionariesSection = lazyExport(() => import("./features/ozipz/components/dictionaries/DictionariesSection"), "DictionariesSection");
-const AssistantSection = lazyExport(() => import("./features/ozipz/components/assistant/AssistantSection"), "AssistantSection");
 const LettersSection = lazyExport(() => import("./features/ozipz/components/letters/LettersSection"), "LettersSection");
 const ScansSection = lazyExport(() => import("./features/ozipz/components/scans/ScansSection"), "ScansSection");
 const PublicationsSection = lazyExport(() => import("./features/ozipz/components/publications/PublicationsSection"), "PublicationsSection");
@@ -47,6 +48,7 @@ const StaffSection = lazyExport(() => import("./features/ozipz/components/staff/
 const RegistersSection = lazyExport(() => import("./features/ozipz/components/registers/RegistersSection"), "RegistersSection");
 const AttendanceListSection = lazyExport(() => import("./features/ozipz/components/attendance/AttendanceListSection"), "AttendanceListSection");
 const RozdzielnikPrintSection = lazyExport(() => import("./features/ozipz/components/materials/RozdzielnikPrintSection"), "RozdzielnikPrintSection");
+const HistorySection = lazyExport(() => import("./features/ozipz/components/history/HistorySection"), "HistorySection");
 const SettingsSection = lazyExport(() => import("./features/ozipz/components/settings/SettingsSection"), "SettingsSection");
 
 // Map of route paths to component preloader functions
@@ -60,7 +62,6 @@ const ROUTE_PRELOADERS: Record<string, () => Promise<unknown>> = {
   "/sprawozdania": ReportsSection.preload,
   "/znaki": JrwaSection.preload,
   "/pisma": LettersSection.preload,
-  "/asystent": AssistantSection.preload,
   "/rejestry": RegistersSection.preload,
   "/materialy": MaterialsSection.preload,
   "/rozdzielniki": MaterialsSection.preload,
@@ -75,6 +76,7 @@ const ROUTE_PRELOADERS: Record<string, () => Promise<unknown>> = {
   "/slownik-dzialania": DictionariesSection.preload,
   "/opisy-zadan": TemplatesSection.preload,
   "/osoby": StaffSection.preload,
+  "/historia": HistorySection.preload,
   "/ustawienia": SettingsSection.preload,
 };
 
@@ -120,6 +122,7 @@ function AppContent() {
   const loadError = useOzipzDbStore((state) => state.loadError);
   const isInitialized = useOzipzDbStore((state) => state.isInitialized);
   const loadAll = useOzipzDbStore((state) => state.loadAll);
+  const lockConflict = loadError ? getDatabaseLockConflict() : null;
   useKeyboardShortcuts();
   useStartupUpdateCheck(isInitialized);
 
@@ -161,6 +164,8 @@ function AppContent() {
         <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-3 md:p-4 bg-muted/20">
           {pathname === "/ustawienia" ? (
             <Suspense fallback={<ViewLoadingFallback />}><SettingsSection /></Suspense>
+          ) : lockConflict ? (
+            <DatabaseLockedPanel holder={lockConflict} onRetry={() => void loadAll().then(() => getDatabaseInfo().then(setDatabaseInfo).catch(() => undefined))} />
           ) : loadError ? (
             <div role="alert" className="mx-auto mt-16 flex max-w-2xl items-center justify-between gap-4 rounded-[3px] border border-destructive/40 bg-destructive/10 p-4 text-sm">
               <div className="flex items-start gap-2">
@@ -203,7 +208,6 @@ function AppContent() {
 
                 {/* Ewidencja, Pisma, Magazyn i Archiwum */}
                 <Route path="/pisma" element={<LettersSection />} />
-                <Route path="/asystent" element={<AssistantSection />} />
                 <Route path="/rejestry" element={<RegistersSection />} />
                 <Route path="/materialy" element={<MaterialsSection defaultTab="catalog" />} />
                 <Route path="/rozdzielniki" element={<MaterialsSection defaultTab="distributions" />} />
@@ -222,6 +226,7 @@ function AppContent() {
                 <Route path="/slownik-dzialania" element={<Navigate to="/slowniki?kategoria=activityType" replace />} />
                 <Route path="/opisy-zadan" element={<TemplatesSection />} />
                 <Route path="/osoby" element={<StaffSection />} />
+                <Route path="/historia" element={<HistorySection />} />
                 <Route path="/ustawienia" element={<SettingsSection />} />
 
                 {/* Fallback */}
@@ -235,6 +240,8 @@ function AppContent() {
 
       {/* Globalne Okna Modalne i Powiadomienia */}
       {isInitialized && databaseInfo && (!databaseInfo.degraded || fallbackAccepted) && <OzipzModalRoot />}
+      {isInitialized && <GlobalSearchDialog />}
+      <DatabaseTakeoverOverlay enabled={databaseInfo?.mode === "tauri-sqlite"} />
       <Toaster />
     </div>
   );

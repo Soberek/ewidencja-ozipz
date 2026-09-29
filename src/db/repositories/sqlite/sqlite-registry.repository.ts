@@ -31,8 +31,8 @@ export class SqliteRegistryRepository implements IRegistryRepository {
     const now = new Date().toISOString();
     const newLetter: OzipzLetter = { ...letter, id, createdAt: now, updatedAt: now };
     await this.db.execute(
-      "INSERT INTO ozipz_letters (id, direction, letter_number, letter_date, case_sign, sender_recipient, facility_id, subject, program_id, assigned_person, status, notes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)",
-      [newLetter.id, newLetter.direction, newLetter.letterNumber, newLetter.letterDate, newLetter.caseSign || null, newLetter.senderRecipient, newLetter.facilityId || null, newLetter.subject, newLetter.programId || null, newLetter.assignedPerson, newLetter.status, newLetter.notes || null, newLetter.createdAt, newLetter.updatedAt]
+      "INSERT INTO ozipz_letters (id, direction, letter_number, letter_date, case_sign, sender_recipient, facility_id, subject, program_id, assigned_person, status, notes, response_due_date, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
+      [newLetter.id, newLetter.direction, newLetter.letterNumber, newLetter.letterDate, newLetter.caseSign || null, newLetter.senderRecipient, newLetter.facilityId || null, newLetter.subject, newLetter.programId || null, newLetter.assignedPerson, newLetter.status, newLetter.notes || null, newLetter.responseDueDate || null, newLetter.createdAt, newLetter.updatedAt]
     );
     return newLetter;
   }
@@ -43,8 +43,8 @@ export class SqliteRegistryRepository implements IRegistryRepository {
     if (!current) return;
     const merged = { ...current, ...updates, updatedAt: now };
     await this.db.execute(
-      "UPDATE ozipz_letters SET direction = $1, letter_number = $2, letter_date = $3, case_sign = $4, sender_recipient = $5, facility_id = $6, subject = $7, program_id = $8, assigned_person = $9, status = $10, notes = $11, updated_at = $12 WHERE id = $13",
-      [merged.direction, merged.letterNumber, merged.letterDate, merged.caseSign || null, merged.senderRecipient, merged.facilityId || null, merged.subject, merged.programId || null, merged.assignedPerson, merged.status, merged.notes || null, merged.updatedAt, id]
+      "UPDATE ozipz_letters SET direction = $1, letter_number = $2, letter_date = $3, case_sign = $4, sender_recipient = $5, facility_id = $6, subject = $7, program_id = $8, assigned_person = $9, status = $10, notes = $11, response_due_date = $12, updated_at = $13 WHERE id = $14",
+      [merged.direction, merged.letterNumber, merged.letterDate, merged.caseSign || null, merged.senderRecipient, merged.facilityId || null, merged.subject, merged.programId || null, merged.assignedPerson, merged.status, merged.notes || null, merged.responseDueDate || null, merged.updatedAt, id]
     );
   }
 

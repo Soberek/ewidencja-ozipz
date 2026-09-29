@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 // Components under test
 import { ScheduleTableView } from "./components/schedule/components/ScheduleTableView";
@@ -156,7 +156,7 @@ describe("Challenger 1 — Empirical Verification & Stress Test", () => {
       expect(onEdit).toHaveBeenCalledTimes(1);
     });
 
-  it("ScheduleTableView: confirms deletion without triggering row onEdit", () => {
+  it("ScheduleTableView: confirms deletion without triggering row onEdit", async () => {
       const onDelete = vi.fn();
       const onEdit = vi.fn();
 
@@ -182,6 +182,7 @@ describe("Challenger 1 — Empirical Verification & Stress Test", () => {
     expect(onDelete).toHaveBeenCalledTimes(1);
       expect(onDelete).toHaveBeenCalledWith("event-1");
       expect(onEdit).not.toHaveBeenCalled();
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     });
 
     it("FacilitiesTableView: action buttons and mailto link do NOT bubble to row onEdit", () => {

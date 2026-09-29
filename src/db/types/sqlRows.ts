@@ -243,6 +243,7 @@ export interface LetterSqlRow {
   assigned_person: string;
   status: string;
   notes: string | null;
+  response_due_date?: string | null;
   created_at: string;
   updated_at: string;
 }

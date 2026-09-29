@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { DictionariesSection } from "./DictionariesSection";
 import { useOzipzDbStore } from "../../store/useOzipzDbStore";
@@ -72,6 +72,7 @@ describe("DictionariesSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Usuń Quiz wiedzy" }));
     expect(onDelete).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByRole("button", { name: "Usuń pozycję" }));
-    await vi.waitFor(() => expect(onDelete).toHaveBeenCalledWith("a2"));
+    await waitFor(() => expect(onDelete).toHaveBeenCalledWith("a2"));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Usuń pozycję" })).toBeNull());
   });
 });

@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ModalDialog } from "@/components/ui/modal-dialog";
-import { Mail } from "lucide-react";
+import { AlarmClock, Mail } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 import type {
   OzipzLetter,
   OzipzFacility,
@@ -71,6 +72,7 @@ export function LetterDialog({
       assignedPerson: "",
       status: "nowe",
       notes: "",
+      responseDueDate: "",
     },
   });
 
@@ -92,6 +94,7 @@ export function LetterDialog({
         assignedPerson: editingLetter.assignedPerson || "",
         status: editingLetter.status || "nowe",
         notes: editingLetter.notes || "",
+        responseDueDate: editingLetter.responseDueDate || "",
       });
     } else {
       reset({
@@ -106,6 +109,7 @@ export function LetterDialog({
         assignedPerson: "",
         status: "nowe",
         notes: "",
+        responseDueDate: "",
         ...initialValues,
       });
     }
@@ -147,6 +151,7 @@ export function LetterDialog({
       assignedPerson: (data.assignedPerson || "").trim(),
       status: data.status || "nowe",
       notes: data.notes?.trim() || undefined,
+      responseDueDate: data.responseDueDate || undefined,
     };
 
     if (editingLetter) {
@@ -206,6 +211,21 @@ export function LetterDialog({
           currentStatus={watch("status") || "nowe"}
           onStatusChange={(val) => setValue("status", val as LetterFormInput["status"], { shouldValidate: true })}
         />
+
+        <div className="space-y-1 sm:w-1/2">
+          <label htmlFor="letter-response-due" className="font-semibold text-foreground flex items-center gap-1 text-xs">
+            <AlarmClock className="size-3 text-primary" /> Termin odpowiedzi / załatwienia
+          </label>
+          <DatePicker
+            id="letter-response-due"
+            value={watch("responseDueDate") || ""}
+            onChange={(date) => setValue("responseDueDate", date, { shouldValidate: true })}
+            placeholder="Brak terminu"
+            size="sm"
+            allowClear
+          />
+          <p className="text-[11px] text-muted-foreground">Pulpit przypomni o terminie, dopóki pismo nie będzie zakończone.</p>
+        </div>
       </div>
     </ModalDialog>
   );

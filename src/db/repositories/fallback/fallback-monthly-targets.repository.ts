@@ -3,8 +3,18 @@ import type { IMonthlyTargetsRepository } from "../interfaces";
 import type { OzipzYearlyMonthlyTargets } from "../../../features/ozipz/utils/monthlyTargetsUtils";
 import { generateId } from "../id-generator";
 import { loadFromStorage, saveToStorage } from "./storage";
+import { parseMetricPlan, type MetricPlanState } from "../../../features/ozipz/components/reports/components/reportConstants";
 
 export class FallbackMonthlyTargetsRepository implements IMonthlyTargetsRepository {
+  // Ten sam klucz („ozipz_metric_plan_<rok>”), pod którym plan był zapisywany wcześniej.
+  async getMetricPlan(year: number): Promise<MetricPlanState | null> {
+    return parseMetricPlan(loadFromStorage<unknown>(`metric_plan_${year}`, null));
+  }
+
+  async saveMetricPlan(year: number, plan: MetricPlanState): Promise<void> {
+    saveToStorage(`metric_plan_${year}`, plan);
+  }
+
   async getMonthlyTargets(year?: number): Promise<OzipzMonthlyTarget[]> {
     const all = loadFromStorage<OzipzMonthlyTarget[]>("monthly_targets", []);
     if (year !== undefined) {

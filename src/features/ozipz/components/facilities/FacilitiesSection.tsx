@@ -7,6 +7,7 @@ import { useModalStore } from "../../store/useModalStore";
 import { countBy } from "../../utils/facilityUtils";
 import { useFacilitiesView } from "./hooks/useFacilitiesView";
 import { FacilityEmailsCopyDialog } from "./FacilityEmailsCopyDialog";
+import { FacilityImportDialog } from "./FacilityImportDialog";
 import { FacilitiesStatsHeader } from "./components/FacilitiesStatsHeader";
 import { FacilitiesFilterBar } from "./components/FacilitiesFilterBar";
 import { FacilitiesTableView } from "./components/FacilitiesTableView";
@@ -45,6 +46,7 @@ export function FacilitiesSection(props: FacilitiesSectionProps) {
   const actionCounts = useMemo(() => countBy(actions, (a) => a.facilityId), [actions]);
 
   const [isEmailsCopyOpen, setIsEmailsCopyOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<OzipzFacility | null>(null);
 
   const onOpenAdd = props.onOpenAdd ?? (() => openModal("facility"));
@@ -108,6 +110,7 @@ export function FacilitiesSection(props: FacilitiesSectionProps) {
         issuesCount={view.stats.withIssues}
         onOpenEmailsCopy={() => setIsEmailsCopyOpen(true)}
         onOpenAdd={onOpenAdd}
+        onOpenImport={() => setIsImportOpen(true)}
         onToggleKpi={view.toggleKpi}
         isKpiVisible={view.showKpi}
       />
@@ -129,6 +132,7 @@ export function FacilitiesSection(props: FacilitiesSectionProps) {
       />
 
       <FacilityEmailsCopyDialog open={isEmailsCopyOpen} onOpenChange={setIsEmailsCopyOpen} facilities={view.filtered} />
+      <FacilityImportDialog isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} />
 
       <ConfirmDialog
         isOpen={pendingDelete !== null}

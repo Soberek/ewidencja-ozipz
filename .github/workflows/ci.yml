@@ -1,0 +1,66 @@
+# Kontrola każdej zmiany: typy, testy frontendu (z pokryciem) i testy powłoki Tauri na Windows.
+name: Testy
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Kontrola typów
+        run: pnpm typecheck
+
+      - name: Testy z pokryciem
+        run: pnpm test:coverage
+
+      - name: Build produkcyjny
+        run: pnpm exec vite build
+
+  tauri:
+    # Windows, bo tam działa aplikacja — kompiluje też kod tylko dla Windows (np. wykrywanie dysków sieciowych).
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # tauri::generate_context! wymaga zbudowanego frontendu w dist/.
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec vite build
+
+      - name: Testy Rust
+        working-directory: src-tauri
+        run: cargo test --lib

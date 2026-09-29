@@ -61,7 +61,8 @@ export function JrwaSection(props: JrwaSectionProps) {
 
   const [search, setSearch] = useState("");
   const [selectedSymbol, setSelectedSymbol] = useState<string>("all");
-  const [selectedYear, setSelectedYear] = useState<string>("all");
+  // Spis spraw prowadzi się rocznikami — domyślnie bieżący rok, starsze lata z listy.
+  const [selectedYear, setSelectedYear] = useState<string>(() => String(new Date().getFullYear()));
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedEducator, setSelectedEducator] = useState<string>("all");
   const [requiresEzdFilter, setRequiresEzdFilter] = useState(false);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Plus } from "lucide-react";
+import { AlertTriangle, Plus, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip, ChipGroup } from "@/components/ui/chip";
 import { ClearFiltersButton, FilterBar, KpiToggleButton } from "@/components/ui/filter-bar";
@@ -26,6 +26,7 @@ export interface ContactsFilterBarProps {
   onMuniFilterChange: (muni: string) => void;
   municipalities: string[];
   onOpenAdd: () => void;
+  onOpenImport?: () => void;
   onClearFilters: () => void;
   isFiltered: boolean;
   activeFiltersCount?: number;
@@ -47,6 +48,7 @@ export function ContactsFilterBar({
   onMuniFilterChange,
   municipalities,
   onOpenAdd,
+  onOpenImport,
   onClearFilters,
   isFiltered,
   activeFiltersCount,
@@ -69,6 +71,12 @@ export function ContactsFilterBar({
       actions={
         <>
           {onToggleKpi && <KpiToggleButton visible={isKpiVisible} onToggle={onToggleKpi} />}
+          {onOpenImport && (
+            <Button variant="outline" onClick={onOpenImport} className="font-medium">
+              <FileSpreadsheet className="size-3.5 text-muted-foreground" />
+              <span>Import z Excela</span>
+            </Button>
+          )}
           <Button onClick={onOpenAdd}>
             <Plus className="size-3.5" />
             <span>Nowy Kontakt</span>

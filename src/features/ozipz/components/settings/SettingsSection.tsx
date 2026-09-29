@@ -12,6 +12,7 @@ import {
   type DatabaseInfo,
 } from "../../../../db/client";
 import { AppUpdateCard } from "./AppUpdateCard";
+import { AutoBackupCard } from "./AutoBackupCard";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { executeConfirmedAction } from "@/components/ui/confirmHelper";
@@ -97,10 +98,12 @@ export function SettingsSection() {
           </div>
         )}
 
-        {databaseInfo?.mode === "tauri-sqlite" && isRiskyDatabaseLocation(databaseInfo.location) && (
+        {databaseInfo?.mode === "tauri-sqlite" && (databaseInfo.storage ? databaseInfo.storage !== "local" : isRiskyDatabaseLocation(databaseInfo.location)) && (
           <div role="alert" className="flex items-start gap-2 text-xs font-semibold text-amber-800 dark:text-amber-300">
             <AlertTriangle className="size-4 shrink-0" />
-            Baza leży w folderze synchronizowanym z chmurą lub na dysku sieciowym. SQLite może wtedy zostać zablokowane lub uszkodzone — przenieś bazę na dysk lokalny, np. C:\Ewidencja OZiPZ.
+            {databaseInfo.storage === "cloud" ? "Baza leży w folderze synchronizowanym z chmurą." : "Baza leży na dysku sieciowym."}{" "}
+            Aplikacja pracuje w trybie zgodności (bez WAL) i nie pozwala otworzyć bazy na dwóch komputerach naraz.
+            Najbezpieczniej trzymać bazę na dysku lokalnym, np. C:\Ewidencja OZiPZ — kopie automatyczne i tak trafiają do folderu Dokumenty.
           </div>
         )}
 
@@ -129,13 +132,17 @@ export function SettingsSection() {
               <Database className="size-3.5 text-primary" /> Integralność Referencyjna
             </span>
             <p className="text-muted-foreground text-[11px]">
-              {databaseInfo?.degraded ? "Brak gwarancji transakcji relacyjnych SQLite." : "Klucze obce, dziennik WAL i transakcje atomowe są aktywne."}
+              {databaseInfo?.degraded
+                ? "Brak gwarancji transakcji relacyjnych SQLite."
+                : `Klucze obce, ${databaseInfo?.storage && databaseInfo.storage !== "local" ? "dziennik zgodny z dyskiem sieciowym" : "dziennik WAL"}, transakcje atomowe i historia zmian są aktywne.`}
             </p>
           </div>
         </div>
       </Card>
 
       <AppUpdateCard />
+
+      {databaseInfo?.mode === "tauri-sqlite" && <AutoBackupCard />}
 
       <Card className="p-4 bg-card border-border shadow-none space-y-3">
         <h4 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">

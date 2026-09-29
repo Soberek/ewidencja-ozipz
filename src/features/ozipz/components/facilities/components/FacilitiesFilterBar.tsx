@@ -1,4 +1,4 @@
-import { AlertTriangle, Mail, Plus } from "lucide-react";
+import { AlertTriangle, FileSpreadsheet, Mail, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip, ChipGroup } from "@/components/ui/chip";
 import { ClearFiltersButton, FilterBar, KpiToggleButton, ResultsCount } from "@/components/ui/filter-bar";
@@ -20,6 +20,7 @@ export interface FacilitiesFilterBarProps {
   issuesCount: number;
   onOpenEmailsCopy: () => void;
   onOpenAdd: () => void;
+  onOpenImport?: () => void;
   onToggleKpi?: () => void;
   isKpiVisible?: boolean;
 }
@@ -43,6 +44,7 @@ export function FacilitiesFilterBar({
   issuesCount,
   onOpenEmailsCopy,
   onOpenAdd,
+  onOpenImport,
   onToggleKpi,
   isKpiVisible = true,
 }: FacilitiesFilterBarProps) {
@@ -64,6 +66,12 @@ export function FacilitiesFilterBar({
             <Mail className="size-3.5 text-muted-foreground" />
             <span>Kopiuj e-maile</span>
           </Button>
+          {onOpenImport && (
+            <Button variant="outline" onClick={onOpenImport} className="font-medium">
+              <FileSpreadsheet className="size-3.5 text-muted-foreground" />
+              <span>Import z Excela</span>
+            </Button>
+          )}
           <Button onClick={onOpenAdd}>
             <Plus className="size-3.5" />
             <span>Nowa placówka</span>

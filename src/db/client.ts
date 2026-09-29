@@ -1,18 +1,15 @@
-import { serializeDatabaseService, withBrowserStorageLock } from "./serialized-service";
+import { serializeDatabaseService } from "./serialized-service";
 import Database from "@tauri-apps/plugin-sql";
 import { invoke } from "@tauri-apps/api/core";
 import type { IOzipzDatabaseService, ISqlDatabase } from "./types";
 import { SqliteDatabaseService, initTables } from "./sqlite-service";
-import {
-  downloadBlob,
-  embedBrowserStorage,
-  fallbackBackupBlob,
-  restoreBrowserStorage,
-  restoreEmbeddedStorage,
-  validateBrowserStorage,
-} from "./backup-storage";
+import { restoreEmbeddedStorage } from "./backup-storage";
 import { HttpSqlDatabase, httpHeaders, setHttpToken } from "./http-database";
-import { getTodayIsoDate } from "@/features/ozipz/utils/dateUtils";
+import { setAuditActor } from "./change-log";
+import { DatabaseLockedError, sessionActor, type DatabaseLockHolder } from "./database-lock";
+
+export * from "./database-lock";
+export * from "./backups";
 
 let desktopDatabase: Database | null = null;
 
@@ -20,12 +17,22 @@ let activeService: IOzipzDatabaseService | null = null;
 let initPromise: Promise<IOzipzDatabaseService> | null = null;
 
 export type DatabaseMode = "tauri-sqlite" | "http-sqlite" | "browser-storage";
+export type DatabaseStorageKind = "local" | "network" | "cloud";
 
 export interface DatabaseInfo {
   mode: DatabaseMode;
   location: string;
   degraded: boolean;
   detail: string;
+  /** Rodzaj dysku z bazą (tylko aplikacja desktopowa). */
+  storage?: DatabaseStorageKind;
+}
+
+let lockConflict: DatabaseLockHolder | null = null;
+
+/** Blokada, przez którą nie otwarto bazy przy starcie (null, gdy baza jest nasza). */
+export function getDatabaseLockConflict(): DatabaseLockHolder | null {
+  return lockConflict;
 }
 
 let activeDatabaseInfo: DatabaseInfo | null = null;
@@ -48,12 +55,21 @@ export async function getDatabaseService(): Promise<IOzipzDatabaseService> {
           console.warn("Używam domyślnej ścieżki ozipz.db w Tauri:", e);
         }
 
+        const holder = await invoke<DatabaseLockHolder | null>("acquire_database_lock", { force: false });
+        if (holder) {
+          lockConflict = holder;
+          throw new DatabaseLockedError(holder);
+        }
+        lockConflict = null;
+        const storage = await invoke<DatabaseStorageKind>("get_database_storage_kind").catch((): DatabaseStorageKind => "local");
+        const journalMode = storage === "network" || storage === "cloud" ? "DELETE" : "WAL";
+
         const connectionString = "sqlite:" + dbPath;
         await invoke("open_local_database");
         const db = Database.get(connectionString);
         desktopDatabase = db;
 
-        await db.execute("PRAGMA journal_mode = WAL;");
+        await db.execute(`PRAGMA journal_mode = ${journalMode};`);
         await db.execute("PRAGMA synchronous = NORMAL;");
         await db.execute("PRAGMA foreign_keys = ON;");
         await db.execute("PRAGMA busy_timeout = 5000;");
@@ -62,16 +78,21 @@ export async function getDatabaseService(): Promise<IOzipzDatabaseService> {
           await restoreEmbeddedStorage(db);
           await invoke("acknowledge_database_restore");
         }
-        await initTables(db);
+        await initTables(db, { journalMode });
+        await setAuditActor(db, await sessionActor());
         activeService = serializeDatabaseService(new SqliteDatabaseService(db));
         activeDatabaseInfo = {
           mode: "tauri-sqlite",
           location: dbPath,
           degraded: false,
-          detail: "SQLite z dziennikiem WAL i integralnością relacyjną",
+          storage,
+          detail: journalMode === "WAL"
+            ? "SQLite z dziennikiem WAL i integralnością relacyjną"
+            : "SQLite w trybie zgodności z dyskiem sieciowym (bez WAL)",
         };
         return activeService;
       } catch (err) {
+        if (err instanceof DatabaseLockedError) throw err;
         throw new Error(`Nie udało się otworzyć bazy SQLite. ${String(err)}`);
       }
     }
@@ -85,6 +106,7 @@ export async function getDatabaseService(): Promise<IOzipzDatabaseService> {
           setHttpToken(data.token);
           const httpDb = new HttpSqlDatabase();
           await initTables(httpDb);
+          await setAuditActor(httpDb, "serwer lokalny (przeglądarka)");
           activeService = serializeDatabaseService(new SqliteDatabaseService(httpDb));
           activeDatabaseInfo = {
             mode: "http-sqlite",
@@ -129,99 +151,12 @@ export async function getDatabaseInfo(): Promise<DatabaseInfo> {
   };
 }
 
+
 export function retryDatabaseConnection(): void {
   // A reload reinitializes both the connection and all consumers together.
   window.location.reload();
 }
 
-
-export async function createDatabaseBackup(): Promise<boolean> {
-  const info = await getDatabaseInfo();
-  const stamp = getTodayIsoDate();
-
-  if (info.mode === "tauri-sqlite") {
-    const { save } = await import("@tauri-apps/plugin-dialog");
-    const destination = await save({
-      defaultPath: `ozipz-backup-${stamp}.db`,
-      filters: [{ name: "Baza SQLite", extensions: ["db"] }],
-    });
-    if (!destination) return false;
-    const db = await getDb();
-    if (!db) throw new Error("Brak połączenia z bazą danych");
-    await embedBrowserStorage(db);
-    await invoke("backup_database", { destinationPath: destination });
-  } else if (info.mode === "http-sqlite") {
-    await embedBrowserStorage(new HttpSqlDatabase());
-    const response = await fetch("/api/db/backup", { headers: httpHeaders() });
-    if (!response.ok) throw new Error("Nie udało się utworzyć kopii bazy SQLite");
-    downloadBlob(await response.blob(), `ozipz-backup-${stamp}.db`);
-  } else {
-    downloadBlob(await withBrowserStorageLock(fallbackBackupBlob), `ozipz-backup-${stamp}.json`);
-  }
-
-  try { localStorage.setItem("ozipz_lastBackupAt", new Date().toISOString()); } catch { /* The backup itself succeeded. */ }
-  return true;
-}
-
-export async function restoreDatabaseBackup(file?: File): Promise<"reload" | "restart" | false> {
-  const info = await getDatabaseInfo();
-
-  if (info.mode === "tauri-sqlite") {
-    const { open } = await import("@tauri-apps/plugin-dialog");
-    const source = await open({
-      multiple: false,
-      directory: false,
-      filters: [{ name: "Baza SQLite", extensions: ["db"] }],
-    });
-    if (!source || Array.isArray(source)) return false;
-    await invoke("queue_database_restore", { sourcePath: source });
-    return "restart";
-  }
-
-  if (!file) throw new Error("Wybierz plik kopii zapasowej");
-  if (info.mode === "http-sqlite") {
-    const response = await fetch("/api/db/restore", {
-      method: "POST",
-      headers: { ...httpHeaders(), "Content-Type": "application/octet-stream" },
-      body: await file.arrayBuffer(),
-    });
-    if (!response.ok) {
-      const result = await response.json().catch(() => ({}));
-      throw new Error(result.error || "Nie udało się przywrócić kopii bazy SQLite");
-    }
-    await restoreEmbeddedStorage(new HttpSqlDatabase());
-    return "reload";
-  }
-
-  const parsed = JSON.parse(await file.text()) as { format?: string; entries?: Record<string, string> };
-  const entries = parsed.entries;
-  if (parsed.format !== "ozipz-localstorage-v1" || !entries) {
-    throw new Error("Wybrany plik nie jest prawidłową kopią OZiPZ");
-  }
-  validateBrowserStorage(entries);
-  await withBrowserStorageLock(() => restoreBrowserStorage(entries));
-  return "reload";
-}
-
-/** OneDrive and network shares break SQLite's WAL locking and can corrupt the database. */
-export function isRiskyDatabaseLocation(location: string): boolean {
-  return /onedrive|dropbox|google ?drive/i.test(location) || location.startsWith("\\\\");
-}
-
-export async function revealDatabaseFile(): Promise<void> {
-  await invoke("reveal_database_file");
-}
-
-/** Copies the database into a chosen folder (or adopts an ozipz.db already there) and restarts the app. */
-export async function changeDatabaseLocation(): Promise<boolean> {
-  const { open } = await import("@tauri-apps/plugin-dialog");
-  const directory = await open({ directory: true, multiple: false, title: "Wybierz folder bazy danych" });
-  if (!directory || Array.isArray(directory)) return false;
-  await invoke("set_database_location", { directory });
-  const { relaunch } = await import("@tauri-apps/plugin-process");
-  await relaunch();
-  return true;
-}
 
 export async function getDb(): Promise<Database | null> {
   await getDatabaseService();
@@ -335,4 +270,11 @@ export const OzipzDbService: IOzipzDatabaseService = {
   async getFacilityActivitySummary(facId) { return (await resolveService()).getFacilityActivitySummary(facId); },
   async getMonthlyTargets(year) { return (await resolveService()).getMonthlyTargets(year); },
   async saveMonthlyTargets(year, targets) { return (await resolveService()).saveMonthlyTargets(year, targets); },
+  async getMetricPlan(year) { return (await resolveService()).getMetricPlan(year); },
+  async saveMetricPlan(year, plan) { return (await resolveService()).saveMetricPlan(year, plan); },
+
+  async getChangeLog(filter) { return (await resolveService()).getChangeLog(filter); },
+  async getRecordHistory(tableName, rowId) { return (await resolveService()).getRecordHistory(tableName, rowId); },
+  async getRestoreGroup(changeId) { return (await resolveService()).getRestoreGroup(changeId); },
+  async restoreChange(changeId) { return (await resolveService()).restoreChange(changeId); },
 };

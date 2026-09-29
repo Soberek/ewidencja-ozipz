@@ -23,7 +23,7 @@ function adapter(raw: DatabaseSync): ISqlDatabase {
 }
 function legacy(file = ":memory:") {
   const raw = new DatabaseSync(file); databases.push(raw);
-  raw.exec(SCHEMA_SQL.replace(/, FOREIGN KEY \(\w+\) REFERENCES \w+\(id\) ON DELETE (?:SET NULL|RESTRICT)/g, "").replace(", UNIQUE(program_id, facility_id, school_year)", ""));
+  raw.exec(SCHEMA_SQL.replace(/, FOREIGN KEY \(\w+\) REFERENCES \w+\(id\) ON DELETE (?:SET NULL|RESTRICT)/g, ""));
   return raw;
 }
 // Kolumny z CHECK na format lub listę wartości potrzebują poprawnych danych przykładowych.
@@ -172,19 +172,18 @@ describe("versioned database migration", () => {
     expect(raw.prepare("PRAGMA foreign_keys").get()?.foreign_keys).toBe(1);
   });
 
-  it("rejects legacy duplicate participations without silently merging or deleting them", async () => {
+  it("keeps several participations of one school in a program year (e.g. two buildings, two coordinators)", async () => {
     const raw = legacy();
     insert(raw, "ozipz_facilities", { id: "f" }); insert(raw, "ozipz_programs", { id: "p" });
     for (const id of ["one", "two"]) insert(raw, "ozipz_participations", { id, facility_id: "f", program_id: "p", school_year: "2026/2027" });
-    await expect(migrateDatabase(adapter(raw))).rejects.toThrow();
+    await migrateDatabase(adapter(raw));
     expect(raw.prepare("SELECT COUNT(*) AS n FROM ozipz_participations").get()?.n).toBe(2);
   });
 
-  it("enforces references, integer ranges, uniqueness and protects participation history", async () => {
+  it("enforces references, integer ranges and protects participation history", async () => {
     const raw = legacy(); await migrateDatabase(adapter(raw));
     insert(raw, "ozipz_facilities", { id: "f" }); insert(raw, "ozipz_programs", { id: "p" });
     insert(raw, "ozipz_participations", { id: "one", facility_id: "f", program_id: "p", school_year: "2026/2027" });
-    expect(() => insert(raw, "ozipz_participations", { id: "two", facility_id: "f", program_id: "p", school_year: "2026/2027" })).toThrow(/UNIQUE/);
     expect(() => raw.exec("DELETE FROM ozipz_facilities WHERE id='f'")).toThrow(/FOREIGN KEY/);
     expect(() => raw.exec("DELETE FROM ozipz_programs WHERE id='p'")).toThrow(/FOREIGN KEY/);
     expect(() => insert(raw, "ozipz_actions", { id: "a", facility_id: "missing" })).toThrow(/FOREIGN KEY/);

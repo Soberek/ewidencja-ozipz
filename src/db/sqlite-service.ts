@@ -6,6 +6,7 @@ import type {
 } from "../features/ozipz/types/ozipz.types";
 import type { IOzipzDatabaseService, ISqlDatabase, CompanionDistributionPayload, SaveActionWithRelationsParams, SaveActionWithRelationsResult } from "./types";
 import type { OzipzYearlyMonthlyTargets } from "../features/ozipz/utils/monthlyTargetsUtils";
+import type { MetricPlanState } from "../features/ozipz/components/reports/components/reportConstants";
 import { SqliteActionsRepository } from "./repositories/sqlite/sqlite-actions.repository";
 import { SqliteProgramsRepository } from "./repositories/sqlite/sqlite-programs.repository";
 import { SqliteMaterialsRepository } from "./repositories/sqlite/sqlite-materials.repository";
@@ -16,6 +17,7 @@ import { SqliteDictionariesRepository } from "./repositories/sqlite/sqlite-dicti
 import { SqliteStaffContactsRepository } from "./repositories/sqlite/sqlite-staff-contacts.repository";
 import { SqliteRegistryRepository } from "./repositories/sqlite/sqlite-registry.repository";
 import { SqliteMonthlyTargetsRepository } from "./repositories/sqlite/sqlite-monthly-targets.repository";
+import { getRestoreGroup, listChangeLog, listRecordHistory, restoreChange, type ChangeLogEntry, type ChangeLogFilter } from "./change-log";
 
 export { initTables } from "./sqlite-schema";
 export { cleanupPoisonedJrwaCases } from "./sqlite-seed";
@@ -146,4 +148,11 @@ export class SqliteDatabaseService implements IOzipzDatabaseService {
   // Monthly Targets
   getMonthlyTargets(year?: number): Promise<OzipzMonthlyTarget[]> { return this.monthlyTargetsRepo.getMonthlyTargets(year); }
   saveMonthlyTargets(year: number, targets: OzipzYearlyMonthlyTargets): Promise<OzipzMonthlyTarget[]> { return this.monthlyTargetsRepo.saveMonthlyTargets(year, targets); }
+  getMetricPlan(year: number): Promise<MetricPlanState | null> { return this.monthlyTargetsRepo.getMetricPlan(year); }
+  saveMetricPlan(year: number, plan: MetricPlanState): Promise<void> { return this.monthlyTargetsRepo.saveMetricPlan(year, plan); }
+  // Historia zmian i kosz
+  getChangeLog(filter?: ChangeLogFilter): Promise<ChangeLogEntry[]> { return listChangeLog(this.db, filter); }
+  getRecordHistory(tableName: string, rowId: string): Promise<ChangeLogEntry[]> { return listRecordHistory(this.db, tableName, rowId); }
+  getRestoreGroup(changeId: number): Promise<ChangeLogEntry[]> { return getRestoreGroup(this.db, changeId); }
+  restoreChange(changeId: number): Promise<number> { return restoreChange(this.db, changeId); }
 }

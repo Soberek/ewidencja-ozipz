@@ -1,6 +1,5 @@
 import {
   LayoutDashboard,
-  Sparkles,
   FileCheck,
   Calendar,
   Mail,
@@ -21,6 +20,7 @@ import {
   Settings,
   ClipboardPen,
   Printer,
+  History,
   type LucideIcon,
 } from "lucide-react";
 import type { HealthPromotionTab } from "../../types/ozipz.types";
@@ -51,7 +51,6 @@ export const SIDEBAR_GROUPS: readonly SidebarGroupConfig[] = [
       { id: "harmonogram", path: "/harmonogram", label: "Harmonogram", icon: Calendar, keywords: ["kalendarz", "plan"] },
       { id: "lista-obecnosci", path: "/lista-obecnosci", label: "Lista obecności", icon: ClipboardPen, keywords: ["obecność", "druk", "prelekcja", "podpisy"] },
       { id: "sprawozdania", path: "/sprawozdania", label: "Mierniki i sprawozdania", icon: BarChart3, keywords: ["raport", "miernik budżetowy", "statystyki"] },
-      { id: "asystent", path: "/asystent", label: "Asystent AI", icon: Sparkles, keywords: ["ai", "czat"] },
     ],
   },
   {
@@ -91,6 +90,7 @@ export const SIDEBAR_GROUPS: readonly SidebarGroupConfig[] = [
       { id: "slowniki", path: "/slowniki", label: "Centrum słowników", icon: FolderTree, keywords: ["formy działań", "grupy odbiorców", "gminy", "kampanie"] },
       { id: "opisy-zadan", path: "/opisy-zadan", label: "Szablony zadań", icon: FileText, keywords: ["opisy"] },
       { id: "osoby", path: "/osoby", label: "Kadra pracownicza", icon: UserCog, keywords: ["pracownicy", "personel"] },
+      { id: "historia", path: "/historia", label: "Historia zmian i kosz", icon: History, keywords: ["kosz", "przywróć", "cofnij", "usunięte", "audyt"] },
     ],
   },
 ];
