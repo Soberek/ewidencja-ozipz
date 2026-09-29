@@ -25,10 +25,11 @@ export const REPORT_MONTH_PRESETS: readonly MonthPreset[] = [
   { key: "all", label: "Cały rok", months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
 ];
 
-export type ReportViewMode = "summary" | "wakacje" | "miernik" | "gis" | "cele_miesieczne" | "gminy";
+export type ReportViewMode = "summary" | "akcja" | "wakacje" | "miernik" | "gis" | "cele_miesieczne" | "gminy";
 
 const REPORT_VIEW_OPTIONS: { value: ReportViewMode; label: string }[] = [
   { value: "summary", label: "Wszystkie działania" },
+  { value: "akcja", label: "Rozpiska akcji" },
   { value: "wakacje", label: "Bezpieczne Wakacje" },
   { value: "miernik", label: "Wykonanie miernika" },
   { value: "gis", label: "Sprawozdanie GIS" },

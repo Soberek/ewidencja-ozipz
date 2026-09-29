@@ -13,6 +13,7 @@ import { ReportHeaderCard } from "./components/ReportHeaderCard";
 import { ReportFilterBar, type ReportViewMode } from "./components/ReportFilterBar";
 import { ReportSummaryTab } from "./components/ReportSummaryTab";
 import { ReportWakacjeTab } from "./components/ReportWakacjeTab";
+import { ReportActionBreakdownTab } from "./components/ReportActionBreakdownTab";
 import { ReportMiernikTab } from "./components/ReportMiernikTab";
 import { MonthlyTargetsComplianceTab } from "./components/MonthlyTargetsComplianceTab";
 import { MunicipalityDetailedTab } from "./MunicipalityDetailedTab";
@@ -57,6 +58,7 @@ export function ReportsSection(props: ReportsSectionProps) {
   const [year, setYear] = useState<number>(2026);
   const [months, setMonths] = useState<number[]>([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   const [reportMode, setReportMode] = useState<ReportViewMode>(props.initialMode ?? "summary");
+  const [breakdownSelection, setBreakdownSelection] = useState("");
   const { isKpiVisible: showKpiSummary, toggleKpi: toggleKpiSummary } = useKpiVisibility("reports");
 
   const reportsData = useReportsData({
@@ -75,6 +77,7 @@ export function ReportsSection(props: ReportsSectionProps) {
     preparedPersonId,
     setPreparedPersonId,
     persons,
+    yearActions,
     filteredActions,
     summary,
     vacationActionSummary,
@@ -129,6 +132,18 @@ export function ReportsSection(props: ReportsSectionProps) {
           reportHierarchy={reportHierarchy}
           maxMonthlyActions={maxMonthlyActions}
           summary={summary}
+          showKpiSummary={showKpiSummary}
+        />
+      )}
+
+      {reportMode === "akcja" && (
+        <ReportActionBreakdownTab
+          yearActions={yearActions}
+          filteredActions={filteredActions}
+          year={year}
+          months={months}
+          selected={breakdownSelection}
+          onSelectedChange={setBreakdownSelection}
           showKpiSummary={showKpiSummary}
         />
       )}
