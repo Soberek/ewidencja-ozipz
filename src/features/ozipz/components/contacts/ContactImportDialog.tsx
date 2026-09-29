@@ -24,7 +24,16 @@ export function ContactImportDialog({ isOpen, onClose }: ContactImportDialogProp
       templateExample={["Anna Kowalska", "Dyrektor", "Szkoła Podstawowa nr 1", "Myślibórz", "600 000 000", "a.kowalska@sp1.pl", ""]}
       plan={(rows) => planContactImport(rows, contacts, facilities)}
       onImport={async (plan) => {
-        for (const contact of plan.toCreate) await addContact(contact);
+        let saved = 0;
+        for (const contact of plan.toCreate) {
+          try {
+            await addContact(contact);
+            saved += 1;
+          } catch (error) {
+            const reason = error instanceof Error ? error.message : String(error);
+            throw new Error(`Zapisano ${saved} z ${plan.toCreate.length} kontaktów, potem błąd przy „${contact.name}”: ${reason}. Popraw plik i zaimportuj ponownie — zapisane osoby zostaną pominięte.`);
+          }
+        }
       }}
     />
   );

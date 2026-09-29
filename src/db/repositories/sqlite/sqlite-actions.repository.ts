@@ -61,12 +61,31 @@ export class SqliteActionsRepository implements IActionsRepository {
     return newAction;
   }
 
+  /**
+   * Powiązanie ze sprawą musi odpowiadać znakowi działania: gdy znak zmieniono, a identyfikator sprawy
+   * został stary, wiążemy działanie ze sprawą o nowym znaku albo zostawiamy je bez powiązania.
+   */
+  private async caseIdMatchingSign(jrwaSign: string | undefined, jrwaCaseId: string | undefined): Promise<string | undefined> {
+    if (!jrwaCaseId) return jrwaCaseId;
+    const sign = jrwaSign?.trim();
+    if (!sign) return undefined;
+    const linked = await this.db.select<Array<{ full_case_sign: string }>>(
+      "SELECT full_case_sign FROM ozipz_jrwa_cases WHERE id = $1 LIMIT 1", [jrwaCaseId]
+    );
+    if (linked[0]?.full_case_sign?.trim().toLowerCase() === sign.toLowerCase()) return jrwaCaseId;
+    const bySign = await this.db.select<Array<{ id: string }>>(
+      "SELECT id FROM ozipz_jrwa_cases WHERE lower(trim(full_case_sign)) = lower($1) LIMIT 1", [sign]
+    );
+    return bySign[0]?.id;
+  }
+
   async updateAction(id: string, updates: Partial<OzipzAction>): Promise<void> {
     const now = new Date().toISOString();
     const rows = await this.db.select<ActionSqlRow[]>("SELECT * FROM ozipz_actions WHERE id = $1", [id]);
     if (!rows || rows.length === 0) return;
     const current = Mappers.toAction(rows[0]);
     const merged = { ...current, ...updates, updatedAt: now };
+    merged.jrwaCaseId = await this.caseIdMatchingSign(merged.jrwaSign, merged.jrwaCaseId);
     await this.db.execute(
       "UPDATE ozipz_actions SET title = $1, action_type = $2, date = $3, facility_id = $4, facility_name = $5, municipality = $6, program_id = $7, program_name = $8, topic = $9, audience_group = $10, campaign_id = $11, campaign_name = $12, jrwa_sign = $13, jrwa_case_id = $14, izrz_sign = $15, ezd_status = $16, status = $17, source_info = $18, schedule_event_id = $19, material_id = $20, number_of_actions = $21, participants_count = $22, indirect_recipients_count = $23, materials_distributed_count = $24, lead_educator = $25, notes = $26, updated_at = $27, linked_action_id = $28 WHERE id = $29",
       [

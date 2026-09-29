@@ -96,21 +96,20 @@ export function collectDeadlines({ letters, scheduleEvents, actions, programs, c
     if (event.effectiveStatus !== "zaplanowane" && event.effectiveStatus !== "w_trakcie") continue;
     const start = event.eventDate?.slice(0, 10);
     if (!start || !/^\d{4}-\d{2}-\d{2}$/.test(start)) continue;
+    // Zadania planu pracy trwają zwykle cały miesiąc — terminem jest ich koniec, nie początek.
     const end = event.endDate?.slice(0, 10) || start;
-    const untilStart = daysBetween(today, start);
     const untilEnd = daysBetween(today, end);
-    const isOverdue = untilEnd < 0 && untilEnd >= -SCHEDULE_OVERDUE_LOOKBACK_DAYS;
-    const isUpcoming = untilStart >= 0 && untilStart <= DEADLINE_HORIZON_DAYS;
-    if (!isOverdue && !isUpcoming) continue;
+    if (untilEnd < -SCHEDULE_OVERDUE_LOOKBACK_DAYS || untilEnd > DEADLINE_HORIZON_DAYS) continue;
+    const isOverdue = untilEnd < 0;
     const { matchedActions: _matched, ...plainEvent } = event;
     items.push({
       key: `schedule-${event.id}`,
       kind: "schedule",
       title: event.title,
-      detail: isOverdue ? "Harmonogram · termin minął — dodaj działanie albo adnotację" : `Harmonogram${event.location ? ` · ${event.location}` : ""}`,
-      dueDate: isOverdue ? end : start,
-      daysLeft: isOverdue ? untilEnd : untilStart,
-      severity: severityFor(isOverdue ? untilEnd : untilStart),
+      detail: isOverdue ? "Harmonogram · termin minął — dodaj działanie albo adnotację" : `Harmonogram · do wykonania${event.location ? ` · ${event.location}` : ""}`,
+      dueDate: end,
+      daysLeft: untilEnd,
+      severity: severityFor(untilEnd),
       path: "/harmonogram",
       scheduleEvent: plainEvent,
     });

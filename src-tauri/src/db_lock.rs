@@ -45,6 +45,12 @@ fn is_ours(holder: &LockHolder) -> bool {
     holder.host == current_host() && holder.pid == std::process::id()
 }
 
+/// Inne okno na tym samym komputerze nie jest zagrożeniem (SQLite blokuje lokalnie), a po restarcie
+/// aplikacji (aktualizacja, zmiana lokalizacji bazy) poprzedni proces mógł nie zdążyć zwolnić blokady.
+fn is_this_computer(holder: &LockHolder) -> bool {
+    holder.host.eq_ignore_ascii_case(&current_host())
+}
+
 fn read_holder(path: &Path) -> Option<LockHolder> {
     serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()
 }
@@ -55,9 +61,9 @@ fn write_holder(path: &Path, holder: &LockHolder) -> Result<(), String> {
     std::fs::rename(&temporary, path).map_err(|e| format!("Nie można zapisać blokady bazy: {}", e))
 }
 
-/// Aktywna blokada innej instancji (innego komputera lub innego okna), jeśli jest świeża.
+/// Aktywna blokada innego komputera, jeśli jest świeża.
 pub fn foreign_holder(path: &Path, at: i64) -> Option<LockHolder> {
-    read_holder(path).filter(|holder| !is_ours(holder) && at - holder.heartbeat < STALE_AFTER_SECS)
+    read_holder(path).filter(|holder| !is_this_computer(holder) && at - holder.heartbeat < STALE_AFTER_SECS)
 }
 
 fn start_heartbeat() {
@@ -68,6 +74,8 @@ fn start_heartbeat() {
         let Some(path) = LOCK_PATH.lock().unwrap().clone() else { continue };
         match read_holder(&path) {
             Some(holder) if is_ours(&holder) => { let _ = write_holder(&path, &LockHolder { heartbeat: now(), ..holder }); }
+            // Drugie okno na tym komputerze przejęło plik — dalej odświeżamy blokadę tego komputera.
+            Some(holder) if is_this_computer(&holder) => { let _ = write_holder(&path, &own_holder(holder.since)); }
             Some(holder) => {
                 // Ktoś przejął bazę — przestajemy odświeżać i informujemy okno aplikacji.
                 OWNED.store(false, Ordering::SeqCst);
@@ -126,6 +134,9 @@ mod tests {
         assert_eq!(foreign_holder(&path, 1_030), Some(foreign.clone()));
         assert_eq!(foreign_holder(&path, 1_000 + STALE_AFTER_SECS), None);
         write_holder(&path, &own_holder(1_000)).unwrap();
+        assert_eq!(foreign_holder(&path, now()), None);
+        // Poprzedni proces tego komputera (np. sprzed restartu po aktualizacji) nie blokuje startu.
+        write_holder(&path, &LockHolder { pid: std::process::id() + 1, heartbeat: now(), ..own_holder(1_000) }).unwrap();
         assert_eq!(foreign_holder(&path, now()), None);
         std::fs::remove_dir_all(directory).unwrap();
     }

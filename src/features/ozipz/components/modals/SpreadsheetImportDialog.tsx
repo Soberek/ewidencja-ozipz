@@ -75,7 +75,7 @@ export function SpreadsheetImportDialog<T>({
       toast.success(`Zaimportowano ${total} ${entityLabel}`);
       close();
     } catch (importError) {
-      setError(importError instanceof Error ? importError.message : "Import nie powiódł się — nic nie zapisano");
+      setError(importError instanceof Error ? importError.message : "Import nie powiódł się");
     } finally {
       setIsBusy(false);
     }

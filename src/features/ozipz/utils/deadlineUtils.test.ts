@@ -32,20 +32,22 @@ describe("terminy na pulpicie", () => {
     expect(items.map((item) => item.key)).toEqual(["letter-l1"]);
   });
 
-  it("pokazuje nadchodzące i zaległe zadania harmonogramu, ale nie wykonane ani bardzo stare", () => {
+  it("liczy termin zadania harmonogramu od jego końca (zadania miesięczne)", () => {
     const items = collectDeadlines({
       letters: [],
       scheduleEvents: [
-        event({ id: "soon" }),
-        event({ id: "late", eventDate: "2026-09-01", endDate: "2026-09-15" }),
+        event({ id: "september", eventDate: "2026-09-01", endDate: "2026-09-30" }),
+        event({ id: "october", eventDate: "2026-10-01", endDate: "2026-10-31" }),
+        event({ id: "late", eventDate: "2026-08-01", endDate: "2026-08-31" }),
+        event({ id: "day", eventDate: "2026-10-02" }),
         event({ id: "done", eventDate: "2026-09-10", status: "wykonane" }),
         event({ id: "ancient", eventDate: "2025-01-10" }),
         event({ id: "cancelled", eventDate: "2026-09-10", status: "odwolane" }),
       ],
       actions: [], closedMonths: [], today: TODAY,
     });
-    expect(items.map((item) => item.key)).toEqual(["schedule-late", "schedule-soon"]);
-    expect(items[0].severity).toBe("overdue");
+    expect(items.map((item) => item.key)).toEqual(["schedule-late", "schedule-september", "schedule-day"]);
+    expect(items.map((item) => item.severity)).toEqual(["overdue", "soon", "soon"]);
   });
 
   it("przypomina o blokadzie poprzedniego miesiąca po 5. dniu, gdy są w nim działania", () => {
