@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  ADNOTACJA_POWODY,
   formatDateLongPl,
   effectiveDone,
   effectiveWykonano,
@@ -10,12 +9,6 @@ import {
 } from "./adnotacjaUtils";
 
 describe("adnotacjaUtils", () => {
-  it("should provide exactly 30 canonical annotation reasons", () => {
-    expect(ADNOTACJA_POWODY.length).toBe(30);
-    expect(ADNOTACJA_POWODY[0].kod).toBe("brak_terminu");
-    expect(ADNOTACJA_POWODY[ADNOTACJA_POWODY.length - 1].kod).toBe("inne_uzasadnione");
-  });
-
   it("should format date into full Polish genitive format", () => {
     expect(formatDateLongPl("2026-05-15")).toBe("15 maja 2026 r.");
     expect(formatDateLongPl("2026-01-01")).toBe("1 stycznia 2026 r.");
@@ -59,7 +52,7 @@ describe("adnotacjaUtils", () => {
       },
       sporzadzil: "Jan Kowalski",
       stanowisko: "Młodszy Asystent",
-      powod: ADNOTACJA_POWODY[0],
+      powod: { tytul: "Brak wolnego terminu u odbiorcy", opis: "Placówka nie dysponowała wolnym terminem." },
       tresc: "Placówka odmówiła terminu z powodu remontu.",
       data: "2026-05-30",
       miasto: "Myślibórz",

@@ -1,5 +1,4 @@
 import type { OzipzJrwaCase, OzipzAction } from "../../../features/ozipz/types/ozipz.types";
-import { MIGRATED_FIREBASE_DATA } from "../../../features/ozipz/data/migratedData";
 import type { IJrwaRepository } from "../interfaces";
 import { generateId } from "../id-generator";
 import { loadFromStorage, saveToStorage } from "./storage";
@@ -15,7 +14,7 @@ function assertUniqueCase(list: OzipzJrwaCase[], candidate: Omit<OzipzJrwaCase, 
 
 export class FallbackJrwaRepository implements IJrwaRepository {
   async getJrwaCases(): Promise<OzipzJrwaCase[]> {
-    return loadFromStorage<OzipzJrwaCase[]>("jrwaCases", MIGRATED_FIREBASE_DATA.jrwaCases);
+    return loadFromStorage<OzipzJrwaCase[]>("jrwaCases", []);
   }
 
   async addJrwaCase(item: Omit<OzipzJrwaCase, "id" | "createdAt" | "updatedAt">): Promise<OzipzJrwaCase> {
@@ -47,7 +46,7 @@ export class FallbackJrwaRepository implements IJrwaRepository {
   async deleteJrwaCase(id: string): Promise<void> {
     const list = await this.getJrwaCases();
     saveToStorage("jrwaCases", list.filter((j) => j.id !== id));
-    const actions = loadFromStorage<OzipzAction[]>("actions", MIGRATED_FIREBASE_DATA.actions);
+    const actions = loadFromStorage<OzipzAction[]>("actions", []);
     saveToStorage("actions", actions.map((a) => (a.jrwaCaseId === id ? { ...a, jrwaCaseId: undefined } : a)));
   }
 }

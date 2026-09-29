@@ -728,38 +728,18 @@ describe("Empirical Challenger: SQLite Multi-Table Transactions", () => {
     });
   });
 
-  describe("Transaction 4: clearAndReseedDefaults & Seed Transaction Integrity", () => {
-    it("empirically demonstrates that seedInitialData succeeds under PRAGMA foreign_keys=ON with valid references", async () => {
-      // Add custom test action
-      await service.addAction({
-        title: "Test custom action",
-        actionType: "Prelekcja (warsztat)",
-        date: "2026-08-01",
-        facilityName: "Test Fac",
-        municipality: "Myślibórz",
-        topic: "higiena",
-        audienceGroup: "dzieci",
-        participantsCount: 10,
-        indirectRecipientsCount: 0,
-        materialsDistributedCount: 0,
-        ezdStatus: "w_ezd",
-        status: "wykonane",
-        leadEducator: "Tester",
-      });
-
-      const actionsBefore = await service.getActions();
-      expect(actionsBefore.some((a) => a.title === "Test custom action")).toBe(true);
-
-      // Execute clearAndReseedDefaults
-      await service.clearAndReseedDefaults();
-
-      // Custom action was deleted
-      const actionsAfter = await service.getActions();
-      expect(actionsAfter.some((a) => a.title === "Test custom action")).toBe(false);
-
-      // Successfully re-seeded under PRAGMA foreign_keys=ON without constraint errors!
-      const facilities = await service.getFacilities();
-      expect(facilities).toHaveLength(89);
+  describe("Fresh database", () => {
+    it("starts empty apart from the official JRWA catalog", async () => {
+      const fresh = createInMemorySqlite();
+      await initTables(fresh);
+      const empty = new SqliteDatabaseService(fresh);
+      expect(await empty.getActions()).toEqual([]);
+      expect(await empty.getScheduleEvents()).toEqual([]);
+      expect(await empty.getStaff()).toEqual([]);
+      expect(await empty.getFacilities()).toEqual([]);
+      expect(await empty.getContacts()).toEqual([]);
+      const dictionaryTypes = new Set((await empty.getDictionaryItems()).map((d) => d.dictType));
+      expect([...dictionaryTypes]).toEqual(["jrwaSymbol"]);
     });
   });
 });

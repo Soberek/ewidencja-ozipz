@@ -79,7 +79,7 @@ export async function downloadFullReportWorkbook(
   actions: readonly OzipzAction[],
   year: number,
   months: readonly number[],
-  preparedBy: string = "Krzysztof Palpuchowski"
+  preparedBy: string = ""
 ): Promise<void> {
   const monthText = formatPeriodForHeader(months);
   const wb = new ExcelJS.Workbook();

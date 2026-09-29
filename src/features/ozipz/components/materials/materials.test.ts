@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MIGRATED_FIREBASE_DATA } from "../../data/migratedData";
+import { MIGRATED_FIREBASE_DATA } from "../../../../test/fixtures/migratedData";
 import type { OzipzDistribution } from "../../types/ozipz.types";
 
 describe("Materiały Edukacyjne & Rozdzielniki OZiPZ", () => {

@@ -1,17 +1,28 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { FallbackDatabaseService } from "./fallback-service";
-import { MIGRATED_FIREBASE_DATA } from "../features/ozipz/data/migratedData";
+import { MIGRATED_FIREBASE_DATA } from "../test/fixtures/migratedData";
+import { seedFallbackStorage } from "../test/fixtures/seedFallbackStorage";
 
 describe("FallbackDatabaseService (LocalStorage & In-Memory Fallback)", () => {
   let service: FallbackDatabaseService;
 
   beforeEach(() => {
-    localStorage.clear();
+    localStorage.clear(); seedFallbackStorage();
     service = new FallbackDatabaseService();
   });
 
   describe("Initial Data Seeding & Fallback", () => {
-    it("returns migrated data when localStorage is empty", async () => {
+    it("starts with no data when localStorage is empty", async () => {
+      localStorage.clear();
+      const empty = new FallbackDatabaseService();
+      expect(await empty.getActions()).toEqual([]);
+      expect(await empty.getScheduleEvents()).toEqual([]);
+      expect(await empty.getStaff()).toEqual([]);
+      const dictionaryTypes = new Set((await empty.getDictionaryItems()).map((d) => d.dictType));
+      expect([...dictionaryTypes]).toEqual(["jrwaSymbol"]);
+    });
+
+    it("reads a stored dataset", async () => {
       const actions = await service.getActions();
       expect(actions.length).toBe(MIGRATED_FIREBASE_DATA.actions.length);
 

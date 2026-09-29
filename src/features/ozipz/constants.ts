@@ -148,7 +148,6 @@ export const JRWA_CLASSES_DEFINITIONS: JrwaClassDefinition[] = [
   },
 ];
 
-export { ADNOTACJA_POWODY } from "./utils/adnotacjaUtils";
 export {
   TYPY_KSZTALCENIA,
   CANONICAL_EDUCATION_TYPES,

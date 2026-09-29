@@ -1,5 +1,4 @@
 import type { OzipzAction, OzipzDistribution, OzipzJrwaCase, OzipzScheduleEvent, OzipzPublication } from "../../../features/ozipz/types/ozipz.types";
-import { MIGRATED_FIREBASE_DATA } from "../../../features/ozipz/data/migratedData";
 import type { IActionsRepository, IJrwaRepository, IScheduleRepository, IMaterialsRepository } from "../interfaces";
 import type { CompanionDistributionPayload, SaveActionWithRelationsParams, SaveActionWithRelationsResult } from "../../types";
 import { generateId } from "../id-generator";
@@ -39,7 +38,7 @@ export class FallbackActionsRepository implements IActionsRepository {
   ) {}
 
   async getActions(): Promise<OzipzAction[]> {
-    return loadFromStorage<OzipzAction[]>("actions", MIGRATED_FIREBASE_DATA.actions);
+    return loadFromStorage<OzipzAction[]>("actions", []);
   }
 
   async addAction(action: Omit<OzipzAction, "id" | "createdAt" | "updatedAt">): Promise<OzipzAction> {
@@ -70,13 +69,13 @@ export class FallbackActionsRepository implements IActionsRepository {
       if (current) assertMonthOpen(current.date);
       saveToStorage("actions", list.filter((a) => a.id !== id)
         .map((a) => (a.linkedActionId === id ? { ...a, linkedActionId: undefined } : a)));
-      const dists = loadFromStorage<OzipzDistribution[]>("distributions", MIGRATED_FIREBASE_DATA.distributions);
+      const dists = loadFromStorage<OzipzDistribution[]>("distributions", []);
       saveToStorage("distributions", dists.map((d) => d.actionId === id ? { ...d, actionId: undefined, actionTitle: undefined } : d));
-      const schs = loadFromStorage<OzipzScheduleEvent[]>("schedules", MIGRATED_FIREBASE_DATA.schedules);
+      const schs = loadFromStorage<OzipzScheduleEvent[]>("schedules", []);
       saveToStorage("schedules", schs.map((s) => (s.actionId === id ? { ...s, actionId: undefined, status: "zaplanowane" } : s)));
-      const jrwa = loadFromStorage<OzipzJrwaCase[]>("jrwaCases", MIGRATED_FIREBASE_DATA.jrwaCases);
+      const jrwa = loadFromStorage<OzipzJrwaCase[]>("jrwaCases", []);
       saveToStorage("jrwaCases", jrwa.map((j) => (j.actionId === id ? { ...j, actionId: undefined } : j)));
-      const pubs = loadFromStorage<OzipzPublication[]>("publications", MIGRATED_FIREBASE_DATA.publications);
+      const pubs = loadFromStorage<OzipzPublication[]>("publications", []);
       saveToStorage("publications", pubs.map((p) => (p.actionId === id ? { ...p, actionId: undefined } : p)));
     });
   }
@@ -111,7 +110,7 @@ export class FallbackActionsRepository implements IActionsRepository {
       // Materiały przenoszą się wtedy do nowej dystrybucji — własne pozycje działania usuwamy.
       const ownMaterials = companionDistribution ? [] : distributionMaterials;
       if (ownMaterials !== undefined) {
-        const dists = loadFromStorage<OzipzDistribution[]>("distributions", MIGRATED_FIREBASE_DATA.distributions);
+        const dists = loadFromStorage<OzipzDistribution[]>("distributions", []);
         const existing = dists.filter((d) => d.actionId === id);
         const desired = ownMaterials.filter((item) => item.quantity > 0);
         const { matches, removed } = matchActionDistributions(existing, desired);
@@ -179,7 +178,7 @@ export class FallbackActionsRepository implements IActionsRepository {
       if (!updates) continue;
       await this.updateAction(distribution.id, updates);
       const merged = { ...distribution, ...updates };
-      const items = loadFromStorage<OzipzDistribution[]>("distributions", MIGRATED_FIREBASE_DATA.distributions)
+      const items = loadFromStorage<OzipzDistribution[]>("distributions", [])
         .filter((item) => item.actionId === distribution.id);
       for (const item of items) {
         await materials.updateDistribution(item.id, {

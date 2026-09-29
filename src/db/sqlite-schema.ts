@@ -2,7 +2,7 @@ import { migrateDatabase } from "./sqlite-migrations";
 import type { ISqlDatabase } from "./types";
 import { getProgramJrwaSymbol, KNOWN_JRWA_CATALOG } from "../features/ozipz/utils/programJrwaUtils";
 import type { OzipzProgram } from "../features/ozipz/types/ozipz.types";
-import { seedInitialData, cleanupPoisonedJrwaCases } from "./sqlite-seed";
+import { cleanupPoisonedJrwaCases } from "./sqlite-seed";
 
 export async function initTables(db: ISqlDatabase): Promise<void> {
   await db.execute("PRAGMA foreign_keys = ON;");
@@ -11,7 +11,6 @@ export async function initTables(db: ISqlDatabase): Promise<void> {
 
   await migrateDatabase(db);
 
-  await seedInitialData(db);
   await runOnce(db, "jrwa_cleanup_v1", () => cleanupPoisonedJrwaCases(db));
   await db.execute("BEGIN IMMEDIATE;");
   try {

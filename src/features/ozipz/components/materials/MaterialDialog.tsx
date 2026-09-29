@@ -186,7 +186,7 @@ export function MaterialDialog({
           </label>
           <Input
             type="text"
-            placeholder="np. Podstępne WZW - ZASZCZEP SIĘ - Istnieje szczepionka..."
+            placeholder="np. Ulotka o szczepieniach ochronnych"
             {...register("title")}
             className="h-9 text-xs font-medium"
             autoFocus

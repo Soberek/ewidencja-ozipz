@@ -5,7 +5,6 @@ import type {
   OzipzPublication,
   OzipzRegisterItem,
 } from "../../../features/ozipz/types/ozipz.types";
-import { MIGRATED_FIREBASE_DATA } from "../../../features/ozipz/data/migratedData";
 import type { IRegistryRepository } from "../interfaces";
 import { generateId } from "../id-generator";
 import { loadFromStorage, saveToStorage } from "./storage";
@@ -13,7 +12,7 @@ import { loadFromStorage, saveToStorage } from "./storage";
 export class FallbackRegistryRepository implements IRegistryRepository {
   // Letters
   async getLetters(): Promise<OzipzLetter[]> {
-    return loadFromStorage<OzipzLetter[]>("letters", MIGRATED_FIREBASE_DATA.letters);
+    return loadFromStorage<OzipzLetter[]>("letters", []);
   }
   async addLetter(letter: Omit<OzipzLetter, "id" | "createdAt" | "updatedAt">): Promise<OzipzLetter> {
     const list = await this.getLetters();
@@ -35,7 +34,7 @@ export class FallbackRegistryRepository implements IRegistryRepository {
 
   // Scans
   async getScans(): Promise<OzipzScan[]> {
-    return loadFromStorage<OzipzScan[]>("scans", MIGRATED_FIREBASE_DATA.scans);
+    return loadFromStorage<OzipzScan[]>("scans", []);
   }
   async addScan(scan: Omit<OzipzScan, "id" | "createdAt">): Promise<OzipzScan> {
     const list = await this.getScans();
@@ -52,7 +51,7 @@ export class FallbackRegistryRepository implements IRegistryRepository {
 
   // Templates
   async getTemplates(): Promise<OzipzTemplate[]> {
-    return loadFromStorage<OzipzTemplate[]>("templates", MIGRATED_FIREBASE_DATA.templates);
+    return loadFromStorage<OzipzTemplate[]>("templates", []);
   }
   async addTemplate(tpl: Omit<OzipzTemplate, "id" | "createdAt" | "updatedAt">): Promise<OzipzTemplate> {
     const list = await this.getTemplates();
@@ -74,7 +73,7 @@ export class FallbackRegistryRepository implements IRegistryRepository {
 
   // Publications
   async getPublications(): Promise<OzipzPublication[]> {
-    return loadFromStorage<OzipzPublication[]>("publications", MIGRATED_FIREBASE_DATA.publications);
+    return loadFromStorage<OzipzPublication[]>("publications", []);
   }
   async addPublication(pub: Omit<OzipzPublication, "id" | "createdAt" | "updatedAt">): Promise<OzipzPublication> {
     const list = await this.getPublications();
@@ -96,7 +95,7 @@ export class FallbackRegistryRepository implements IRegistryRepository {
 
   // Registers
   async getRegisters(): Promise<OzipzRegisterItem[]> {
-    return loadFromStorage<OzipzRegisterItem[]>("registers", MIGRATED_FIREBASE_DATA.registers);
+    return loadFromStorage<OzipzRegisterItem[]>("registers", []);
   }
   async addRegister(reg: Omit<OzipzRegisterItem, "id" | "createdAt" | "updatedAt">): Promise<OzipzRegisterItem> {
     const list = await this.getRegisters();

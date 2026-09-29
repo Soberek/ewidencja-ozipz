@@ -152,7 +152,6 @@ export interface CoreSlice {
   refreshClosedMonths: () => Promise<void>;
   setMonthClosed: (monthKey: string, closed: boolean) => Promise<void>;
   saveMonthlyTargets: (year: number, targets: OzipzYearlyMonthlyTargets) => Promise<OzipzMonthlyTarget[]>;
-  clearAndReseedDefaults: () => Promise<void>;
 }
 
 export type OzipzDbState = ActionsSlice &

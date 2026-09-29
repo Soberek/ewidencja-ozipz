@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MIGRATED_FIREBASE_DATA } from "../../data/migratedData";
+import { MIGRATED_FIREBASE_DATA } from "../../../../test/fixtures/migratedData";
 
 describe("Ewidencja OZiPZ - snapshot bez danych osobowych", () => {
   // The snapshot ships inside the public installer, so it must not carry third-party contact details.

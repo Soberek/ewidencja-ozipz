@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MIGRATED_FIREBASE_DATA } from "./migratedData";
+import { MIGRATED_FIREBASE_DATA } from "../../../test/fixtures/migratedData";
 import { DICTIONARY_CATEGORIES_CONFIG } from "../constants";
 
 describe("Ewidencja OZiPZ - Edu-Report-V3 Data Integrity & Dictionaries", () => {

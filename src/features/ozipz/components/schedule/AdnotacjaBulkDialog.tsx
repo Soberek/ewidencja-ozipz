@@ -7,7 +7,6 @@ import { Select, type SelectOption } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FileText, AlertCircle, CheckSquare, Square } from "lucide-react";
 import type { OzipzScheduleEvent } from "../../types/ozipz.types";
-import { ADNOTACJA_POWODY } from "../../utils/adnotacjaUtils";
 import { getTodayIsoDate } from "../../utils/dateUtils";
 import { useDictionaries } from "../../store/useOzipzDbStore";
 
@@ -25,9 +24,7 @@ export function AdnotacjaBulkDialog({
   onSaveBulk,
 }: AdnotacjaBulkDialogProps) {
   const dictStore = useDictionaries();
-  const dynamicReasons = (dictStore.annotationReasons && dictStore.annotationReasons.length > 0)
-    ? dictStore.annotationReasons.map((d) => ({ kod: d.code, tytul: d.label, opis: d.description || d.label }))
-    : ADNOTACJA_POWODY;
+  const dynamicReasons = (dictStore.annotationReasons ?? []).map((d) => ({ kod: d.code, tytul: d.label, opis: d.description || d.label }));
 
   const reasonOptions: SelectOption[] = useMemo(() => {
     return dynamicReasons.map((p) => ({
@@ -186,6 +183,11 @@ export function AdnotacjaBulkDialog({
 
           <div className="p-3 rounded-[2px] bg-muted/40 border space-y-2">
             <Label className="text-xs font-semibold">Ustaw wspólny powód dla wszystkich pozycji:</Label>
+            {dynamicReasons.length === 0 && (
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Słownik „Powody Adnotacji i Odroczeń” jest pusty. Dodaj powody w module Słowniki.
+              </p>
+            )}
             <div className="flex items-center gap-2">
               <div className="flex-1">
                 <Select

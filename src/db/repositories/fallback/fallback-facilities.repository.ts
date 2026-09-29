@@ -3,14 +3,13 @@ import type {
   OzipzAction, OzipzDistribution, OzipzScheduleEvent, OzipzJrwaCase,
   OzipzLetter, OzipzScan, OzipzContact, OzipzRegisterItem,
 } from "../../../features/ozipz/types/ozipz.types";
-import { MIGRATED_FIREBASE_DATA } from "../../../features/ozipz/data/migratedData";
 import type { IFacilitiesRepository } from "../interfaces";
 import { generateId } from "../id-generator";
 import { loadFromStorage, saveToStorage } from "./storage";
 
 export class FallbackFacilitiesRepository implements IFacilitiesRepository {
   async getFacilities(): Promise<OzipzFacility[]> {
-    return loadFromStorage<OzipzFacility[]>("facilities", MIGRATED_FIREBASE_DATA.facilities);
+    return loadFromStorage<OzipzFacility[]>("facilities", []);
   }
 
   async addFacility(fac: Omit<OzipzFacility, "id" | "createdAt" | "updatedAt">): Promise<OzipzFacility> {
@@ -29,27 +28,27 @@ export class FallbackFacilitiesRepository implements IFacilitiesRepository {
   }
 
   async deleteFacility(id: string): Promise<void> {
-    const linked = loadFromStorage<OzipzSchoolParticipation[]>("participations", MIGRATED_FIREBASE_DATA.participations);
+    const linked = loadFromStorage<OzipzSchoolParticipation[]>("participations", []);
     if (linked.some((row) => row.facilityId === id)) throw new Error("Nie można usunąć placówki z zapisanymi udziałami. Najpierw uporządkuj zgłoszenia.");
     const list = await this.getFacilities();
     saveToStorage("facilities", list.filter((f) => f.id !== id).map((f) => (f.parentFacilityId === id ? { ...f, parentFacilityId: undefined } : f)));
-    const parts = loadFromStorage<OzipzSchoolParticipation[]>("participations", MIGRATED_FIREBASE_DATA.participations);
+    const parts = loadFromStorage<OzipzSchoolParticipation[]>("participations", []);
     saveToStorage("participations", parts.filter((part) => part.facilityId !== id));
-    const actions = loadFromStorage<OzipzAction[]>("actions", MIGRATED_FIREBASE_DATA.actions);
+    const actions = loadFromStorage<OzipzAction[]>("actions", []);
     saveToStorage("actions", actions.map((a) => (a.facilityId === id ? { ...a, facilityId: undefined } : a)));
-    const dists = loadFromStorage<OzipzDistribution[]>("distributions", MIGRATED_FIREBASE_DATA.distributions);
+    const dists = loadFromStorage<OzipzDistribution[]>("distributions", []);
     saveToStorage("distributions", dists.map((d) => (d.facilityId === id ? { ...d, facilityId: undefined } : d)));
-    const schs = loadFromStorage<OzipzScheduleEvent[]>("schedules", MIGRATED_FIREBASE_DATA.schedules);
+    const schs = loadFromStorage<OzipzScheduleEvent[]>("schedules", []);
     saveToStorage("schedules", schs.map((s) => (s.facilityId === id ? { ...s, facilityId: undefined } : s)));
-    const jrwa = loadFromStorage<OzipzJrwaCase[]>("jrwaCases", MIGRATED_FIREBASE_DATA.jrwaCases);
+    const jrwa = loadFromStorage<OzipzJrwaCase[]>("jrwaCases", []);
     saveToStorage("jrwaCases", jrwa.map((j) => (j.facilityId === id ? { ...j, facilityId: undefined, facilityName: undefined } : j)));
-    const letters = loadFromStorage<OzipzLetter[]>("letters", MIGRATED_FIREBASE_DATA.letters);
+    const letters = loadFromStorage<OzipzLetter[]>("letters", []);
     saveToStorage("letters", letters.map((l) => (l.facilityId === id ? { ...l, facilityId: undefined } : l)));
-    const scans = loadFromStorage<OzipzScan[]>("scans", MIGRATED_FIREBASE_DATA.scans);
+    const scans = loadFromStorage<OzipzScan[]>("scans", []);
     saveToStorage("scans", scans.map((s) => (s.facilityId === id ? { ...s, facilityId: undefined } : s)));
-    const contacts = loadFromStorage<OzipzContact[]>("contacts", MIGRATED_FIREBASE_DATA.contacts);
+    const contacts = loadFromStorage<OzipzContact[]>("contacts", []);
     saveToStorage("contacts", contacts.map((c) => (c.facilityId === id ? { ...c, facilityId: undefined } : c)));
-    const registers = loadFromStorage<OzipzRegisterItem[]>("registers", MIGRATED_FIREBASE_DATA.registers);
+    const registers = loadFromStorage<OzipzRegisterItem[]>("registers", []);
     saveToStorage("registers", registers.map((r) => (r.facilityId === id ? { ...r, facilityId: undefined, facilityName: undefined } : r)));
   }
 
@@ -64,9 +63,9 @@ export class FallbackFacilitiesRepository implements IFacilitiesRepository {
 
   async getFacilityActivitySummary(facilityId: string): Promise<FacilityActivitySummary> {
     const fac = (await this.getFacilities()).find((f) => f.id === facilityId);
-    const parts = loadFromStorage<OzipzSchoolParticipation[]>("participations", MIGRATED_FIREBASE_DATA.participations).filter((p) => p.facilityId === facilityId);
-    const acts = loadFromStorage<OzipzAction[]>("actions", MIGRATED_FIREBASE_DATA.actions).filter((a) => a.facilityId === facilityId);
-    const dists = loadFromStorage<OzipzDistribution[]>("distributions", MIGRATED_FIREBASE_DATA.distributions).filter((d) => d.facilityId === facilityId);
+    const parts = loadFromStorage<OzipzSchoolParticipation[]>("participations", []).filter((p) => p.facilityId === facilityId);
+    const acts = loadFromStorage<OzipzAction[]>("actions", []).filter((a) => a.facilityId === facilityId);
+    const dists = loadFromStorage<OzipzDistribution[]>("distributions", []).filter((d) => d.facilityId === facilityId);
     // Uczestnicy programów są już liczeni w działaniach, więc sumujemy tylko działania (jak widok SQLite).
     const totalPupils = acts.reduce((acc, a) => acc + a.participantsCount, 0);
     const totalMaterials = dists.reduce((acc, d) => acc + d.quantity, 0);

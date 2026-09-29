@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useOzipzDb } from "./useOzipzDb";
 import { useOzipzDbStore } from "../store/useOzipzDbStore";
-import { MIGRATED_FIREBASE_DATA } from "../data/migratedData";
+import { MIGRATED_FIREBASE_DATA } from "../../../test/fixtures/migratedData";
 
 describe("useOzipzDb Hook - Relational Selectors and Memos", () => {
   beforeEach(() => {

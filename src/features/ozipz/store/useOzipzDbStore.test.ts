@@ -9,10 +9,11 @@ import {
   useSchedule,
   useRelationalSelectors,
 } from "./useOzipzDbStore";
+import { seedFallbackStorage } from "../../../test/fixtures/seedFallbackStorage";
 
 describe("useOzipzDbStore & Domain Hooks", () => {
   beforeEach(async () => {
-    localStorage.clear();
+    localStorage.clear(); seedFallbackStorage();
     await useOzipzDbStore.getState().loadAll();
   });
 

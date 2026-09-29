@@ -11,12 +11,12 @@ import { FallbackStaffContactsRepository } from "./repositories/fallback/fallbac
 import { FallbackRegistryRepository } from "./repositories/fallback/fallback-registry.repository";
 import { FallbackMonthlyTargetsRepository } from "./repositories/fallback/fallback-monthly-targets.repository";
 import { loadFromStorage, saveToStorage } from "./repositories/fallback/storage";
-import { MIGRATED_FIREBASE_DATA } from "../features/ozipz/data/migratedData";
 import type { IJrwaRepository, IScheduleRepository, IMaterialsRepository } from "./repositories/interfaces";
+import { seedFallbackStorage } from "../test/fixtures/seedFallbackStorage";
 
 describe("Adversarial Fallback Storage & Repositories Suite", () => {
   beforeEach(() => {
-    localStorage.clear();
+    localStorage.clear(); seedFallbackStorage();
   });
 
   describe("1. Storage Layer Edge Cases & Corruption Recovery", () => {
@@ -56,16 +56,6 @@ describe("Adversarial Fallback Storage & Repositories Suite", () => {
   });
 
   describe("2. Persistence Across Disjoint Service & Repository Instances", () => {
-    it("keeps unrelated localStorage preferences when reseeding OZiPZ data", async () => {
-      localStorage.setItem("unrelated_preference", "keep-me");
-      localStorage.setItem("ozipz_actions", "[]");
-
-      await new FallbackDatabaseService().clearAndReseedDefaults();
-
-      expect(localStorage.getItem("unrelated_preference")).toBe("keep-me");
-      expect(localStorage.getItem("ozipz_actions")).toBeNull();
-    });
-
     it("persists updates made in instance A to new instance B", async () => {
       const serviceA = new FallbackDatabaseService();
       const facility = await serviceA.addFacility({
@@ -94,32 +84,6 @@ describe("Adversarial Fallback Storage & Repositories Suite", () => {
       expect(foundC?.name).toBe("Zaktualizowana przez B");
     });
 
-    it("wipes persisted mutations and reseeds defaults on clearAndReseedDefaults", async () => {
-      const service = new FallbackDatabaseService();
-      const customAction = await service.addAction({
-        title: "Tymczasowa akcja",
-        actionType: "prelekcja",
-        date: "2026-09-01",
-        facilityName: "Szkoła",
-        municipality: "Barlinek",
-        topic: "Zdrowie",
-        audienceGroup: "Dzieci",
-        participantsCount: 10,
-        indirectRecipientsCount: 0,
-        materialsDistributedCount: 0,
-        status: "wykonane",
-        ezdStatus: "w_ezd",
-        leadEducator: "Jan",
-      });
-
-      expect((await service.getActions()).some((a) => a.id === customAction.id)).toBe(true);
-
-      await service.clearAndReseedDefaults();
-
-      const actionsAfterClear = await service.getActions();
-      expect(actionsAfterClear.some((a) => a.id === customAction.id)).toBe(false);
-      expect(actionsAfterClear.length).toBe(MIGRATED_FIREBASE_DATA.actions.length);
-    });
   });
 
   describe("3. Dependency Injection & Isolation in FallbackActionsRepository", () => {

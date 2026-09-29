@@ -131,7 +131,7 @@ export function StaffDialog({
           </label>
           <Input
             type="text"
-            placeholder="np. Krzysztof Palpuchowski"
+            placeholder="np. Jan Kowalski"
             {...register("fullName")}
             className="h-8 text-xs font-medium"
             autoFocus

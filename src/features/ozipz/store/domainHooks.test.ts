@@ -20,7 +20,7 @@ import {
 } from "./domainHooks";
 import * as mainStoreEntry from "./useOzipzDbStore";
 import { useOzipzDbStore } from "./useOzipzDbStore";
-import { MIGRATED_FIREBASE_DATA } from "../data/migratedData";
+import { MIGRATED_FIREBASE_DATA } from "../../../test/fixtures/migratedData";
 import type {
   OzipzAction,
   OzipzMonthlyTarget,

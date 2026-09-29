@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { OzipzDbService } from "../../../db/client";
 import { useOzipzDbStore } from "./useOzipzDbStore";
+import { seedFallbackStorage } from "../../../test/fixtures/seedFallbackStorage";
 
-beforeEach(async () => { localStorage.clear(); await useOzipzDbStore.getState().loadAll(); });
+beforeEach(async () => { localStorage.clear(); seedFallbackStorage(); await useOzipzDbStore.getState().loadAll(); });
 afterEach(() => vi.restoreAllMocks());
 it("uses current catalog names when loading a stored school participation", async () => {
   const store = useOzipzDbStore.getState();

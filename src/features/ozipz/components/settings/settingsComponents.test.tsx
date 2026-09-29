@@ -19,48 +19,13 @@ describe("Settings Module Components", () => {
     expect(success).not.toHaveBeenCalled();
     success.mockRestore();
   });
-  it("renders database diagnostics, migrated records badge, and active storage information", async () => {
-    render(<SettingsSection onClearAndReseed={vi.fn()} />);
+  it("renders database diagnostics without any bundled snapshot or reset", async () => {
+    render(<SettingsSection />);
 
-    expect(screen.getByText("Historyczny snapshot Firebase")).toBeDefined();
-    expect(screen.getByText(/rekordów w snapshocie/)).toBeDefined();
     expect(screen.getByText("Baza Danych i Środowisko Aplikacji")).toBeDefined();
     expect(screen.getByText("Lokalizacja Pliku Bazy")).toBeDefined();
     expect(screen.getByText("Integralność Referencyjna")).toBeDefined();
+    expect(screen.queryByText(/snapshot/i)).toBeNull();
     await waitFor(() => expect(screen.queryByText("Sprawdzanie aktywnego magazynu danych…")).toBeNull());
-  });
-
-  it("triggers onClearAndReseed when user confirms maintenance action", async () => {
-    const handleReseed = vi.fn();
-    const originalConfirm = window.confirm;
-    window.confirm = vi.fn().mockReturnValue(true);
-
-    render(<SettingsSection onClearAndReseed={handleReseed} />);
-
-    const reseedBtn = screen.getByText(/Usuń bieżące dane i przywróć snapshot/i);
-    fireEvent.click(reseedBtn);
-
-    expect(window.confirm).toHaveBeenCalled();
-    expect(handleReseed).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(screen.queryByText("Sprawdzanie aktywnego magazynu danych…")).toBeNull());
-
-    window.confirm = originalConfirm;
-  });
-
-  it("does not trigger onClearAndReseed when user cancels confirmation dialog", async () => {
-    const handleReseed = vi.fn();
-    const originalConfirm = window.confirm;
-    window.confirm = vi.fn().mockReturnValue(false);
-
-    render(<SettingsSection onClearAndReseed={handleReseed} />);
-
-    const reseedBtn = screen.getByText(/Usuń bieżące dane i przywróć snapshot/i);
-    fireEvent.click(reseedBtn);
-
-    expect(window.confirm).toHaveBeenCalled();
-    expect(handleReseed).not.toHaveBeenCalled();
-    await waitFor(() => expect(screen.queryByText("Sprawdzanie aktywnego magazynu danych…")).toBeNull());
-
-    window.confirm = originalConfirm;
   });
 });

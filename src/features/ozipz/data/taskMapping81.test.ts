@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MIGRATED_FIREBASE_DATA } from './migratedData';
+import { MIGRATED_FIREBASE_DATA } from '../../../test/fixtures/migratedData';
 
 describe('Task Mapping to 81/2026 Verification', () => {
   it('contains all 240 mapped actions from better-oz-851 to better-oz-1090', () => {

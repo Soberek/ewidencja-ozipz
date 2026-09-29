@@ -137,5 +137,4 @@ export interface IOzipzDatabaseService {
   saveMonthlyTargets(year: number, targets: OzipzYearlyMonthlyTargets): Promise<OzipzMonthlyTarget[]>;
 
   getFacilityActivitySummary(facilityId: string): Promise<FacilityActivitySummary>;
-  clearAndReseedDefaults(): Promise<void>;
 }

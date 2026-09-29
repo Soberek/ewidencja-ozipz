@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { FileText, Sparkles } from "lucide-react";
 import type { OzipzScheduleEvent } from "../../types/ozipz.types";
-import { ADNOTACJA_POWODY } from "../../utils/adnotacjaUtils";
 import { useDictionaries } from "../../store/useOzipzDbStore";
 
 const AdnotacjaFormSchema = z.object({
@@ -36,9 +35,7 @@ export function AdnotacjaDialog({ open, onOpenChange, event, onSave }: Adnotacja
   const [serverError, setServerError] = useState("");
   const dictStore = useDictionaries();
 
-  const dynamicReasons = (dictStore.annotationReasons && dictStore.annotationReasons.length > 0)
-    ? dictStore.annotationReasons.map((d) => ({ kod: d.code, tytul: d.label, opis: d.description || d.label }))
-    : ADNOTACJA_POWODY;
+  const dynamicReasons = (dictStore.annotationReasons ?? []).map((d) => ({ kod: d.code, tytul: d.label, opis: d.description || d.label }));
 
   const {
     register,
@@ -134,6 +131,11 @@ export function AdnotacjaDialog({ open, onOpenChange, event, onSave }: Adnotacja
           searchPlaceholder="Szukaj powodu..."
           error={errors.powodKod?.message as string}
                   />
+        {dynamicReasons.length === 0 && (
+          <p className="text-xs text-amber-700 dark:text-amber-400 pl-1 pt-0.5">
+            Słownik „Powody Adnotacji i Odroczeń” jest pusty. Dodaj powody w module Słowniki.
+          </p>
+        )}
         {selectedPowod && (
           <p className="text-xs text-muted-foreground italic pl-1 pt-0.5">
             {selectedPowod.opis}

@@ -141,11 +141,4 @@ export class FallbackDatabaseService implements IOzipzDatabaseService {
   // Monthly Targets
   getMonthlyTargets(year?: number): Promise<OzipzMonthlyTarget[]> { return this.monthlyTargetsRepo.getMonthlyTargets(year); }
   saveMonthlyTargets(year: number, targets: OzipzYearlyMonthlyTargets): Promise<OzipzMonthlyTarget[]> { return this.monthlyTargetsRepo.saveMonthlyTargets(year, targets); }
-
-  async clearAndReseedDefaults(): Promise<void> {
-    const ownedKeys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
-      .filter((key): key is string => Boolean(key?.startsWith("ozipz_")));
-    ownedKeys.forEach((key) => localStorage.removeItem(key));
-    localStorage.removeItem("oz.closedMonths");
-  }
 }

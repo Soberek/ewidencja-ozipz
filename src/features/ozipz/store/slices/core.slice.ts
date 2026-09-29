@@ -103,9 +103,4 @@ export const createCoreSlice: SliceCreator<CoreSlice> = (set, get) => ({
     }));
     return saved;
   },
-
-  clearAndReseedDefaults: async () => {
-    await OzipzDbService.clearAndReseedDefaults();
-    await get().loadAll();
-  },
 });

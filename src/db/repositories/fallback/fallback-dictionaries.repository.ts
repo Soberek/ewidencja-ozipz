@@ -1,17 +1,31 @@
 import type { OzipzDictionaryItem } from "../../../features/ozipz/types/ozipz.types";
-import { MIGRATED_FIREBASE_DATA } from "../../../features/ozipz/data/migratedData";
+import { KNOWN_JRWA_CATALOG } from "../../../features/ozipz/utils/programJrwaUtils";
 import type { IDictionariesRepository } from "../interfaces";
 import { generateId } from "../id-generator";
 import { loadFromStorage, saveToStorage } from "./storage";
 
+/** Oficjalny wykaz JRWA — jedyny słownik, który aplikacja dostarcza sama (tak samo jak w SQLite). */
+const CANONICAL_JRWA: OzipzDictionaryItem[] = KNOWN_JRWA_CATALOG.map((d) => ({
+  id: `dict_jrwa_${d.symbol.replace(/\./g, "_")}`,
+  dictType: "jrwaSymbol",
+  code: d.symbol,
+  label: d.label,
+  description: d.description || `Symbol JRWA ${d.symbol} w wykazie akt OZiPZ`,
+  kind: d.kind || "PROGRAMOWE",
+  gisCategory: d.gisCategory,
+  isSystem: true,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+}));
+
 export class FallbackDictionariesRepository implements IDictionariesRepository {
   async getDictionaryItems(): Promise<OzipzDictionaryItem[]> {
-    const raw = loadFromStorage<OzipzDictionaryItem[]>("dictionaries", MIGRATED_FIREBASE_DATA.dictionaryItems);
+    const raw = loadFromStorage<OzipzDictionaryItem[]>("dictionaries", []);
     const cleaned = raw
       .filter((d) => d.dictType !== "topic" && d.dictType !== "tematyki" && !d.id.startsWith("dict-jrw-") && d.code !== "9010" && d.code !== "070")
       .map((d) => {
         if (d.dictType === "jrwaSymbol") {
-          const canonical = MIGRATED_FIREBASE_DATA.dictionaryItems.find((c) => c.dictType === "jrwaSymbol" && c.code === d.code);
+          const canonical = CANONICAL_JRWA.find((c) => c.code === d.code);
           if (canonical) {
             return { ...d, label: canonical.label, description: canonical.description, kind: d.kind ?? canonical.kind, gisCategory: d.gisCategory ?? canonical.gisCategory };
           }
@@ -19,9 +33,7 @@ export class FallbackDictionariesRepository implements IDictionariesRepository {
         return d;
       });
     const jrwaCodes = new Set(cleaned.filter((d) => d.dictType === "jrwaSymbol").map((d) => d.code));
-    const missingJrwa = MIGRATED_FIREBASE_DATA.dictionaryItems.filter(
-      (d) => d.dictType === "jrwaSymbol" && !jrwaCodes.has(d.code)
-    );
+    const missingJrwa = CANONICAL_JRWA.filter((d) => !jrwaCodes.has(d.code));
     const result = [...cleaned, ...missingJrwa];
     if (result.length !== raw.length) {
       saveToStorage("dictionaries", result);

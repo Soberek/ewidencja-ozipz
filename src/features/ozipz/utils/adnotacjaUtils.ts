@@ -35,7 +35,6 @@ export const POLISH_MONTHS_NOMINATIVE: readonly string[] = [
   'grudzień',
 ];
 
-export { ADNOTACJA_POWODY, type PowodAdnotacji } from "../data/annotationReasonsSeed";
 import { getTodayIsoDate } from "./dateUtils";
 
 export function formatDateLongPl(iso: string | null | undefined): string {

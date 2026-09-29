@@ -1,5 +1,5 @@
 import { beforeEach, expect, it } from "vitest";
-import { MIGRATED_FIREBASE_DATA } from "../features/ozipz/data/migratedData";
+import { MIGRATED_FIREBASE_DATA } from "../test/fixtures/migratedData";
 import { FallbackDictionariesRepository } from "./repositories/fallback/fallback-dictionaries.repository";
 import { FallbackJrwaRepository } from "./repositories/fallback/fallback-jrwa.repository";
 import { saveToStorage } from "./repositories/fallback/storage";

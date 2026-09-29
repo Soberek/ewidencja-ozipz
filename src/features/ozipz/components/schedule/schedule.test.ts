@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MIGRATED_FIREBASE_DATA } from "../../data/migratedData";
+import { MIGRATED_FIREBASE_DATA } from "../../../../test/fixtures/migratedData";
 
 describe("Ewidencja OZiPZ - Harmonogram & Plan Pracy edu-report", () => {
   it("contains 94 authentic schedule items migrated from Firebase", () => {

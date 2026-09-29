@@ -335,5 +335,4 @@ export const OzipzDbService: IOzipzDatabaseService = {
   async getFacilityActivitySummary(facId) { return (await resolveService()).getFacilityActivitySummary(facId); },
   async getMonthlyTargets(year) { return (await resolveService()).getMonthlyTargets(year); },
   async saveMonthlyTargets(year, targets) { return (await resolveService()).saveMonthlyTargets(year, targets); },
-  async clearAndReseedDefaults() { return (await resolveService()).clearAndReseedDefaults(); },
 };

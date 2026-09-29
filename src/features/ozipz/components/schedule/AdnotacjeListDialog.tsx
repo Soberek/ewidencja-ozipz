@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Trash2, Printer } from "lucide-react";
 import type { OzipzScheduleEvent } from "../../types/ozipz.types";
-import { ADNOTACJA_POWODY } from "../../utils/adnotacjaUtils";
 import { useDictionaries } from "../../store/useOzipzDbStore";
 import { toast } from "sonner";
 
@@ -23,10 +22,9 @@ export function AdnotacjeListDialog({
   const dictStore = useDictionaries();
   if (!event) return null;
 
-  const reason = (dictStore.annotationReasons || []).find((r) => r.code === event.annotationReasonCode) ||
-    ADNOTACJA_POWODY.find((p) => p.kod === event.annotationReasonCode);
-  const reasonLabel = (reason as any)?.label || (reason as any)?.tytul || event.annotationReasonLabel || "Uzasadnione okoliczności";
-  const reasonDesc = (reason as any)?.description || (reason as any)?.opis || "";
+  const reason = (dictStore.annotationReasons || []).find((r) => r.code === event.annotationReasonCode);
+  const reasonLabel = reason?.label || event.annotationReasonLabel || "Uzasadnione okoliczności";
+  const reasonDesc = reason?.description || "";
 
   const handlePrint = () => {
     window.print();

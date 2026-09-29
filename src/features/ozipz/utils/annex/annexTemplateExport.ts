@@ -123,7 +123,7 @@ async function exportToTemplateGeneric(
   defaultFileName: string,
   customFileName?: string,
   preparedByCell?: string,
-  preparedBy: string = "Krzysztof Palpuchowski",
+  preparedBy: string = "",
   headerTitle?: string
 ): Promise<boolean> {
   try {
@@ -183,7 +183,7 @@ async function exportToTemplateGeneric(
 export async function exportToTemplate(
   data: AggregatedMiernikData | readonly OzipzAction[],
   customFileName?: string,
-  preparedBy: string = "Krzysztof Palpuchowski",
+  preparedBy: string = "",
   headerTitle?: string
 ): Promise<boolean> {
   const aggregatedData: AggregatedMiernikData = Array.isArray(data)
@@ -207,7 +207,7 @@ export async function exportToTemplate(
 export async function exportToCumulativeTemplate(
   data: AggregatedMiernikData | readonly OzipzAction[],
   customFileName?: string,
-  preparedBy: string = "Krzysztof Palpuchowski",
+  preparedBy: string = "",
   headerTitle?: string
 ): Promise<boolean> {
   const aggregatedData: AggregatedMiernikData = Array.isArray(data)
@@ -233,7 +233,7 @@ export async function downloadAnnexReportExcel(
   annexNumber: 1 | 2,
   year: number,
   months: readonly number[],
-  preparedBy: string = "Krzysztof Palpuchowski"
+  preparedBy: string = ""
 ): Promise<void> {
   const monthText = formatPeriodForHeader(months);
   const templatePath = `/generate-templates/zalnr${annexNumber}.xlsx`;

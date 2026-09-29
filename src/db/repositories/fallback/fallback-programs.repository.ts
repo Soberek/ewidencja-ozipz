@@ -8,14 +8,13 @@ import type {
   OzipzScan,
   OzipzRegisterItem,
 } from "../../../features/ozipz/types/ozipz.types";
-import { MIGRATED_FIREBASE_DATA } from "../../../features/ozipz/data/migratedData";
 import type { IProgramsRepository } from "../interfaces";
 import { generateId } from "../id-generator";
 import { loadFromStorage, saveToStorage } from "./storage";
 
 export class FallbackProgramsRepository implements IProgramsRepository {
   async getPrograms(): Promise<OzipzProgram[]> {
-    const raw = loadFromStorage<OzipzProgram[]>("programs", MIGRATED_FIREBASE_DATA.programs);
+    const raw = loadFromStorage<OzipzProgram[]>("programs", []);
     return raw.map((p) => {
       if (p.id === "sprawozdawczosc-statystyczna" || p.name.toLowerCase().includes("sprawozdawczość")) {
         return { ...p, jrwaSymbol: "0442" };
@@ -40,28 +39,28 @@ export class FallbackProgramsRepository implements IProgramsRepository {
   }
 
   async deleteProgram(id: string): Promise<void> {
-    const linked = loadFromStorage<OzipzSchoolParticipation[]>("participations", MIGRATED_FIREBASE_DATA.participations);
+    const linked = loadFromStorage<OzipzSchoolParticipation[]>("participations", []);
     if (linked.some((row) => row.programId === id)) throw new Error("Nie można usunąć programu z zapisanymi udziałami. Najpierw uporządkuj zgłoszenia.");
     const list = await this.getPrograms();
     saveToStorage("programs", list.filter((p) => p.id !== id));
     const parts = await this.getParticipations();
     saveToStorage("participations", parts.filter((part) => part.programId !== id));
-    const actions = loadFromStorage<OzipzAction[]>("actions", MIGRATED_FIREBASE_DATA.actions);
+    const actions = loadFromStorage<OzipzAction[]>("actions", []);
     saveToStorage("actions", actions.map((a) => (a.programId === id ? { ...a, programId: undefined, programName: undefined } : a)));
-    const schs = loadFromStorage<OzipzScheduleEvent[]>("schedules", MIGRATED_FIREBASE_DATA.schedules);
+    const schs = loadFromStorage<OzipzScheduleEvent[]>("schedules", []);
     saveToStorage("schedules", schs.map((s) => (s.programId === id ? { ...s, programId: undefined, programName: undefined } : s)));
-    const jrwa = loadFromStorage<OzipzJrwaCase[]>("jrwaCases", MIGRATED_FIREBASE_DATA.jrwaCases);
+    const jrwa = loadFromStorage<OzipzJrwaCase[]>("jrwaCases", []);
     saveToStorage("jrwaCases", jrwa.map((j) => (j.programId === id ? { ...j, programId: undefined, programName: undefined } : j)));
-    const letters = loadFromStorage<OzipzLetter[]>("letters", MIGRATED_FIREBASE_DATA.letters);
+    const letters = loadFromStorage<OzipzLetter[]>("letters", []);
     saveToStorage("letters", letters.map((l) => (l.programId === id ? { ...l, programId: undefined } : l)));
-    const scans = loadFromStorage<OzipzScan[]>("scans", MIGRATED_FIREBASE_DATA.scans);
+    const scans = loadFromStorage<OzipzScan[]>("scans", []);
     saveToStorage("scans", scans.map((s) => (s.programId === id ? { ...s, programId: undefined, programName: undefined } : s)));
-    const registers = loadFromStorage<OzipzRegisterItem[]>("registers", MIGRATED_FIREBASE_DATA.registers);
+    const registers = loadFromStorage<OzipzRegisterItem[]>("registers", []);
     saveToStorage("registers", registers.map((r) => (r.programId === id ? { ...r, programId: undefined, programName: undefined } : r)));
   }
 
   async getParticipations(): Promise<OzipzSchoolParticipation[]> {
-    return loadFromStorage<OzipzSchoolParticipation[]>("participations", MIGRATED_FIREBASE_DATA.participations);
+    return loadFromStorage<OzipzSchoolParticipation[]>("participations", []);
   }
 
   async addParticipation(part: Omit<OzipzSchoolParticipation, "id" | "createdAt" | "updatedAt">): Promise<OzipzSchoolParticipation> {

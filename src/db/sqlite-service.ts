@@ -16,10 +16,9 @@ import { SqliteDictionariesRepository } from "./repositories/sqlite/sqlite-dicti
 import { SqliteStaffContactsRepository } from "./repositories/sqlite/sqlite-staff-contacts.repository";
 import { SqliteRegistryRepository } from "./repositories/sqlite/sqlite-registry.repository";
 import { SqliteMonthlyTargetsRepository } from "./repositories/sqlite/sqlite-monthly-targets.repository";
-import { seedInitialData } from "./sqlite-seed";
 
 export { initTables } from "./sqlite-schema";
-export { seedInitialData, cleanupPoisonedJrwaCases } from "./sqlite-seed";
+export { cleanupPoisonedJrwaCases } from "./sqlite-seed";
 
 export class SqliteDatabaseService implements IOzipzDatabaseService {
   private readonly actionsRepo: SqliteActionsRepository;
@@ -147,23 +146,4 @@ export class SqliteDatabaseService implements IOzipzDatabaseService {
   // Monthly Targets
   getMonthlyTargets(year?: number): Promise<OzipzMonthlyTarget[]> { return this.monthlyTargetsRepo.getMonthlyTargets(year); }
   saveMonthlyTargets(year: number, targets: OzipzYearlyMonthlyTargets): Promise<OzipzMonthlyTarget[]> { return this.monthlyTargetsRepo.saveMonthlyTargets(year, targets); }
-
-  async clearAndReseedDefaults(): Promise<void> {
-    const tables = [
-      "ozipz_closed_months", "ozipz_distributions", "ozipz_actions", "ozipz_participations", "ozipz_programs", "ozipz_materials",
-      "ozipz_schedule", "ozipz_jrwa_cases", "ozipz_publications", "ozipz_facilities", "ozipz_dictionaries",
-      "ozipz_letters", "ozipz_scans", "ozipz_templates", "ozipz_staff", "ozipz_contacts", "ozipz_registers", "ozipz_monthly_targets",
-    ];
-    try {
-      await this.db.execute("BEGIN TRANSACTION;");
-      for (const table of tables) {
-        await this.db.execute(`DELETE FROM ${table};`);
-      }
-      await this.db.execute("COMMIT;");
-    } catch (err) {
-      await this.db.execute("ROLLBACK;");
-      throw err;
-    }
-    await seedInitialData(this.db);
-  }
 }

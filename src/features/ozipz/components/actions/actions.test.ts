@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MIGRATED_FIREBASE_DATA } from "../../data/migratedData";
+import { MIGRATED_FIREBASE_DATA } from "../../../../test/fixtures/migratedData";
 import { ActionSchema } from "../../schemas/ozipz.schemas";
 import { isMonthClosed } from "../../utils/dateUtils";
 

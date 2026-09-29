@@ -1,13 +1,12 @@
 import type { OzipzStaff, OzipzContact, OzipzSchoolParticipation } from "../../../features/ozipz/types/ozipz.types";
 import { syncCoordinatorContact, unlinkCoordinatorContact } from "../../../features/ozipz/utils/participationUtils";
-import { MIGRATED_FIREBASE_DATA } from "../../../features/ozipz/data/migratedData";
 import type { IStaffContactsRepository } from "../interfaces";
 import { generateId } from "../id-generator";
 import { loadFromStorage, saveToStorage } from "./storage";
 
 export class FallbackStaffContactsRepository implements IStaffContactsRepository {
   async getStaff(): Promise<OzipzStaff[]> {
-    return loadFromStorage<OzipzStaff[]>("staff", MIGRATED_FIREBASE_DATA.staff);
+    return loadFromStorage<OzipzStaff[]>("staff", []);
   }
 
   async addStaff(staff: Omit<OzipzStaff, "id" | "createdAt" | "updatedAt">): Promise<OzipzStaff> {
@@ -31,7 +30,7 @@ export class FallbackStaffContactsRepository implements IStaffContactsRepository
   }
 
   async getContacts(): Promise<OzipzContact[]> {
-    return loadFromStorage<OzipzContact[]>("contacts", MIGRATED_FIREBASE_DATA.contacts);
+    return loadFromStorage<OzipzContact[]>("contacts", []);
   }
 
   async addContact(contact: Omit<OzipzContact, "id" | "createdAt" | "updatedAt">): Promise<OzipzContact> {
@@ -59,6 +58,6 @@ export class FallbackStaffContactsRepository implements IStaffContactsRepository
   }
 
   private getParticipations(): OzipzSchoolParticipation[] {
-    return loadFromStorage<OzipzSchoolParticipation[]>("participations", MIGRATED_FIREBASE_DATA.participations);
+    return loadFromStorage<OzipzSchoolParticipation[]>("participations", []);
   }
 }

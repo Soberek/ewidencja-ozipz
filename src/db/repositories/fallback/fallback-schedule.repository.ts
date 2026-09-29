@@ -1,12 +1,11 @@
 import type { OzipzScheduleEvent, OzipzAction } from "../../../features/ozipz/types/ozipz.types";
-import { MIGRATED_FIREBASE_DATA } from "../../../features/ozipz/data/migratedData";
 import type { IScheduleRepository } from "../interfaces";
 import { generateId } from "../id-generator";
 import { loadFromStorage, saveToStorage } from "./storage";
 
 export class FallbackScheduleRepository implements IScheduleRepository {
   async getScheduleEvents(): Promise<OzipzScheduleEvent[]> {
-    return loadFromStorage<OzipzScheduleEvent[]>("schedules", MIGRATED_FIREBASE_DATA.schedules);
+    return loadFromStorage<OzipzScheduleEvent[]>("schedules", []);
   }
 
   async addScheduleEvent(event: Omit<OzipzScheduleEvent, "id" | "createdAt" | "updatedAt">): Promise<OzipzScheduleEvent> {
@@ -27,7 +26,7 @@ export class FallbackScheduleRepository implements IScheduleRepository {
   async deleteScheduleEvent(id: string): Promise<void> {
     const list = await this.getScheduleEvents();
     saveToStorage("schedules", list.filter((s) => s.id !== id));
-    const actions = loadFromStorage<OzipzAction[]>("actions", MIGRATED_FIREBASE_DATA.actions);
+    const actions = loadFromStorage<OzipzAction[]>("actions", []);
     saveToStorage("actions", actions.map((a) => (a.scheduleEventId === id ? { ...a, scheduleEventId: undefined } : a)));
   }
 
