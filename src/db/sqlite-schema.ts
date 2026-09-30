@@ -1,6 +1,6 @@
 import { migrateDatabase } from "./sqlite-migrations";
 import type { ISqlDatabase } from "./types";
-import { cleanupPoisonedJrwaCases } from "./sqlite-seed";
+import { alignDataWithDictionaries, cleanupPoisonedJrwaCases } from "./sqlite-seed";
 import { dropAuditTriggers, installAuditTriggers, pruneChangeLog } from "./change-log";
 
 export interface InitTablesOptions {
@@ -18,6 +18,7 @@ export async function initTables(db: ISqlDatabase, options: InitTablesOptions = 
   await migrateDatabase(db);
 
   await runOnce(db, "jrwa_cleanup_v1", () => cleanupPoisonedJrwaCases(db));
+  await runOnce(db, "dictionary_alignment_v1", () => alignDataWithDictionaries(db));
   await db.execute("BEGIN IMMEDIATE;");
   try {
     // Usuń wycofaną kategorię tematyk ze słowników

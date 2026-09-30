@@ -106,3 +106,54 @@ export async function cleanupPoisonedJrwaCases(db: ISqlDatabase): Promise<void> 
     }
   }
 }
+
+const OPEN_ACTION_MONTH = "NOT EXISTS (SELECT 1 FROM ozipz_closed_months WHERE month_key = substr(ozipz_actions.date, 1, 7))";
+
+/**
+ * Jednorazowe uzgodnienie danych ze słownikami (wydanie ze słownikami jako jedynym źródłem prawdy).
+ * Każdy krok działa tylko tam, gdzie baza ma dany problem; zamknięte miesiące pozostają bez zmian.
+ */
+export async function alignDataWithDictionaries(db: ISqlDatabase): Promise<void> {
+  const now = new Date().toISOString();
+  await db.execute("BEGIN IMMEDIATE;");
+  try {
+    // Nowe symbole programowe bez obszaru GIS – jak pokrewne 966.15 (seniorzy) i 966.16 (zdrowie psychiczne).
+    await db.execute(
+      "UPDATE ozipz_dictionaries SET gis_category = 'inne', updated_at = $1 WHERE dict_type = 'jrwaSymbol' AND code IN ('966.19', '966.20') AND gis_category IS NULL;",
+      [now]
+    );
+    // 966.15 to akcja nieprogramowa; program „Senior w roli głównej” ma programowy 966.19.
+    await db.execute(
+      "UPDATE ozipz_dictionaries SET kind = 'NIEPROGRAMOWE', updated_at = $1 WHERE dict_type = 'jrwaSymbol' AND code = '966.15' AND kind IS NOT 'NIEPROGRAMOWE';",
+      [now]
+    );
+    await db.execute(
+      "UPDATE ozipz_programs SET jrwa_symbol = '966.19', updated_at = $1 WHERE id = 'seniorzy' AND jrwa_symbol = '966.15' " +
+      "AND EXISTS (SELECT 1 FROM ozipz_dictionaries WHERE dict_type = 'jrwaSymbol' AND code = '966.19');",
+      [now]
+    );
+    // Stanowisko zapisane nazwą spoza słownika → nazwa pozycji słownika.
+    await db.execute(
+      "UPDATE ozipz_contacts SET position = (SELECT label FROM ozipz_dictionaries WHERE dict_type = 'contactPosition' AND code = 'koordynator_szkolny'), updated_at = $1 " +
+      "WHERE position = 'Szkolny Koordynator Programów Edukacyjnych' AND EXISTS (SELECT 1 FROM ozipz_dictionaries WHERE dict_type = 'contactPosition' AND code = 'koordynator_szkolny');",
+      [now]
+    );
+    // Typy materiałów używane w rekordach, a nieobecne w słowniku, trafiają do słownika.
+    await db.execute(
+      "INSERT OR IGNORE INTO ozipz_dictionaries (id, dict_type, code, label, is_system, created_at, updated_at) " +
+      "SELECT 'dict_material_' || material_type, 'materialType', material_type, replace(material_type, '_', ' '), 0, $1, $2 FROM ozipz_materials " +
+      "WHERE trim(material_type) <> '' AND material_type NOT IN (SELECT code FROM ozipz_dictionaries WHERE dict_type = 'materialType') GROUP BY material_type;",
+      [now, now]
+    );
+    // Kampania działania zapisana nazwą → kod słownika.
+    await db.execute(
+      "UPDATE ozipz_actions SET campaign_id = (SELECT d.code FROM ozipz_dictionaries d WHERE d.dict_type = 'campaign' AND d.label = ozipz_actions.campaign_id), updated_at = $1 " +
+      `WHERE EXISTS (SELECT 1 FROM ozipz_dictionaries d WHERE d.dict_type = 'campaign' AND d.label = ozipz_actions.campaign_id) AND ${OPEN_ACTION_MONTH};`,
+      [now]
+    );
+    await db.execute("COMMIT;");
+  } catch (err) {
+    await db.execute("ROLLBACK;");
+    throw err;
+  }
+}

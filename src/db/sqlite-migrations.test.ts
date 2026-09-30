@@ -100,6 +100,43 @@ describe("versioned database migration", () => {
     expect(raw.prepare("SELECT jrwa_symbol FROM ozipz_programs WHERE id = 'p-bez-symbolu'").get()?.jrwa_symbol).toBeNull();
   });
 
+  it("aligns existing data with the dictionaries once, only where needed and outside closed months", async () => {
+    const raw = new DatabaseSync(":memory:"); databases.push(raw);
+    const db = adapter(raw);
+    await migrateDatabase(db);
+    const dict = (id: string, dict_type: string, code: string, label: string, extra: Record<string, string> = {}) =>
+      insert(raw, "ozipz_dictionaries", { id, dict_type, code, label, created_at: "2026-01-01", updated_at: "2026-01-01", ...extra });
+    dict("j15", "jrwaSymbol", "966.15", "Seniorzy", { kind: "PROGRAMOWE", gis_category: "inne" });
+    dict("j19", "jrwaSymbol", "966.19", "Senior w roli głównej", { kind: "PROGRAMOWE" });
+    dict("j20", "jrwaSymbol", "966.20", "Tylko Pomyśl", { kind: "PROGRAMOWE" });
+    dict("pos", "contactPosition", "koordynator_szkolny", "Szkolny Koordynator Programu");
+    dict("mt", "materialType", "ulotka", "ulotka");
+    dict("camp", "campaign", "jesien_bez_infekcji", "Jesień bez infekcji");
+    insert(raw, "ozipz_programs", { id: "seniorzy", code: "S", name: "Seniorzy", edition_year: "2025/2026", jrwa_symbol: "966.15" });
+    insert(raw, "ozipz_contacts", { id: "c", name: "Anna", position: "Szkolny Koordynator Programów Edukacyjnych" });
+    insert(raw, "ozipz_materials", { id: "m1", title: "Poradnik", material_type: "poradnik" });
+    insert(raw, "ozipz_materials", { id: "m2", title: "Ulotka", material_type: "ulotka" });
+    insert(raw, "ozipz_actions", { id: "open", date: "2026-09-10", campaign_id: "Jesień bez infekcji" });
+    insert(raw, "ozipz_actions", { id: "closed", date: "2026-08-10", campaign_id: "Jesień bez infekcji" });
+    raw.exec("INSERT INTO ozipz_closed_months (month_key, closed_at) VALUES ('2026-08', '2026-09-01')");
+
+    await initTables(db);
+    const one = (sql: string) => raw.prepare(sql).get();
+    expect(one("SELECT gis_category g FROM ozipz_dictionaries WHERE code = '966.19'")).toEqual({ g: "inne" });
+    expect(one("SELECT gis_category g FROM ozipz_dictionaries WHERE code = '966.20'")).toEqual({ g: "inne" });
+    expect(one("SELECT kind k FROM ozipz_dictionaries WHERE code = '966.15'")).toEqual({ k: "NIEPROGRAMOWE" });
+    expect(one("SELECT jrwa_symbol s FROM ozipz_programs WHERE id = 'seniorzy'")).toEqual({ s: "966.19" });
+    expect(one("SELECT position p FROM ozipz_contacts WHERE id = 'c'")).toEqual({ p: "Szkolny Koordynator Programu" });
+    expect(raw.prepare("SELECT code FROM ozipz_dictionaries WHERE dict_type = 'materialType' ORDER BY code").all()).toEqual([{ code: "poradnik" }, { code: "ulotka" }]);
+    expect(one("SELECT campaign_id c FROM ozipz_actions WHERE id = 'open'")).toEqual({ c: "jesien_bez_infekcji" });
+    expect(one("SELECT campaign_id c FROM ozipz_actions WHERE id = 'closed'")).toEqual({ c: "Jesień bez infekcji" });
+
+    // Kolejny start niczego już nie zmienia – także ręcznych decyzji podjętych po porządkach.
+    raw.exec("UPDATE ozipz_dictionaries SET kind = 'PROGRAMOWE' WHERE code = '966.15'");
+    await initTables(db);
+    expect(one("SELECT kind k FROM ozipz_dictionaries WHERE code = '966.15'")).toEqual({ k: "PROGRAMOWE" });
+  });
+
   it("upgrades a version 1 file without losing actions", async () => {
     const directory = mkdtempSync(join(tmpdir(), "ozipz-v1-upgrade-")); directories.push(directory);
     const raw = new DatabaseSync(join(directory, "v1.db")); databases.push(raw);
