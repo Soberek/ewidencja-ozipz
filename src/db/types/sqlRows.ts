@@ -67,9 +67,10 @@ export interface ParticipationSqlRow {
   school_coordinator_name: string;
   school_coordinator_contact: string | null;
   school_coordinator_contact_id: string | null;
-  classes_count: number;
+  second_coordinator_name: string | null;
+  second_coordinator_contact: string | null;
+  second_coordinator_contact_id: string | null;
   pupils_count: number;
-  parents_count: number;
   has_declaration: number;
   has_final_report: number;
   evaluation_grade: string | null;

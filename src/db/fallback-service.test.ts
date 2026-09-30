@@ -265,9 +265,7 @@ describe("FallbackDatabaseService (LocalStorage & In-Memory Fallback)", () => {
         schoolYear: "2026/2027",
         schoolCoordinatorName: "Koordynator",
         schoolCoordinatorContact: "123456789",
-        classesCount: 2,
         pupilsCount: 40,
-        parentsCount: 30,
         hasDeclaration: true,
         hasFinalReport: false,
         evaluationGrade: "bardzo_dobra",
@@ -373,7 +371,7 @@ describe("FallbackDatabaseService (LocalStorage & In-Memory Fallback)", () => {
         programId: program.id, programName: program.name, facilityId: facility.id, facilityName: facility.name,
         municipality: facility.municipality, schoolYear: "2031/2032", schoolCoordinatorName: contact.name,
         schoolCoordinatorContact: "600 000 000", schoolCoordinatorContactId: contact.id,
-        classesCount: 1, pupilsCount: 25, parentsCount: 0, hasDeclaration: true, hasFinalReport: false, evaluationGrade: "", notes: "",
+        pupilsCount: 25, hasDeclaration: true, hasFinalReport: false, evaluationGrade: "", notes: "",
       });
 
       await service.updateContact(contact.id, { name: "Anna Nowak-Kowal", email: "anna@szkola.pl" });

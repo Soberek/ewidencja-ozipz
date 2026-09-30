@@ -50,8 +50,8 @@ export class SqliteProgramsRepository implements IProgramsRepository {
     const now = new Date().toISOString();
     const newPart: OzipzSchoolParticipation = { ...part, id, createdAt: now, updatedAt: now };
     await this.db.execute(
-      "INSERT INTO ozipz_participations (id, program_id, program_name, facility_id, facility_name, municipality, school_year, school_coordinator_name, school_coordinator_contact, school_coordinator_contact_id, classes_count, pupils_count, parents_count, has_declaration, has_final_report, evaluation_grade, notes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)",
-      [newPart.id, newPart.programId, newPart.programName, newPart.facilityId, newPart.facilityName, newPart.municipality, newPart.schoolYear, newPart.schoolCoordinatorName, newPart.schoolCoordinatorContact || null, newPart.schoolCoordinatorContactId || null, newPart.classesCount, newPart.pupilsCount, newPart.parentsCount, newPart.hasDeclaration ? 1 : 0, newPart.hasFinalReport ? 1 : 0, newPart.evaluationGrade || null, newPart.notes || null, newPart.createdAt, newPart.updatedAt]
+      "INSERT INTO ozipz_participations (id, program_id, program_name, facility_id, facility_name, municipality, school_year, school_coordinator_name, school_coordinator_contact, school_coordinator_contact_id, second_coordinator_name, second_coordinator_contact, second_coordinator_contact_id, pupils_count, has_declaration, has_final_report, evaluation_grade, notes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)",
+      [newPart.id, newPart.programId, newPart.programName, newPart.facilityId, newPart.facilityName, newPart.municipality, newPart.schoolYear, newPart.schoolCoordinatorName, newPart.schoolCoordinatorContact || null, newPart.schoolCoordinatorContactId || null, newPart.secondCoordinatorName?.trim() || null, newPart.secondCoordinatorContact || null, newPart.secondCoordinatorContactId || null, newPart.pupilsCount, newPart.hasDeclaration ? 1 : 0, newPart.hasFinalReport ? 1 : 0, newPart.evaluationGrade || null, newPart.notes || null, newPart.createdAt, newPart.updatedAt]
     );
     return newPart;
   }
@@ -62,8 +62,8 @@ export class SqliteProgramsRepository implements IProgramsRepository {
     if (!current) return;
     const merged = { ...current, ...updates, updatedAt: now };
     await this.db.execute(
-      "UPDATE ozipz_participations SET program_id = $1, program_name = $2, facility_id = $3, facility_name = $4, municipality = $5, school_year = $6, school_coordinator_name = $7, school_coordinator_contact = $8, school_coordinator_contact_id = $9, classes_count = $10, pupils_count = $11, parents_count = $12, has_declaration = $13, has_final_report = $14, evaluation_grade = $15, notes = $16, updated_at = $17 WHERE id = $18",
-      [merged.programId, merged.programName, merged.facilityId, merged.facilityName, merged.municipality, merged.schoolYear, merged.schoolCoordinatorName, merged.schoolCoordinatorContact || null, merged.schoolCoordinatorContactId || null, merged.classesCount, merged.pupilsCount, merged.parentsCount, merged.hasDeclaration ? 1 : 0, merged.hasFinalReport ? 1 : 0, merged.evaluationGrade || null, merged.notes || null, merged.updatedAt, id]
+      "UPDATE ozipz_participations SET program_id = $1, program_name = $2, facility_id = $3, facility_name = $4, municipality = $5, school_year = $6, school_coordinator_name = $7, school_coordinator_contact = $8, school_coordinator_contact_id = $9, second_coordinator_name = $10, second_coordinator_contact = $11, second_coordinator_contact_id = $12, pupils_count = $13, has_declaration = $14, has_final_report = $15, evaluation_grade = $16, notes = $17, updated_at = $18 WHERE id = $19",
+      [merged.programId, merged.programName, merged.facilityId, merged.facilityName, merged.municipality, merged.schoolYear, merged.schoolCoordinatorName, merged.schoolCoordinatorContact || null, merged.schoolCoordinatorContactId || null, merged.secondCoordinatorName?.trim() || null, merged.secondCoordinatorContact || null, merged.secondCoordinatorContactId || null, merged.pupilsCount, merged.hasDeclaration ? 1 : 0, merged.hasFinalReport ? 1 : 0, merged.evaluationGrade || null, merged.notes || null, merged.updatedAt, id]
     );
   }
 

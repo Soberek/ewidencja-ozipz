@@ -98,9 +98,11 @@ export const SchoolParticipationSchema = z.object({
   schoolCoordinatorContact: z.string().optional().default(""),
   // Powiązanie z kartoteką Spisu Kontaktów; nazwisko i kontakt powyżej to kopia na dzień zgłoszenia
   schoolCoordinatorContactId: z.string().optional(),
-  classesCount: z.number().int().min(1, "Liczba klas musi wynosić co najmniej 1"),
+  // Drugi (opcjonalny) koordynator – te same zasady co dla pierwszego
+  secondCoordinatorName: z.string().optional(),
+  secondCoordinatorContact: z.string().optional(),
+  secondCoordinatorContactId: z.string().optional(),
   pupilsCount: z.number().int().min(0, "Liczba uczniów nie może być ujemna"),
-  parentsCount: z.number().int().min(0).default(0),
   hasDeclaration: z.boolean().default(true),
   hasFinalReport: z.boolean().default(false),
   evaluationGrade: z.string().optional().default(""),

@@ -45,9 +45,7 @@ describe("Ewidencja OZiPZ - Lokalizacje i Szkoły w Programach (edu-report)", ()
       schoolYear: "2025/2026",
       schoolCoordinatorName: "Anna Nowak",
       schoolCoordinatorContact: "95 746 11 22",
-      classesCount: 3,
       pupilsCount: 65,
-      parentsCount: 40,
       hasDeclaration: true,
       hasFinalReport: true,
       evaluationGrade: "Bardzo dobra",
@@ -65,9 +63,7 @@ describe("Ewidencja OZiPZ - Lokalizacje i Szkoły w Programach (edu-report)", ()
       schoolYear: "2025/2026",
       schoolCoordinatorName: "Jan Kowalski",
       schoolCoordinatorContact: "95 747 33 44",
-      classesCount: 2,
       pupilsCount: 55,
-      parentsCount: 30,
       hasDeclaration: true,
       hasFinalReport: false,
       evaluationGrade: "",
@@ -85,9 +81,7 @@ describe("Ewidencja OZiPZ - Lokalizacje i Szkoły w Programach (edu-report)", ()
       schoolYear: "2025/2026",
       schoolCoordinatorName: "Maria Wiśniewska",
       schoolCoordinatorContact: "95 760 55 66",
-      classesCount: 2,
       pupilsCount: 45,
-      parentsCount: 25,
       hasDeclaration: false,
       hasFinalReport: false,
       evaluationGrade: "",
@@ -100,16 +94,12 @@ describe("Ewidencja OZiPZ - Lokalizacje i Szkoły w Programach (edu-report)", ()
   it("calculates accurate KPI summary metrics for participating schools", () => {
     const totalParticipations = dummyParticipations.length;
     const totalPupils = dummyParticipations.reduce((sum, p) => sum + p.pupilsCount, 0);
-    const totalClasses = dummyParticipations.reduce((sum, p) => sum + p.classesCount, 0);
-    const totalParents = dummyParticipations.reduce((sum, p) => sum + (p.parentsCount || 0), 0);
     const withReport = dummyParticipations.filter((p) => p.hasFinalReport).length;
     const withoutReport = totalParticipations - withReport;
     const withDeclaration = dummyParticipations.filter((p) => p.hasDeclaration).length;
 
     expect(totalParticipations).toBe(3);
     expect(totalPupils).toBe(165);
-    expect(totalClasses).toBe(7);
-    expect(totalParents).toBe(95);
     expect(withReport).toBe(1);
     expect(withoutReport).toBe(2);
     expect(withDeclaration).toBe(2);

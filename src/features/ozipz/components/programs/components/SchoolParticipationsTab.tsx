@@ -93,7 +93,7 @@ export function SchoolParticipationsTab({
 
         if (search.trim()) {
           const haystack = normalizeText(
-            [p.facilityName, p.municipality, p.programName, p.schoolCoordinatorName, p.schoolCoordinatorContact, p.notes].join(" | ")
+            [p.facilityName, p.municipality, p.programName, p.schoolCoordinatorName, p.schoolCoordinatorContact, p.secondCoordinatorName, p.secondCoordinatorContact, p.notes].join(" | ")
           );
           if (!normalizeText(search).split(" ").every((token) => haystack.includes(token))) return false;
         }

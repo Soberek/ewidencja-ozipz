@@ -16,62 +16,28 @@ export function ParticipationMetricsStatusFields({
   return (
     <>
       {/* Odbiorcy programu */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-        <div className="space-y-1">
-          <label htmlFor="participation-pupils" className="flex items-center gap-1.5 font-bold text-foreground text-xs">
-            <Users className="size-3.5 text-primary" />
-            <span>
-              Uczniowie ogółem <span className="text-destructive">*</span>
-            </span>
-          </label>
-          <Input
-            id="participation-pupils"
-            type="number"
-            min={1}
-            inputMode="numeric"
-            placeholder="np. 120"
-            {...register("pupilsCount", { valueAsNumber: true })}
-            aria-invalid={Boolean(errors.pupilsCount)}
-            className="h-8 text-sm font-mono font-bold"
-          />
-          {errors.pupilsCount ? (
-            <p className="text-[10px] text-destructive font-semibold">{errors.pupilsCount.message as string}</p>
-          ) : (
-            <p className="text-[10px] text-muted-foreground">Łączna liczba uczniów / dzieci biorących udział w programie</p>
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <label htmlFor="participation-classes" className="font-semibold text-foreground text-xs">Liczba klas / oddziałów</label>
-          <Input
-            id="participation-classes"
-            type="number"
-            min={1}
-            inputMode="numeric"
-            {...register("classesCount", { valueAsNumber: true })}
-            aria-invalid={Boolean(errors.classesCount)}
-            className="h-8 text-xs font-mono font-bold"
-          />
-          {errors.classesCount && (
-            <p className="text-[10px] text-destructive font-semibold">{errors.classesCount.message as string}</p>
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <label htmlFor="participation-parents" className="font-semibold text-foreground text-xs">Liczba rodziców</label>
-          <Input
-            id="participation-parents"
-            type="number"
-            min={0}
-            inputMode="numeric"
-            {...register("parentsCount", { valueAsNumber: true })}
-            aria-invalid={Boolean(errors.parentsCount)}
-            className="h-8 text-xs font-mono font-bold"
-          />
-          {errors.parentsCount && (
-            <p className="text-[10px] text-destructive font-semibold">{errors.parentsCount.message as string}</p>
-          )}
-        </div>
+      <div className="space-y-1 sm:max-w-[16rem]">
+        <label htmlFor="participation-pupils" className="flex items-center gap-1.5 font-bold text-foreground text-xs">
+          <Users className="size-3.5 text-primary" />
+          <span>
+            Uczniowie ogółem <span className="text-destructive">*</span>
+          </span>
+        </label>
+        <Input
+          id="participation-pupils"
+          type="number"
+          min={1}
+          inputMode="numeric"
+          placeholder="np. 120"
+          {...register("pupilsCount", { valueAsNumber: true })}
+          aria-invalid={Boolean(errors.pupilsCount)}
+          className="h-8 text-sm font-mono font-bold"
+        />
+        {errors.pupilsCount ? (
+          <p className="text-[10px] text-destructive font-semibold">{errors.pupilsCount.message as string}</p>
+        ) : (
+          <p className="text-[10px] text-muted-foreground">Łączna liczba uczniów / dzieci biorących udział w programie</p>
+        )}
       </div>
 
       {/* Statusy Deklaracji i Sprawozdania */}

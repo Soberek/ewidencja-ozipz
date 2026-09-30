@@ -28,7 +28,7 @@ const participation = (overrides: Partial<OzipzSchoolParticipation>): OzipzSchoo
   id: "part-1", programId: program.id, programName: program.name,
   facilityId: facility.id, facilityName: facility.name, municipality: facility.municipality,
   schoolYear: "2026/2027", schoolCoordinatorName: "Anna Nowak", schoolCoordinatorContact: "",
-  classesCount: 2, pupilsCount: 48, parentsCount: 0, hasDeclaration: true,
+  pupilsCount: 48, hasDeclaration: true,
   hasFinalReport: false, evaluationGrade: "", notes: "",
   createdAt: "2026-01-01", updatedAt: "2026-01-01",
   ...overrides,
@@ -94,6 +94,57 @@ describe("ParticipationDialog – szkolny koordynator ze Spisu Kontaktów", () =
 
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ schoolCoordinatorContactId: "cnt-2", schoolCoordinatorName: "Piotr Zieliński" }));
+  });
+
+  it("zapisuje drugiego koordynatora wybranego ze spisu i pozwala go usunąć", async () => {
+    const second = contact({ id: "cnt-2", name: "Ewa Mazur", phone: "", email: "ewa@szkola.pl" });
+    const { onUpdate } = renderDialog({
+      contacts: [contact({}), second],
+      editingParticipation: participation({ schoolCoordinatorContactId: "cnt-1" }),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Dodaj drugiego koordynatora/ }));
+    fireEvent.click(screen.getByLabelText(/Drugi koordynator/));
+    fireEvent.click(within(screen.getByRole("listbox")).getByText("Ewa Mazur"));
+    save("Zapisz Zmiany");
+
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledOnce());
+    expect(onUpdate).toHaveBeenCalledWith("part-1", expect.objectContaining({
+      schoolCoordinatorContactId: "cnt-1",
+      secondCoordinatorContactId: "cnt-2",
+      secondCoordinatorName: "Ewa Mazur",
+      secondCoordinatorContact: "ewa@szkola.pl",
+    }));
+  });
+
+  it("nie pozwala wybrać tej samej osoby jako drugiego koordynatora", async () => {
+    const { onUpdate } = renderDialog({
+      contacts: [contact({})],
+      editingParticipation: participation({ schoolCoordinatorContactId: "cnt-1" }),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Dodaj drugiego koordynatora/ }));
+    fireEvent.click(screen.getByLabelText(/Drugi koordynator/));
+    fireEvent.click(within(screen.getByRole("listbox")).getByText("Anna Nowak"));
+    save("Zapisz Zmiany");
+
+    expect(await screen.findAllByText(/Drugi koordynator musi być inną osobą/)).not.toHaveLength(0);
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it("usuwa drugiego koordynatora z edytowanego zgłoszenia", async () => {
+    const { onUpdate } = renderDialog({
+      contacts: [contact({})],
+      editingParticipation: participation({ schoolCoordinatorContactId: "cnt-1", secondCoordinatorName: "Jan Kowal", secondCoordinatorContact: "601 222 333" }),
+    });
+
+    expect(screen.getByText("Jan Kowal")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: /^Usuń$/ }));
+    expect(screen.getByRole("button", { name: /Dodaj drugiego koordynatora/ })).toBeDefined();
+    save("Zapisz Zmiany");
+
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledOnce());
+    expect(onUpdate).toHaveBeenCalledWith("part-1", expect.objectContaining({ secondCoordinatorName: "", secondCoordinatorContact: "", secondCoordinatorContactId: undefined }));
   });
 
   it("szybko dodaje brakującego koordynatora bez utraty wpisanych danych", async () => {

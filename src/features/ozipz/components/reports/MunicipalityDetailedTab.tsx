@@ -77,7 +77,6 @@ export function MunicipalityDetailedTab({
                 <th className="py-2.5 px-3 font-semibold text-right">Udziałów w Prog.</th>
                 <th className="py-2.5 px-3 font-semibold text-right">Działań Terenowych</th>
                 <th className="py-2.5 px-3 font-semibold text-right">Objętych Uczniów</th>
-                <th className="py-2.5 px-3 font-semibold text-right">Objętych Rodziców</th>
                 <th className="py-2.5 px-3 font-semibold text-right">Wydane Materiały</th>
                 <th className="py-2.5 px-3 font-semibold text-right">Sprawozdawczość</th>
               </tr>
@@ -85,7 +84,7 @@ export function MunicipalityDetailedTab({
             <tbody className="divide-y">
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-6 text-center text-muted-foreground italic">
+                  <td colSpan={7} className="py-6 text-center text-muted-foreground italic">
                     Brak gmin spełniających kryteria wyszukiwania
                   </td>
                 </tr>
@@ -100,9 +99,6 @@ export function MunicipalityDetailedTab({
                     <td className="py-2.5 px-3 text-right font-medium text-primary">{r.actionsCount}</td>
                     <td className="py-2.5 px-3 text-right font-bold text-emerald-700 dark:text-emerald-300">
                       {r.pupilsCount.toLocaleString("pl-PL")}
-                    </td>
-                    <td className="py-2.5 px-3 text-right text-muted-foreground">
-                      {r.parentsCount.toLocaleString("pl-PL")}
                     </td>
                     <td className="py-2.5 px-3 text-right text-amber-700 dark:text-amber-300 font-medium">
                       {r.materialsDistributed.toLocaleString("pl-PL")} szt.

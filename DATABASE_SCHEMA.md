@@ -1,10 +1,11 @@
 # Schemat Relacyjnej Bazy Danych SQLite (Ewidencja OZiPZ)
 
-Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VERSION = 5`). Zarówno aplikacja, jak i skrypt inicjalizacji używają tej samej migracji. Poniższy opis encji należy czytać wraz z ograniczeniami opisanymi niżej.
+Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VERSION = 12`). Zarówno aplikacja, jak i skrypt inicjalizacji używają tej samej migracji. Poniższy opis encji należy czytać wraz z ograniczeniami opisanymi niżej.
 
 ## Aktualizacja i integralność (2026-09-09)
 
 - `PRAGMA user_version` identyfikuje wersję schematu. Przed aktualizacją istniejącego pliku powstaje spójna kopia SQLite `*.before-migration-1-<czas>.db`, uwzględniająca dziennik WAL.
+- v12 (2026-09-30): zgłoszenie szkoły nie zawiera już liczby oddziałów ani rodziców (`classes_count`, `parents_count` usunięte; wartości zostają tylko w kopii sprzed migracji). Dochodzi opcjonalny drugi koordynator (`second_coordinator_*`), powiązany ze Spisem Kontaktów na tych samych zasadach co pierwszy.
 - v5 (2026-09-27): placówki mają własne `email`/`phone` sekretariatu. Przy aktualizacji kontakt zapisany w polach koordynatora bez nazwiska przechodzi do tych kolumn, prefiks „Gmina” znika z nazwy gminy (zmiana spływa do powiązanych działań i zgłoszeń), a z `notes` usuwane są wyłącznie wpisy importu dublujące inne pola.
 - Migracja przebudowuje stare tabele w jednej transakcji, zachowuje rekordy i sprawdza klucze obce przed zatwierdzeniem. Duplikaty, błędne relacje lub nieznane kolumny przerywają migrację; rekordy nie są automatycznie usuwane ani scalane.
 - Obowiązuje 25 kluczy obcych. Udział placówki jest unikalny dla `(program_id, facility_id, school_year)`. Placówki ani programu z udziałami nie można usunąć (`RESTRICT`); usunięcie zgłoszenia jest osobną, jawną operacją.
@@ -183,9 +184,11 @@ Silnik SQLite działa z aktywnym `PRAGMA foreign_keys = ON;` w trybie `WAL` (`PR
 | `school_year` | `TEXT` | `NOT NULL` | Rok szkolny (np. `2025/2026`) | `schoolYear: string` |
 | `school_coordinator_name` | `TEXT` | `NOT NULL` | Koordynator szkolny | `schoolCoordinatorName: string` |
 | `school_coordinator_contact` | `TEXT` | | Telefon / e-mail koordynatora | `schoolCoordinatorContact?: string` |
-| `classes_count` | `INTEGER` | `DEFAULT 0` | Liczba oddziałów klasowych | `classesCount: number` |
+| `school_coordinator_contact_id` | `TEXT` | `FK -> ozipz_contacts(id) ON DELETE SET NULL` | Powiązanie z kontaktem | `schoolCoordinatorContactId?: string` |
+| `second_coordinator_name` | `TEXT` | | Drugi koordynator (opcjonalny) | `secondCoordinatorName?: string` |
+| `second_coordinator_contact` | `TEXT` | | Telefon / e-mail drugiego koordynatora | `secondCoordinatorContact?: string` |
+| `second_coordinator_contact_id` | `TEXT` | `FK -> ozipz_contacts(id) ON DELETE SET NULL`, różny od pierwszego | Powiązanie z kontaktem | `secondCoordinatorContactId?: string` |
 | `pupils_count` | `INTEGER` | `DEFAULT 0` | Liczba uczniów objętych programem | `pupilsCount: number` |
-| `parents_count` | `INTEGER` | `DEFAULT 0` | Liczba rodziców objętych edukacją | `parentsCount: number` |
 | `has_declaration` | `INTEGER` | `DEFAULT 1` | Flaga złożenia deklaracji (0/1) | `hasDeclaration: boolean` |
 | `has_final_report` | `INTEGER` | `DEFAULT 0` | Flaga złożenia sprawozdania końcowego (0/1) | `hasFinalReport: boolean` |
 | `evaluation_grade` | `TEXT` | | Ocena realizacji programu | `evaluationGrade?: string` |

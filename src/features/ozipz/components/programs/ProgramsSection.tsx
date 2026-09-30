@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { OzipzProgram, OzipzSchoolParticipation } from "../../types/ozipz.types";
 import { useContacts, usePrograms } from "../../store/useOzipzDbStore";
 import { useModalStore } from "../../store/useModalStore";
+import { participationCoordinators } from "../../utils/participationUtils";
 import { ProgramsStatsHeader } from "./components/ProgramsStatsHeader";
 import { ProgramsViewSwitcher } from "./components/ProgramsViewSwitcher";
 import { SchoolParticipationsTab } from "./components/SchoolParticipationsTab";
@@ -72,7 +73,7 @@ export function ProgramsSection(props: ProgramsSectionProps) {
     const uniqueSchools = new Set(
       participations.map((p) => p.facilityId?.trim() || p.facilityName?.trim()).filter(Boolean)
     ).size;
-    const coordinators = new Set(participations.map((p) => p.schoolCoordinatorName).filter(Boolean)).size;
+    const coordinators = new Set(participations.flatMap((p) => participationCoordinators(p).map((c) => c.name))).size;
 
     return {
       programsCount: programs.length,

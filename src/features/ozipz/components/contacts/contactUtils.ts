@@ -1,4 +1,5 @@
 import type { OzipzContact, OzipzSchoolParticipation } from "../../types/ozipz.types";
+import { participationCoordinators } from "../../utils/participationUtils";
 
 /**
  * Logika domenowa Spisu Kontaktów: normalizacja wyszukiwania, klasyfikacja ról,
@@ -197,16 +198,16 @@ export function buildContactProgramsIndex(
     const programs = new Set<string>();
 
     for (const p of participations) {
-      if (p.schoolCoordinatorContactId) {
-        if (p.schoolCoordinatorContactId === c.id) programs.add(p.programName);
-        continue;
-      }
-      const coordName = normalizeText(p.schoolCoordinatorName);
-      const coordContact = p.schoolCoordinatorContact || "";
-      const byName = name.length >= 5 && coordName.length >= 5 && (coordName.includes(name) || name.includes(coordName));
-      const byEmail = Boolean(email) && normalizeText(coordContact).includes(email);
-      const byPhone = phone.length === 9 && digitsOnly(coordContact).includes(phone);
-      if (byName || byEmail || byPhone) programs.add(p.programName);
+      const matches = participationCoordinators(p).some((coordinator) => {
+        if (coordinator.contactId) return coordinator.contactId === c.id;
+        const coordName = normalizeText(coordinator.name);
+        const coordContact = coordinator.contact || "";
+        const byName = name.length >= 5 && coordName.length >= 5 && (coordName.includes(name) || name.includes(coordName));
+        const byEmail = Boolean(email) && normalizeText(coordContact).includes(email);
+        const byPhone = phone.length === 9 && digitsOnly(coordContact).includes(phone);
+        return byName || byEmail || byPhone;
+      });
+      if (matches) programs.add(p.programName);
     }
 
     if (programs.size > 0) {

@@ -112,9 +112,10 @@ describe("Mappers", () => {
       school_coordinator_name: "Anna Nowak",
       school_coordinator_contact: "anna@sp1.pl",
       school_coordinator_contact_id: "cnt-1",
-      classes_count: 3,
+      second_coordinator_name: "Jan Kowal",
+      second_coordinator_contact: "600 100 200",
+      second_coordinator_contact_id: null,
       pupils_count: 75,
-      parents_count: 50,
       has_declaration: 1,
       has_final_report: 0,
       evaluation_grade: "bardzo dobra",
@@ -127,6 +128,8 @@ describe("Mappers", () => {
     expect(entity.hasFinalReport).toBe(false);
     expect(entity.pupilsCount).toBe(75);
     expect(entity.schoolCoordinatorContactId).toBe("cnt-1");
+    expect(entity.secondCoordinatorName).toBe("Jan Kowal");
+    expect(entity.secondCoordinatorContactId).toBeUndefined();
     expect(Mappers.toParticipation({ ...row, school_coordinator_contact_id: null }).schoolCoordinatorContactId).toBeUndefined();
   });
 

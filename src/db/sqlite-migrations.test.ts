@@ -310,6 +310,16 @@ describe("facility contact migration (v5)", () => {
   });
 });
 
+/** Tabela zgłoszeń sprzed v12: liczba oddziałów i rodziców, bez drugiego koordynatora. */
+function v11Schema() {
+  return SCHEMA_SQL
+    .replace(" second_coordinator_name TEXT, second_coordinator_contact TEXT, second_coordinator_contact_id TEXT CHECK (second_coordinator_contact_id IS NULL OR second_coordinator_contact_id IS NOT school_coordinator_contact_id),", " classes_count INTEGER NOT NULL DEFAULT 0 CHECK (classes_count >= 0),")
+    .replace(" pupils_count INTEGER NOT NULL DEFAULT 0 CHECK (pupils_count >= 0),", " pupils_count INTEGER NOT NULL DEFAULT 0 CHECK (pupils_count >= 0), parents_count INTEGER NOT NULL DEFAULT 0 CHECK (parents_count >= 0),")
+    .replace(", FOREIGN KEY (second_coordinator_contact_id) REFERENCES ozipz_contacts(id) ON DELETE SET NULL", "")
+    .replace("CREATE INDEX IF NOT EXISTS idx_participations_second_coordinator ON ozipz_participations(second_coordinator_contact_id);\n", "")
+    .replace(/ UPDATE ozipz_participations SET second_coordinator_contact = [^;]*;/, "");
+}
+
 describe("schema v6 integrity", () => {
   async function fresh() {
     const raw = new DatabaseSync(":memory:"); databases.push(raw);
@@ -477,7 +487,7 @@ describe("schema v6 integrity", () => {
 
   it("links participations to the coordinator contact when upgrading from v7 and keeps its details in sync", async () => {
     const raw = new DatabaseSync(":memory:"); databases.push(raw);
-    raw.exec(SCHEMA_SQL
+    raw.exec(v11Schema()
       .replace(" school_coordinator_contact_id TEXT,", "")
       .replace(", FOREIGN KEY (school_coordinator_contact_id) REFERENCES ozipz_contacts(id) ON DELETE SET NULL", "")
       .replace("CREATE INDEX IF NOT EXISTS idx_participations_coordinator ON ozipz_participations(school_coordinator_contact_id);\n", "")
@@ -503,6 +513,37 @@ describe("schema v6 integrity", () => {
     raw.exec("DELETE FROM ozipz_contacts WHERE id = 'c1'");
     expect(raw.prepare("SELECT school_coordinator_name AS n, school_coordinator_contact AS c, school_coordinator_contact_id AS id FROM ozipz_participations WHERE id = 'new'").get())
       .toEqual({ n: "Anna Nowak-Kowal", c: "600 000 000 / a.nowak@sp1.pl", id: null });
+  });
+
+  it("drops class and parent counts and adds an optional second coordinator when upgrading from v11", async () => {
+    const raw = new DatabaseSync(":memory:"); databases.push(raw);
+    raw.exec(v11Schema());
+    raw.exec("PRAGMA user_version = 11");
+    insert(raw, "ozipz_facilities", { id: "f" });
+    insert(raw, "ozipz_programs", { id: "p" });
+    insert(raw, "ozipz_participations", { id: "old", facility_id: "f", program_id: "p", school_year: "2025/2026", school_coordinator_name: "Jan Kowal", classes_count: 3, pupils_count: 60, parents_count: 20 });
+
+    expect((await migrateDatabase(adapter(raw))).migrated).toBe(true);
+    const columns = raw.prepare("PRAGMA table_info(ozipz_participations)").all().map((c) => c.name);
+    expect(columns).not.toContain("classes_count");
+    expect(columns).not.toContain("parents_count");
+    expect(raw.prepare("SELECT school_coordinator_name AS n, pupils_count AS u, second_coordinator_name AS s FROM ozipz_participations").get())
+      .toEqual({ n: "Jan Kowal", u: 60, s: null });
+
+    raw.exec("PRAGMA foreign_keys = ON");
+    insert(raw, "ozipz_contacts", { id: "c1", name: "Anna Nowak", phone: "600 000 000", email: null });
+    insert(raw, "ozipz_contacts", { id: "c2", name: "Ewa Lis", phone: null, email: "ewa@sp1.pl" });
+    raw.exec("UPDATE ozipz_participations SET school_coordinator_contact_id = 'c1', second_coordinator_contact_id = 'c2', second_coordinator_name = 'wpis' WHERE id = 'old'");
+    expect(raw.prepare("SELECT school_coordinator_name AS a, second_coordinator_name AS b FROM ozipz_participations").get()).toEqual({ a: "Anna Nowak", b: "Ewa Lis" });
+
+    raw.exec("UPDATE ozipz_contacts SET name = 'Ewa Lis-Nowak', phone = '500 111 222' WHERE id = 'c2'");
+    expect(raw.prepare("SELECT school_coordinator_name AS a, second_coordinator_name AS b, second_coordinator_contact AS c FROM ozipz_participations").get())
+      .toEqual({ a: "Anna Nowak", b: "Ewa Lis-Nowak", c: "500 111 222 / ewa@sp1.pl" });
+    expect(() => raw.exec("UPDATE ozipz_participations SET second_coordinator_contact_id = 'c1'")).toThrow(/CHECK/);
+
+    raw.exec("DELETE FROM ozipz_contacts WHERE id = 'c2'");
+    expect(raw.prepare("SELECT second_coordinator_name AS b, second_coordinator_contact_id AS id FROM ozipz_participations").get())
+      .toEqual({ b: "Ewa Lis-Nowak", id: null });
   });
 
   it("does not migrate twice when another computer finished the migration in the meantime", async () => {

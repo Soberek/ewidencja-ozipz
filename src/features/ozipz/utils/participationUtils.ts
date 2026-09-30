@@ -53,18 +53,42 @@ export function coordinatorContactLine(contact: Pick<OzipzContact, "phone" | "em
   return [contact.phone?.trim(), contact.email?.trim()].filter(Boolean).join(" / ");
 }
 
+export interface ParticipationCoordinator {
+  name: string;
+  contact?: string;
+  contactId?: string;
+}
+
+/** Koordynatorzy zgłoszenia (pierwszy i opcjonalny drugi) – tylko wpisy z nazwiskiem. */
+export function participationCoordinators(
+  p: Pick<OzipzSchoolParticipation, "schoolCoordinatorName" | "schoolCoordinatorContact" | "schoolCoordinatorContactId" | "secondCoordinatorName" | "secondCoordinatorContact" | "secondCoordinatorContactId">
+): ParticipationCoordinator[] {
+  return [
+    { name: p.schoolCoordinatorName?.trim() || "", contact: p.schoolCoordinatorContact, contactId: p.schoolCoordinatorContactId },
+    { name: p.secondCoordinatorName?.trim() || "", contact: p.secondCoordinatorContact, contactId: p.secondCoordinatorContactId },
+  ].filter((c) => c.name);
+}
+
 /** Zgłoszenia powiązane z kontaktem dostają jego aktualne nazwisko i dane kontaktowe. */
 export function syncCoordinatorContact<T extends OzipzSchoolParticipation>(participations: T[], contact: OzipzContact): T[] {
-  return participations.map((p) =>
-    p.schoolCoordinatorContactId === contact.id
-      ? { ...p, schoolCoordinatorName: contact.name, schoolCoordinatorContact: coordinatorContactLine(contact) }
-      : p
-  );
+  return participations.map((p) => {
+    let next = p;
+    if (p.schoolCoordinatorContactId === contact.id) {
+      next = { ...next, schoolCoordinatorName: contact.name, schoolCoordinatorContact: coordinatorContactLine(contact) };
+    }
+    if (p.secondCoordinatorContactId === contact.id) {
+      next = { ...next, secondCoordinatorName: contact.name, secondCoordinatorContact: coordinatorContactLine(contact) };
+    }
+    return next;
+  });
 }
 
 /** Usunięty kontakt: zgłoszenie zachowuje kopię nazwiska i telefonu, traci tylko powiązanie (jak ON DELETE SET NULL). */
 export function unlinkCoordinatorContact<T extends OzipzSchoolParticipation>(participations: T[], contactId: string): T[] {
-  return participations.map((p) =>
-    p.schoolCoordinatorContactId === contactId ? { ...p, schoolCoordinatorContactId: undefined } : p
-  );
+  return participations.map((p) => {
+    let next = p;
+    if (p.schoolCoordinatorContactId === contactId) next = { ...next, schoolCoordinatorContactId: undefined };
+    if (p.secondCoordinatorContactId === contactId) next = { ...next, secondCoordinatorContactId: undefined };
+    return next;
+  });
 }

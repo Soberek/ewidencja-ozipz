@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import type { ColumnDef } from "@/components/ui/data-table";
 import type { OzipzContact, OzipzSchoolParticipation, OzipzProgram } from "../../../types/ozipz.types";
 import { RowActionButton } from "@/components/ui/row-action-button";
+import { participationCoordinators } from "../../../utils/participationUtils";
 
 export interface SchoolParticipationsColumnsProps {
   programMap: Map<string, OzipzProgram>;
@@ -78,10 +79,8 @@ export function createSchoolParticipationsColumns({
       accessorKey: "schoolCoordinatorName",
       sortable: true,
       cell: ({ row }) => {
-        const contact = row.schoolCoordinatorContactId ? contactsById.get(row.schoolCoordinatorContactId) : undefined;
-        const name = contact?.name || row.schoolCoordinatorName;
-        const details = contact ? [contact.phone, contact.email].filter(Boolean) : [row.schoolCoordinatorContact].filter(Boolean);
-        if (!name) {
+        const coordinators = participationCoordinators(row);
+        if (coordinators.length === 0) {
           return (
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-400">
               <AlertTriangle className="size-3" />
@@ -90,41 +89,40 @@ export function createSchoolParticipationsColumns({
           );
         }
         return (
-          <div className="text-xs min-w-[140px] max-w-[200px]">
-            <span className="font-medium text-foreground">{name}</span>
-            {!contact && (
-              <span
-                className="ml-1 inline-flex items-center align-middle text-muted-foreground"
-                title="Wpis spoza Spisu Kontaktów – powiąż go w edycji zgłoszenia"
-              >
-                <Link2Off className="size-3" />
-              </span>
-            )}
-            {details.map((line) => (
-              <p key={line} className="text-[10px] text-muted-foreground truncate mt-0.5" title={line}>
-                {line}
-              </p>
-            ))}
+          <div className="text-xs min-w-[140px] max-w-[200px] space-y-1">
+            {coordinators.map((coordinator) => {
+              const contact = coordinator.contactId ? contactsById.get(coordinator.contactId) : undefined;
+              const details = contact ? [contact.phone, contact.email].filter(Boolean) : [coordinator.contact].filter(Boolean);
+              return (
+                <div key={coordinator.contactId || coordinator.name}>
+                  <span className="font-medium text-foreground">{contact?.name || coordinator.name}</span>
+                  {!contact && (
+                    <span
+                      className="ml-1 inline-flex items-center align-middle text-muted-foreground"
+                      title="Wpis spoza Spisu Kontaktów – powiąż go w edycji zgłoszenia"
+                    >
+                      <Link2Off className="size-3" />
+                    </span>
+                  )}
+                  {details.map((line) => (
+                    <p key={line} className="text-[10px] text-muted-foreground truncate mt-0.5" title={line}>
+                      {line}
+                    </p>
+                  ))}
+                </div>
+              );
+            })}
           </div>
         );
       },
     },
     {
       id: "counts",
-      header: "Uczniowie / Oddziały",
+      header: "Uczniowie",
       accessorKey: "pupilsCount",
       sortable: true,
       cell: ({ row }) => (
-        <div className="text-xs font-mono text-foreground whitespace-nowrap">
-          <span>
-            Uczniowie: <strong>{row.pupilsCount ?? "-"}</strong>
-          </span>
-          <br />
-          <span className="text-muted-foreground">
-            Oddziały: {row.classesCount ?? "-"}
-            {row.parentsCount ? ` · Rodzice: ${row.parentsCount}` : ""}
-          </span>
-        </div>
+        <div className="text-xs font-mono font-bold text-foreground whitespace-nowrap">{row.pupilsCount ?? "-"}</div>
       ),
     },
     {

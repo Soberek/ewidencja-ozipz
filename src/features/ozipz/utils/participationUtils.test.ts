@@ -6,6 +6,7 @@ import {
   findDuplicateParticipation,
   coordinatorContactLine,
   syncCoordinatorContact,
+  participationCoordinators,
   unlinkCoordinatorContact,
 } from "./participationUtils";
 import type { OzipzContact, OzipzSchoolParticipation } from "../types/ozipz.types";
@@ -47,6 +48,18 @@ describe("udział placówki w programie", () => {
     const [unlinked] = unlinkCoordinatorContact([synced], "c1");
     expect(unlinked.schoolCoordinatorContactId).toBeUndefined();
     expect(unlinked.schoolCoordinatorName).toBe("Anna Nowak");
+  });
+  it("synchronizuje i odłącza także drugiego koordynatora", () => {
+    const linked = { ...entry, schoolCoordinatorName: "Ręczny wpis", secondCoordinatorContactId: "c2", secondCoordinatorName: "Stare" };
+    const contact = { id: "c2", name: "Ewa Lis", phone: "", email: "ewa@szkola.pl" } as OzipzContact;
+
+    const [synced] = syncCoordinatorContact([linked], contact);
+    expect(synced).toMatchObject({ schoolCoordinatorName: "Ręczny wpis", secondCoordinatorName: "Ewa Lis", secondCoordinatorContact: "ewa@szkola.pl" });
+    expect(participationCoordinators(synced).map((c) => c.name)).toEqual(["Ręczny wpis", "Ewa Lis"]);
+
+    const [unlinked] = unlinkCoordinatorContact([synced], "c2");
+    expect(unlinked.secondCoordinatorContactId).toBeUndefined();
+    expect(unlinked.secondCoordinatorName).toBe("Ewa Lis");
   });
   it("buduje słownik lat szkolnych z bieżącym, poprzednimi, następnym i użytymi w danych", () => {
     const options = schoolYearOptions(["2018/2019", "2026", " 2025/2026 ", undefined], new Date(2026, 8, 15), 2);

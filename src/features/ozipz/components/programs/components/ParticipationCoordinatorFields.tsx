@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from "react";
-import { AlertTriangle, Building2, Link2, Mail, Phone, UserCheck, UserPlus, Wand2 } from "lucide-react";
+import { AlertTriangle, Building2, Link2, Mail, Phone, UserCheck, UserPlus, Wand2, X } from "lucide-react";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import type { OzipzContact, OzipzFacility } from "../../../types/ozipz.types";
@@ -17,6 +17,8 @@ import {
 import { CoordinatorQuickAddPanel, type NewContactData } from "./CoordinatorQuickAddPanel";
 
 interface ParticipationCoordinatorFieldsProps {
+  label?: string;
+  required?: boolean;
   contacts: OzipzContact[];
   facilities: OzipzFacility[];
   facility: OzipzFacility | null;
@@ -30,11 +32,15 @@ interface ParticipationCoordinatorFieldsProps {
   onAssignToFacilityChange: (value: boolean) => void;
   onSelect: (contact: OzipzContact | null) => void;
   onQuickAdd?: (data: NewContactData) => Promise<OzipzContact | undefined>;
+  /** Usuwa cały blok (drugi koordynator jest opcjonalny). */
+  onRemove?: () => void;
 }
 
 const EMPTY_DRAFT: CoordinatorDraft = { name: "", phone: "", email: "" };
 
 export function ParticipationCoordinatorFields({
+  label = "Szkolny Koordynator Programu",
+  required = true,
   contacts,
   facilities,
   facility,
@@ -47,6 +53,7 @@ export function ParticipationCoordinatorFields({
   onAssignToFacilityChange,
   onSelect,
   onQuickAdd,
+  onRemove,
 }: ParticipationCoordinatorFieldsProps) {
   const selectId = useId();
   const [draft, setDraft] = useState<CoordinatorDraft | null>(null);
@@ -83,19 +90,31 @@ export function ParticipationCoordinatorFields({
           <label htmlFor={selectId} className="flex items-center gap-1.5 text-xs font-bold text-foreground">
             <UserCheck className="size-3.5 text-primary" />
             <span>
-              Szkolny Koordynator Programu <span className="text-destructive">*</span>
+              {label} {required && <span className="text-destructive">*</span>}
             </span>
           </label>
-          {onQuickAdd && !draft && (
-            <button
-              type="button"
-              onClick={() => openQuickAdd(EMPTY_DRAFT)}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
-            >
-              <UserPlus className="size-3" />
-              Nowy kontakt
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {onQuickAdd && !draft && (
+              <button
+                type="button"
+                onClick={() => openQuickAdd(EMPTY_DRAFT)}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+              >
+                <UserPlus className="size-3" />
+                Nowy kontakt
+              </button>
+            )}
+            {onRemove && (
+              <button
+                type="button"
+                onClick={onRemove}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-destructive cursor-pointer"
+              >
+                <X className="size-3" />
+                Usuń
+              </button>
+            )}
+          </div>
         </div>
 
         {draft ? (

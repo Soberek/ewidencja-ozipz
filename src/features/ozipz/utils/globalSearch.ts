@@ -81,7 +81,7 @@ export function buildSearchIndex(sources: SearchSources): SearchEntry[] {
     }, item.jrwaSymbol)),
     ...sources.participations.map((item) => entry({
       key: `participation-${item.id}`, group: "Udział w programach", title: `${item.facilityName} — ${item.programName}`,
-      subtitle: joinParts(item.schoolYear, item.schoolCoordinatorName),
+      subtitle: joinParts(item.schoolYear, item.schoolCoordinatorName, item.secondCoordinatorName),
       path: "/szkoly-w-programie", modal: { type: "participation", payload: { item } },
     }, item.municipality)),
     ...sources.materials.map((item) => entry({

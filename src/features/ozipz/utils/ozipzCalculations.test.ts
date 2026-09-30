@@ -367,9 +367,9 @@ describe("ozipzCalculations", () => {
         { id: "p2", name: "Bieg po zdrowie" },
       ];
       const participations: Partial<OzipzSchoolParticipation>[] = [
-        { id: "s1", programId: "p1", pupilsCount: 100, parentsCount: 50 },
-        { id: "s2", programId: "p1", pupilsCount: 80, parentsCount: 30 },
-        { id: "s3", programId: "p2", pupilsCount: 60, parentsCount: 20 },
+        { id: "s1", programId: "p1", pupilsCount: 100 },
+        { id: "s2", programId: "p1", pupilsCount: 80 },
+        { id: "s3", programId: "p2", pupilsCount: 60 },
       ];
       const actions: Partial<OzipzAction>[] = [
         { id: "a1", programId: "p1" },
@@ -387,7 +387,6 @@ describe("ozipzCalculations", () => {
       expect(reach[0].programName).toBe("Trzymaj Formę!");
       expect(reach[0].participatingSchools).toBe(2);
       expect(reach[0].totalPupils).toBe(180);
-      expect(reach[0].totalParents).toBe(80);
       expect(reach[0].actionsCount).toBe(2);
 
       expect(reach[1].programName).toBe("Bieg po zdrowie");
@@ -398,21 +397,19 @@ describe("ozipzCalculations", () => {
       expect(calculateProgramParticipationStats([])).toEqual({
         totalSchools: 0,
         totalPupils: 0,
-        totalParents: 0,
         declarationsCount: 0,
         finalReportsCount: 0,
         completionRate: 0,
       });
 
       const mockParts: Partial<OzipzSchoolParticipation>[] = [
-        { pupilsCount: 50, parentsCount: 10, hasDeclaration: true, hasFinalReport: true },
-        { pupilsCount: 30, parentsCount: 5, hasDeclaration: true, hasFinalReport: false },
+        { pupilsCount: 50, hasDeclaration: true, hasFinalReport: true },
+        { pupilsCount: 30, hasDeclaration: true, hasFinalReport: false },
       ];
 
       const stats = calculateProgramParticipationStats(mockParts as OzipzSchoolParticipation[]);
       expect(stats.totalSchools).toBe(2);
       expect(stats.totalPupils).toBe(80);
-      expect(stats.totalParents).toBe(15);
       expect(stats.declarationsCount).toBe(2);
       expect(stats.finalReportsCount).toBe(1);
       expect(stats.completionRate).toBe(50);
@@ -422,8 +419,8 @@ describe("ozipzCalculations", () => {
   describe("calculateMunicipalityDetailedBreakdown", () => {
     it("calculates integrated municipality detailed breakdown including default 5 counties", () => {
       const mockParts: Partial<OzipzSchoolParticipation>[] = [
-        { id: "p1", municipality: "Myślibórz", facilityId: "f1", programId: "prog1", classesCount: 2, pupilsCount: 50, parentsCount: 30, hasFinalReport: true },
-        { id: "p2", municipality: "Barlinek", facilityId: "f2", programId: "prog1", classesCount: 3, pupilsCount: 75, parentsCount: 40, hasFinalReport: false },
+        { id: "p1", municipality: "Myślibórz", facilityId: "f1", programId: "prog1", pupilsCount: 50, hasFinalReport: true },
+        { id: "p2", municipality: "Barlinek", facilityId: "f2", programId: "prog1", pupilsCount: 75, hasFinalReport: false },
       ];
       const mockActions: Partial<OzipzAction>[] = [
         { id: "a1", municipality: "Myślibórz", participantsCount: 20, materialsDistributedCount: 20, facilityId: "f1" },
@@ -472,7 +469,6 @@ describe("ozipzCalculations", () => {
         programsSummary: {
           totalSchools: 12,
           totalPupils: 850,
-          totalParents: 400,
           declarationsCount: 12,
           finalReportsCount: 10,
           completionRate: 83,
@@ -488,9 +484,7 @@ describe("ozipzCalculations", () => {
             participationsCount: 8,
             programsCount: 4,
             actionsCount: 7,
-            classesCount: 10,
             pupilsCount: 350,
-            parentsCount: 150,
             materialsDistributed: 200,
             finalReportsCount: 6,
             reportingRate: 75,

@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ModalDialog } from "@/components/ui/modal-dialog";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, UserPlus } from "lucide-react";
 import type {
   OzipzSchoolParticipation,
   OzipzProgram,
@@ -40,11 +40,12 @@ export const ParticipationFormSchema = SchoolParticipationSchema.omit({
   schoolYear: z.string().trim().min(1, "Wybierz rok szkolny z listy"),
   schoolCoordinatorName: z.string().trim().min(1, "Wybierz szkolnego koordynatora programu"),
   pupilsCount: countField(1, "Podaj liczbę uczniów biorących udział w programie (ogółem)"),
-  classesCount: countField(1, "Liczba klas / oddziałów musi wynosić co najmniej 1"),
-  parentsCount: z.preprocess(
-    (value) => (typeof value === "number" && Number.isNaN(value) ? 0 : value),
-    countField(0, "Liczba rodziców nie może być ujemna")
-  ),
+}).superRefine((data, ctx) => {
+  const sameContact = Boolean(data.secondCoordinatorContactId) && data.secondCoordinatorContactId === data.schoolCoordinatorContactId;
+  const second = data.secondCoordinatorName?.trim().toLocaleLowerCase("pl");
+  if (sameContact || (second && second === data.schoolCoordinatorName.trim().toLocaleLowerCase("pl"))) {
+    ctx.addIssue({ code: "custom", path: ["secondCoordinatorName"], message: "Drugi koordynator musi być inną osobą niż pierwszy" });
+  }
 });
 
 export type ParticipationFormInput = z.input<typeof ParticipationFormSchema>;
@@ -94,6 +95,8 @@ export function ParticipationDialog({
   onUpdateContact,
 }: ParticipationDialogProps) {
   const [assignToFacility, setAssignToFacility] = useState(true);
+  const [assignSecondToFacility, setAssignSecondToFacility] = useState(true);
+  const [showSecond, setShowSecond] = useState(false);
 
   const {
     register,
@@ -116,9 +119,10 @@ export function ParticipationDialog({
       schoolCoordinatorName: "",
       schoolCoordinatorContact: "",
       schoolCoordinatorContactId: "",
-      classesCount: 1,
+      secondCoordinatorName: "",
+      secondCoordinatorContact: "",
+      secondCoordinatorContactId: "",
       pupilsCount: Number.NaN,
-      parentsCount: 0,
       hasDeclaration: true,
       hasFinalReport: false,
       evaluationGrade: "",
@@ -135,8 +139,11 @@ export function ParticipationDialog({
     if (!isOpen) return;
     const { programs: progs, facilities: facs, contacts: people } = lists.current;
     setAssignToFacility(true);
+    setAssignSecondToFacility(true);
+    setShowSecond(Boolean(editingParticipation?.secondCoordinatorName?.trim()));
     if (editingParticipation) {
       const linkedId = editingParticipation.schoolCoordinatorContactId;
+      const secondId = editingParticipation.secondCoordinatorContactId;
       reset({
         programId: editingParticipation.programId || "",
         programName: editingParticipation.programName || "",
@@ -147,9 +154,10 @@ export function ParticipationDialog({
         schoolCoordinatorName: editingParticipation.schoolCoordinatorName || "",
         schoolCoordinatorContact: editingParticipation.schoolCoordinatorContact || "",
         schoolCoordinatorContactId: linkedId && people.some((c) => c.id === linkedId) ? linkedId : "",
-        classesCount: editingParticipation.classesCount || 1,
+        secondCoordinatorName: editingParticipation.secondCoordinatorName || "",
+        secondCoordinatorContact: editingParticipation.secondCoordinatorContact || "",
+        secondCoordinatorContactId: secondId && people.some((c) => c.id === secondId) ? secondId : "",
         pupilsCount: editingParticipation.pupilsCount || Number.NaN,
-        parentsCount: editingParticipation.parentsCount || 0,
         hasDeclaration: editingParticipation.hasDeclaration ?? true,
         hasFinalReport: editingParticipation.hasFinalReport ?? false,
         evaluationGrade: editingParticipation.evaluationGrade || "",
@@ -169,9 +177,10 @@ export function ParticipationDialog({
         schoolCoordinatorName: coordinator?.name || "",
         schoolCoordinatorContact: coordinator ? coordinatorContactLine(coordinator) : "",
         schoolCoordinatorContactId: coordinator?.id || "",
-        classesCount: 1,
+        secondCoordinatorName: "",
+        secondCoordinatorContact: "",
+        secondCoordinatorContactId: "",
         pupilsCount: Number.NaN,
-        parentsCount: 0,
         hasDeclaration: true,
         hasFinalReport: false,
         evaluationGrade: "",
@@ -184,6 +193,7 @@ export function ParticipationDialog({
   const selectedProgramId = watch("programId") || "";
   const schoolYear = (watch("schoolYear") || "").trim();
   const coordinatorId = watch("schoolCoordinatorContactId") || "";
+  const secondCoordinatorId = watch("secondCoordinatorContactId") || "";
   const selectedFacility = useMemo(
     () => facilities.find((f) => f.id === selectedFacId) || null,
     [facilities, selectedFacId]
@@ -214,6 +224,17 @@ export function ParticipationDialog({
     setValue("schoolCoordinatorContactId", contact?.id || "");
     setValue("schoolCoordinatorName", contact?.name || "", { shouldValidate: Boolean(contact) });
     setValue("schoolCoordinatorContact", contact ? coordinatorContactLine(contact) : "");
+  };
+
+  const applySecondCoordinator = (contact: OzipzContact | null) => {
+    setValue("secondCoordinatorContactId", contact?.id || "");
+    setValue("secondCoordinatorName", contact?.name || "", { shouldValidate: true });
+    setValue("secondCoordinatorContact", contact ? coordinatorContactLine(contact) : "");
+  };
+
+  const removeSecondCoordinator = () => {
+    applySecondCoordinator(null);
+    setShowSecond(false);
   };
 
   const handleFacilitySelect = (id: string) => {
@@ -284,6 +305,10 @@ export function ParticipationDialog({
     const coordinator = data.schoolCoordinatorContactId
       ? contacts.find((c) => c.id === data.schoolCoordinatorContactId)
       : undefined;
+    const secondCoordinator = data.secondCoordinatorContactId
+      ? contacts.find((c) => c.id === data.secondCoordinatorContactId)
+      : undefined;
+    const secondName = secondCoordinator?.name.trim() || data.secondCoordinatorName?.trim() || "";
     const payload: ParticipationPayload = {
       ...data,
       programId: selProg.id,
@@ -295,9 +320,12 @@ export function ParticipationDialog({
       schoolCoordinatorName: coordinator?.name.trim() || data.schoolCoordinatorName.trim(),
       schoolCoordinatorContact: coordinator ? coordinatorContactLine(coordinator) : data.schoolCoordinatorContact?.trim() || "",
       schoolCoordinatorContactId: coordinator?.id,
-      classesCount: data.classesCount,
+      secondCoordinatorName: secondName,
+      secondCoordinatorContact: secondCoordinator
+        ? coordinatorContactLine(secondCoordinator)
+        : secondName ? data.secondCoordinatorContact?.trim() || "" : "",
+      secondCoordinatorContactId: secondCoordinator?.id,
       pupilsCount: data.pupilsCount,
-      parentsCount: data.parentsCount,
       hasDeclaration: Boolean(data.hasDeclaration),
       hasFinalReport: Boolean(data.hasFinalReport),
       evaluationGrade: data.evaluationGrade || "",
@@ -315,9 +343,12 @@ export function ParticipationDialog({
       setError("root", { message: error instanceof Error ? error.message : "Nie udało się zapisać zgłoszenia." });
       return;
     }
-    if (coordinator && assignToFacility && onUpdateContact && isContactWithoutFacility(coordinator, facilities)) {
+    const toAssign = [assignToFacility && coordinator, assignSecondToFacility && secondCoordinator]
+      .filter((c): c is OzipzContact => Boolean(c) && isContactWithoutFacility(c as OzipzContact, facilities));
+    for (const contact of toAssign) {
+      if (!onUpdateContact) break;
       try {
-        await onUpdateContact(coordinator.id, {
+        await onUpdateContact(contact.id, {
           facilityId: facility.id,
           facilityName: facility.name,
           municipality: facility.municipality,
@@ -346,7 +377,7 @@ export function ParticipationDialog({
           ? "Edycja Zgłoszenia do Programu"
           : "Nowe Zgłoszenie Szkoły / Placówki do Programu"
       }
-      description="Udział placówki w programie profilaktycznym: koordynator szkolny, liczba uczniów, deklaracja i sprawozdanie"
+      description="Udział placówki w programie profilaktycznym: koordynatorzy szkolni, liczba uczniów, deklaracja i sprawozdanie"
       error={errorMessage || null}
       onSubmit={handleSubmit(onSubmit)}
       isSubmitting={isSubmitting}
@@ -383,6 +414,35 @@ export function ParticipationDialog({
           onSelect={applyCoordinator}
           onQuickAdd={onQuickAddContact}
         />
+
+        {showSecond ? (
+          <ParticipationCoordinatorFields
+            label="Drugi koordynator (opcjonalnie)"
+            required={false}
+            contacts={contacts}
+            facilities={facilities}
+            facility={selectedFacility}
+            positions={contactPositions}
+            selectedContactId={secondCoordinatorId}
+            storedName={watch("secondCoordinatorName") || ""}
+            storedContactLine={watch("secondCoordinatorContact") || ""}
+            error={errors.secondCoordinatorName?.message}
+            assignToFacility={assignSecondToFacility}
+            onAssignToFacilityChange={setAssignSecondToFacility}
+            onSelect={applySecondCoordinator}
+            onQuickAdd={onQuickAddContact}
+            onRemove={removeSecondCoordinator}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowSecond(true)}
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+          >
+            <UserPlus className="size-3" />
+            Dodaj drugiego koordynatora
+          </button>
+        )}
 
         <ParticipationMetricsStatusFields register={register} errors={errors} />
       </div>

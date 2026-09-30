@@ -50,8 +50,7 @@ const mockParticipations: OzipzSchoolParticipation[] = [
     schoolYear: "2025/2026",
     schoolCoordinatorName: "Anna Kowalska",
     schoolCoordinatorContact: "anna.kowalska@sp-barlinek.pl",
-    classesCount: 3, pupilsCount: 65, parentsCount: 40,
-    hasDeclaration: true, hasFinalReport: true, evaluationGrade: "5", notes: "Wzorowa realizacja",
+    pupilsCount: 65,     hasDeclaration: true, hasFinalReport: true, evaluationGrade: "5", notes: "Wzorowa realizacja",
     createdAt: "2026-01-01", updatedAt: "2026-01-01",
   },
   {
@@ -64,8 +63,7 @@ const mockParticipations: OzipzSchoolParticipation[] = [
     schoolYear: "2025/2026",
     schoolCoordinatorName: "Jan Nowak",
     schoolCoordinatorContact: "j.nowak@zsipo.pl",
-    classesCount: 2, pupilsCount: 55, parentsCount: 30,
-    hasDeclaration: true, hasFinalReport: false, evaluationGrade: "", notes: "",
+    pupilsCount: 55,     hasDeclaration: true, hasFinalReport: false, evaluationGrade: "", notes: "",
     createdAt: "2026-01-01", updatedAt: "2026-01-01",
   },
 ];

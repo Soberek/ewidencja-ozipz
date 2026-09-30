@@ -15,9 +15,7 @@ export interface MunicipalityDetailedRow {
   programsCount: number;
   actionsCount: number;
   actionsRecipients?: number;
-  classesCount: number;
   pupilsCount: number;
-  parentsCount: number;
   materialsDistributed: number;
   finalReportsCount: number;
   reportingRate: number;
@@ -29,9 +27,7 @@ interface MunicipalityAccumulator {
   programsSet: Set<string>;
   actionsCount: number;
   actionsRecipients: number;
-  classesCount: number;
   pupilsCount: number;
-  parentsCount: number;
   materialsDistributed: number;
   finalReportsCount: number;
 }
@@ -42,9 +38,7 @@ const createAccumulator = (): MunicipalityAccumulator => ({
   programsSet: new Set(),
   actionsCount: 0,
   actionsRecipients: 0,
-  classesCount: 0,
   pupilsCount: 0,
-  parentsCount: 0,
   materialsDistributed: 0,
   finalReportsCount: 0,
 });
@@ -86,9 +80,7 @@ export function calculateMunicipalityDetailedBreakdown(
     entry.participationsCount += 1;
     if (p.facilityId) entry.facilitiesSet.add(p.facilityId);
     if (p.programId) entry.programsSet.add(p.programId);
-    entry.classesCount += Number(p.classesCount) || 0;
     entry.pupilsCount += Number(p.pupilsCount) || 0;
-    entry.parentsCount += Number(p.parentsCount) || 0;
     if (p.hasFinalReport) entry.finalReportsCount += 1;
   }
 
@@ -115,9 +107,7 @@ export function calculateMunicipalityDetailedBreakdown(
       programsCount: data.programsSet.size,
       actionsCount: data.actionsCount,
       actionsRecipients: data.actionsRecipients,
-      classesCount: data.classesCount,
       pupilsCount: data.pupilsCount,
-      parentsCount: data.parentsCount,
       materialsDistributed: data.materialsDistributed,
       finalReportsCount: data.finalReportsCount,
       reportingRate: data.participationsCount > 0 ? Math.round((data.finalReportsCount / data.participationsCount) * 100) : 0,
@@ -141,7 +131,7 @@ export function generateSubstantiveReportNarrative(params: {
     stationName = "Powiatowa Stacja Sanitarno-Epidemiologiczna w Myśliborzu - Sekcja OZiPZ",
   } = params;
 
-  const totalReached = actionsMetrics.totalRecipients + programsSummary.totalPupils + programsSummary.totalParents;
+  const totalReached = actionsMetrics.totalRecipients + programsSummary.totalPupils;
   const topGroupsText = topAudienceGroups.slice(0, 4).map((g) => `${g.group} (${g.directRecipients.toLocaleString("pl-PL")} os.)`).join(", ");
 
   return `SPRAWOZDANIE OPISOWE I MIERNIKI Z DZIAŁALNOŚCI OŚWIATOWO-ZDROWOTNEJ
@@ -158,7 +148,6 @@ W analizowanym okresie sprawozdawczym Sekcja Oświaty Zdrowotnej i Promocji Zdro
 Na terenie powiatu prowadzono ${activeProgramsCount} programów edukacyjnych rekomendowanych przez Główny Inspektorat Sanitarny oraz Ministerstwo Zdrowia.
 - Łączna liczba placówek oświatowo-wychowawczych biorących udział: ${programsSummary.totalSchools} zgłoszonych placówek.
 - Łączna liczba objętych dzieci i młodzieży szkolnej: ${programsSummary.totalPupils.toLocaleString("pl-PL")} uczniów.
-- Liczba objętych rodziców i opiekunów: ${programsSummary.totalParents.toLocaleString("pl-PL")} osób.
 - Wskaźnik kompletności nadesłanych sprawozdań końcowych z placówek: ${programsSummary.completionRate}% (${programsSummary.finalReportsCount} z ${programsSummary.totalSchools} placówek).
 
 3. STRUKTURA ODBIORCÓW I AKTYWNOŚĆ TERYTORIALNA:
