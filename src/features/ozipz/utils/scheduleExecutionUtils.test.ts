@@ -260,4 +260,54 @@ describe("Ewidencja OZiPZ - Rozliczanie Harmonogramu z Rejestru Działań (sched
     const matched = getMatchingActionsForScheduleEvent(dentalEvent, [tobaccoAction]);
     expect(matched.length).toBe(0);
   });
+
+  describe("akcja profilaktyczna", () => {
+    const campaignEvent: OzipzScheduleEvent = {
+      ...sampleEvent,
+      id: "harm-akcja",
+      title: "Pogadanki wakacyjne",
+      eventDate: "2026-07-01",
+      month: 7,
+      year: 2026,
+      programName: undefined,
+      location: "",
+      campaignId: "bezpieczne_wakacje",
+      campaignName: "Bezpieczne Wakacje",
+      plannedCount: 2,
+    };
+    const campaignAction: OzipzAction = {
+      ...sampleActionMatching,
+      id: "act-akcja",
+      title: "Bezpieczny wypoczynek nad wodą",
+      date: "2026-07-08",
+      programName: undefined,
+      facilityName: "Półkolonie MOK",
+      campaignId: "bezpieczne_wakacje",
+      campaignName: "Bezpieczne Wakacje",
+    };
+
+    it("zalicza działanie z rejestru oznaczone tą samą akcją", () => {
+      const matched = getMatchingActionsForScheduleEvent(campaignEvent, [campaignAction]);
+      expect(matched.map((a) => a.id)).toEqual(["act-akcja"]);
+    });
+
+    it("dopasowuje starsze zapisy: etykieta w działaniu, id pozycji słownika w harmonogramie", () => {
+      const legacyAction = { ...campaignAction, campaignId: "Bezpieczne Wakacje" };
+      const legacyEvent = { ...campaignEvent, campaignId: "dict-cmp-2" };
+      expect(getMatchingActionsForScheduleEvent(legacyEvent, [legacyAction])).toHaveLength(1);
+    });
+
+    it("nie zalicza działań innej akcji ani z innego miesiąca", () => {
+      const otherCampaign = { ...campaignAction, id: "a2", campaignId: "bezpieczne_ferie", campaignName: "Bezpieczne Ferie" };
+      const otherMonth = { ...campaignAction, id: "a3", date: "2026-08-02" };
+      expect(getMatchingActionsForScheduleEvent(campaignEvent, [otherCampaign, otherMonth])).toHaveLength(0);
+    });
+
+    it("wykonanie zadania rośnie z liczbą działań akcji", () => {
+      const second = { ...campaignAction, id: "act-akcja-2", date: "2026-07-20" };
+      const enriched = enrichScheduleEvent(campaignEvent, [campaignAction, second]);
+      expect(enriched.computedCompletedCount).toBe(2);
+      expect(enriched.effectiveStatus).toBe("wykonane");
+    });
+  });
 });

@@ -10,6 +10,7 @@ import {
   Building2,
   FileText,
   ShieldCheck,
+  Megaphone,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -89,25 +90,41 @@ export function ScheduleTableView({
       },
       {
         id: "programName",
-        header: "Program Profilaktyczny",
-        accessorKey: "resolvedProgramName",
+        header: "Program / Akcja",
+        accessorFn: (row) => row.resolvedProgramName || row.programName || row.campaignName || "",
         sortable: true,
         cell: ({ row }) => {
           const progName = row.resolvedProgramName || row.programName;
           const symbol = row.resolvedJrwaSymbol;
-          return progName ? (
-            <div className="max-w-[220px] space-y-0.5" title={symbol ? `${progName} (JRWA ${symbol})` : progName}>
-              <Badge
-                variant="outline"
-                className="bg-purple-50 text-purple-800 border-purple-200 text-[10px] max-w-full dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 flex items-center gap-1"
-              >
-                <ShieldCheck className="size-3 text-purple-600 dark:text-purple-400 shrink-0" />
-                <span className="line-clamp-2 break-words whitespace-normal leading-tight">{progName}</span>
-              </Badge>
-              {symbol && <p className="text-[10px] font-mono text-muted-foreground">JRWA {symbol}</p>}
+          const campaignName = row.campaignName;
+          if (!progName && !campaignName) {
+            return <span className="text-[10px] text-muted-foreground italic">Działanie ogólne</span>;
+          }
+          return (
+            <div className="max-w-[220px] space-y-1">
+              {progName && (
+                <div className="space-y-0.5" title={symbol ? `${progName} (JRWA ${symbol})` : progName}>
+                  <Badge
+                    variant="outline"
+                    className="bg-purple-50 text-purple-800 border-purple-200 text-[10px] max-w-full dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 flex items-center gap-1"
+                  >
+                    <ShieldCheck className="size-3 text-purple-600 dark:text-purple-400 shrink-0" />
+                    <span className="line-clamp-2 break-words whitespace-normal leading-tight">{progName}</span>
+                  </Badge>
+                  {symbol && <p className="text-[10px] font-mono text-muted-foreground">JRWA {symbol}</p>}
+                </div>
+              )}
+              {campaignName && (
+                <Badge
+                  variant="outline"
+                  className="bg-sky-50 text-sky-800 border-sky-200 text-[10px] max-w-full dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 flex items-center gap-1"
+                  title={`Akcja profilaktyczna: ${campaignName}`}
+                >
+                  <Megaphone className="size-3 text-sky-600 dark:text-sky-400 shrink-0" />
+                  <span className="line-clamp-2 break-words whitespace-normal leading-tight">{campaignName}</span>
+                </Badge>
+              )}
             </div>
-          ) : (
-            <span className="text-[10px] text-muted-foreground italic">Działanie ogólne</span>
           );
         },
       },

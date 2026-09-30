@@ -18,6 +18,7 @@ import { ScheduleLocationDatesFields } from "./components/ScheduleLocationDatesF
 import { ScheduleStatusNotesFields } from "./components/ScheduleStatusNotesFields";
 import { getTodayIsoDate } from "../../utils/dateUtils";
 import { POLISH_MONTHS_NOMINATIVE } from "../../utils/adnotacjaUtils";
+import { findCampaign } from "../actions/editor/actionEditorSubmitUtils";
 
 const isIsoDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) &&
   isValid(parseISO(value)) && format(parseISO(value), "yyyy-MM-dd") === value;
@@ -117,7 +118,8 @@ export function ScheduleDialog({
         endDate: editingEvent.endDate || "",
         topic: editingEvent.topic || "",
         programId: editingEvent.programId || "",
-        campaignId: editingEvent.campaignId || "",
+        // Starsze zadania trzymają id pozycji słownika – formularz pracuje na kodzie, jak rejestr działań.
+        campaignId: findCampaign(campaigns, editingEvent.campaignId)?.code || editingEvent.campaignId || "",
         recipientGroup: editingEvent.recipientGroup || "",
         location: editingEvent.location || "",
         facilityId: editingEvent.facilityId || "",
@@ -170,7 +172,7 @@ export function ScheduleDialog({
   const onSubmit = async (data: ScheduleFormOutput) => {
     const selectedAct = activityTypes.find((a) => a.code === data.activityTypeCode);
     const selectedProg = programs.find((p) => p.id === data.programId);
-    const selectedCamp = campaigns.find((c) => c.id === data.campaignId || c.code === data.campaignId);
+    const selectedCamp = findCampaign(campaigns, data.campaignId);
     const selectedReason = annotationReasons.find((r) => r.code === data.annotationReasonCode);
 
     const isPostponed = data.status === "postponed" || data.status === "odroczone" || data.status === "odwolane";
@@ -184,7 +186,7 @@ export function ScheduleDialog({
       topic: data.topic?.trim() || (selectedProg ? selectedProg.name : undefined),
       programId: data.programId || undefined,
       programName: selectedProg?.name ?? (editingEvent?.programId === data.programId ? editingEvent?.programName : undefined),
-      campaignId: data.campaignId || undefined,
+      campaignId: selectedCamp?.code || data.campaignId || undefined,
       campaignName: selectedCamp?.label ?? (editingEvent?.campaignId === data.campaignId ? editingEvent?.campaignName : undefined),
       recipientGroup: data.recipientGroup || undefined,
       location: data.location.trim() || "",

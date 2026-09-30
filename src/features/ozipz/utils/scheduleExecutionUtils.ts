@@ -97,6 +97,21 @@ function normalizeText(text?: string): string {
 }
 
 /**
+ * Klucze akcji profilaktycznej (kampanii) do porównań. Zapisy są niejednolite: nowe trzymają kod
+ * słownika, starsze działania etykietę, starsze zadania harmonogramu id pozycji – dlatego
+ * porównujemy kod/id razem z nazwą.
+ */
+function campaignKeys(campaignId?: string, campaignName?: string): Set<string> {
+  return new Set([normalizeText(campaignId), normalizeText(campaignName)].filter(Boolean));
+}
+
+export function matchesScheduleCampaign(event: OzipzScheduleEvent, action: OzipzAction): boolean {
+  const evKeys = campaignKeys(event.campaignId, event.campaignName);
+  if (evKeys.size === 0) return false;
+  return [...campaignKeys(action.campaignId, action.campaignName)].some((key) => evKeys.has(key));
+}
+
+/**
  * Znajduje wszystkie działania z ewidencji, które realizują dane zadanie harmonogramu
  */
 export function getMatchingActionsForScheduleEvent(
@@ -160,6 +175,11 @@ export function getMatchingActionsForScheduleEvent(
       if (aNormProg && (aNormProg.includes(evNormProg) || evNormProg.includes(aNormProg))) {
         return true;
       }
+    }
+
+    // 4a. Dopasowanie po akcji profilaktycznej (kampanii)
+    if (matchesScheduleCampaign(event, a)) {
+      return true;
     }
 
     // 5. Dopasowanie po symbolu JRWA (ścisłe dopasowanie segmentów, np. 966.1 nie pasuje do 966.10 czy 966.14)

@@ -49,7 +49,7 @@ export function ScheduleActivityFormFields({
   })), [programs]);
 
   const campaignOptions: SelectOption[] = useMemo(() => campaigns.map((camp) => ({
-    value: camp.id || camp.code,
+    value: camp.code,
     label: camp.label,
   })), [campaigns]);
 
@@ -93,12 +93,12 @@ export function ScheduleActivityFormFields({
         />
         <Select
           id="schedule-campaign"
-          label="Kampania lub akcja"
+          label="Akcja profilaktyczna"
           value={selectedCampaignId}
           onChange={onCampaignChange}
           options={campaignOptions}
-          placeholder="Bez kampanii"
-          searchPlaceholder="Szukaj kampanii..."
+          placeholder="Poza akcją"
+          searchPlaceholder="Szukaj akcji..."
           clearable
         />
       </div>
