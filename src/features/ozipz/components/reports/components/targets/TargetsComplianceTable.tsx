@@ -1,242 +1,150 @@
-import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { CheckCircle2, AlertTriangle, MinusCircle, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import type {
-  OzipzMonthlyComplianceRow,
-  OzipzYearlyMonthlyTargets,
-  OzipzAnnualComplianceSummary,
+import {
+  MONTH_NAMES_PL,
+  REPORT_METRIC_KEYS,
+  type OzipzMonthlyComplianceRow,
+  type OzipzAnnualComplianceSummary,
+  type OzipzReportComparison,
+  type OzipzReportComplianceStatus,
+  type OzipzReportMetricKey,
 } from "../../../../utils/monthlyTargetsUtils";
+
+export type ComplianceViewMode = "monthly" | "cumulative";
 
 export interface TargetsComplianceTableProps {
   rows: OzipzMonthlyComplianceRow[];
-  targets: OzipzYearlyMonthlyTargets;
-  onCellChange: (
-    month: number,
-    field: "programActions" | "programRecipients" | "otherActions" | "otherRecipients",
-    value: string
-  ) => void;
+  viewMode: ComplianceViewMode;
+  onCellChange: (month: number, field: OzipzReportMetricKey, value: string) => void;
   summary: OzipzAnnualComplianceSummary;
 }
 
-export function TargetsComplianceTable({
-  rows,
-  targets,
-  onCellChange,
-  summary,
-}: TargetsComplianceTableProps) {
+const METRIC_TITLES: Record<OzipzReportMetricKey, string> = {
+  programActions: "działania programowe",
+  programRecipients: "odbiorcy działań programowych",
+  otherActions: "działania nieprogramowe",
+  otherRecipients: "odbiorcy działań nieprogramowych",
+};
+
+const fmt = (n: number) => n.toLocaleString("pl-PL");
+
+export function ComplianceStatusBadge({ status }: { status: OzipzReportComplianceStatus }) {
+  if (status === "zgodne") {
+    return (
+      <Badge variant="outline" className="text-[10px] font-semibold py-0.5 px-2 bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300">
+        <CheckCircle2 className="size-3 mr-1 inline" />
+        Zgodne
+      </Badge>
+    );
+  }
+  if (status === "rozbieznosc") {
+    return (
+      <Badge variant="outline" className="text-[10px] font-semibold py-0.5 px-2 bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300">
+        <AlertTriangle className="size-3 mr-1 inline" />
+        Rozbieżność
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="text-[10px] font-medium py-0.5 px-2 text-muted-foreground">
+      <MinusCircle className="size-3 mr-1 inline" />
+      Nie wpisano
+    </Badge>
+  );
+}
+
+/** Wartość z ewidencji z różnicą względem sprawozdania (tylko gdy sprawozdanie wpisane). */
+function RecordedCell({ comparison, metric, active }: { comparison: OzipzReportComparison; metric: OzipzReportMetricKey; active: boolean }) {
+  const diff = comparison.diff[metric];
+  return (
+    <td className={`p-1 text-center ${metric.endsWith("Recipients") ? "border-r border-border" : ""}`}>
+      <span className="font-bold text-foreground">{fmt(comparison.recorded[metric])}</span>
+      {active && diff !== 0 && (
+        <span
+          className="ml-1 text-[10px] font-semibold text-red-600 dark:text-red-400"
+          title="Ewidencja minus sprawozdanie"
+        >
+          ({diff > 0 ? "+" : ""}{fmt(diff)})
+        </span>
+      )}
+    </td>
+  );
+}
+
+export function TargetsComplianceTable({ rows, viewMode, onCellChange, summary }: TargetsComplianceTableProps) {
+  const isCumulative = viewMode === "cumulative";
+  const lastMonth = summary.lastReportedMonth;
+
   return (
     <div className="overflow-x-auto rounded-[3px] border border-border bg-background shadow-xs select-none">
-      <table className="w-full text-xs text-left border-collapse min-w-[980px]">
+      <table className="w-full text-xs text-left border-collapse min-w-[900px]">
         <thead>
-          {/* Grupowanie Główne */}
           <tr className="bg-muted/50 border-b border-border text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-            <th rowSpan={2} className="py-2.5 px-3 w-32 border-r border-border">
-              Miesiąc
+            <th rowSpan={3} className="py-2.5 px-3 w-32 border-r border-border">
+              {isCumulative ? "Od stycznia do" : "Miesiąc"}
             </th>
             <th colSpan={4} className="py-2 px-2 text-center border-r border-border">
-              Działania Programowe (GIS / MZ)
+              Działania programowe
             </th>
             <th colSpan={4} className="py-2 px-2 text-center border-r border-border">
-              Działania Nieprogramowe (Akcyjne / Media)
+              Działania nieprogramowe
             </th>
-            <th colSpan={3} className="py-2 px-2 text-center">
-              Łącznie Plan Pracy (Razem)
-            </th>
-          </tr>
-          {/* Podkolumny Działań i Odbiorców */}
-          <tr className="bg-muted/30 border-b border-border text-[10.5px] font-semibold text-muted-foreground">
-            {/* Programowe */}
-            <th className="py-1.5 px-1.5 text-center w-16">
-              Plan DZ
-            </th>
-            <th className="py-1.5 px-1.5 text-center w-24">
-              Fakt DZ (%)
-            </th>
-            <th className="py-1.5 px-1.5 text-center w-20">
-              Plan ODB
-            </th>
-            <th className="py-1.5 px-1.5 text-center border-r border-border w-24">
-              Fakt ODB (%)
-            </th>
-
-            {/* Nieprogramowe */}
-            <th className="py-1.5 px-1.5 text-center w-16">
-              Plan DZ
-            </th>
-            <th className="py-1.5 px-1.5 text-center w-24">
-              Fakt DZ (%)
-            </th>
-            <th className="py-1.5 px-1.5 text-center w-20">
-              Plan ODB
-            </th>
-            <th className="py-1.5 px-1.5 text-center border-r border-border w-24">
-              Fakt ODB (%)
-            </th>
-
-            {/* Łącznie */}
-            <th className="py-1.5 px-2 text-center w-28">
-              Działania (Plan/Fakt)
-            </th>
-            <th className="py-1.5 px-2 text-center w-32">
-              Odbiorcy (Plan/Fakt)
-            </th>
-            <th className="py-1.5 px-2 text-center w-36">
+            <th rowSpan={3} className="py-2 px-2 text-center w-36">
               Zgodność
             </th>
+          </tr>
+          <tr className="bg-muted/40 border-b border-border text-[10.5px] font-semibold text-muted-foreground">
+            <th colSpan={2} className="py-1 px-1.5 text-center">Działania (DZ)</th>
+            <th colSpan={2} className="py-1 px-1.5 text-center border-r border-border">Odbiorcy (ODB)</th>
+            <th colSpan={2} className="py-1 px-1.5 text-center">Działania (DZ)</th>
+            <th colSpan={2} className="py-1 px-1.5 text-center border-r border-border">Odbiorcy (ODB)</th>
+          </tr>
+          <tr className="bg-muted/30 border-b border-border text-[10px] font-medium text-muted-foreground">
+            {REPORT_METRIC_KEYS.map((k) => (
+              <SubHeaders key={k} metric={k} />
+            ))}
           </tr>
         </thead>
         <tbody className="divide-y divide-border font-mono text-[11px]">
           {rows.map((r) => {
-            const mTargets = targets[r.month] || {
-              programActions: 0,
-              programRecipients: 0,
-              otherActions: 0,
-              otherRecipients: 0,
-            };
-
-            const isSuccess = r.complianceStatus === "compliant";
-            const isWarning = r.complianceStatus === "warning";
+            const comparison = isCumulative ? r.cumulative : r.monthly;
+            // Narastająco pokazujemy tylko do ostatniego wpisanego sprawozdania – dalej nie ma z czym porównać.
+            const dimmed = isCumulative && r.month > lastMonth;
 
             return (
-              <tr
-                key={r.month}
-                className="hover:bg-muted transition-colors"
-              >
-                {/* Miesiąc */}
-                <td className="py-2 px-3 font-sans font-semibold text-foreground border-r border-border/80 flex items-center gap-1.5">
-                  <span>{r.monthEmoji}</span>
-                  <span>{r.monthLabel}</span>
+              <tr key={r.month} className={`hover:bg-muted transition-colors ${dimmed ? "opacity-40" : ""}`}>
+                <td className="py-2 px-3 font-sans font-semibold text-foreground border-r border-border/80">
+                  <div className="flex items-center gap-1.5">
+                    <span>{r.monthEmoji}</span>
+                    <span>{r.monthLabel}</span>
+                  </div>
                 </td>
 
-                {/* Programowe: Plan DZ */}
-                <td className="p-1 text-center">
-                  <Input
-                    type="number"
-                    min={0}
-                    value={mTargets.programActions}
-                    onChange={(e) => onCellChange(r.month, "programActions", e.target.value)}
-                    className="h-6 w-14 text-center text-[11px] font-mono mx-auto bg-background p-0.5"
-                    title="Zaplanowane działania programowe"
+                {REPORT_METRIC_KEYS.map((k) => (
+                  <MetricCells
+                    key={k}
+                    row={r}
+                    metric={k}
+                    comparison={comparison}
+                    editable={!isCumulative}
+                    onCellChange={onCellChange}
                   />
-                </td>
+                ))}
 
-                {/* Programowe: Wykonano DZ (%) */}
-                <td className="p-1 text-center">
-                  <span className="font-bold text-foreground">
-                    {r.actualProgramActions}
-                  </span>
-                  {r.programActionsPercent !== null && (
-                    <span className="text-[10px] text-muted-foreground ml-1">
-                      ({r.programActionsPercent}%)
-                    </span>
-                  )}
-                </td>
-
-                {/* Programowe: Plan ODB */}
-                <td className="p-1 text-center">
-                  <Input
-                    type="number"
-                    min={0}
-                    value={mTargets.programRecipients}
-                    onChange={(e) => onCellChange(r.month, "programRecipients", e.target.value)}
-                    className="h-6 w-16 text-center text-[11px] font-mono mx-auto bg-background p-0.5"
-                    title="Zaplanowani odbiorcy programowi"
-                  />
-                </td>
-
-                {/* Programowe: Wykonano ODB (%) */}
-                <td className="p-1 text-center border-r border-border">
-                  <span className="font-bold text-foreground">
-                    {r.actualProgramRecipients}
-                  </span>
-                  {r.programRecipientsPercent !== null && (
-                    <span className="text-[10px] text-muted-foreground ml-1">
-                      ({r.programRecipientsPercent}%)
-                    </span>
-                  )}
-                </td>
-
-                {/* Nieprogramowe: Plan DZ */}
-                <td className="p-1 text-center">
-                  <Input
-                    type="number"
-                    min={0}
-                    value={mTargets.otherActions}
-                    onChange={(e) => onCellChange(r.month, "otherActions", e.target.value)}
-                    className="h-6 w-14 text-center text-[11px] font-mono mx-auto bg-background p-0.5"
-                    title="Zaplanowane działania nieprogramowe"
-                  />
-                </td>
-
-                {/* Nieprogramowe: Wykonano DZ (%) */}
-                <td className="p-1 text-center">
-                  <span className="font-bold text-foreground">
-                    {r.actualOtherActions}
-                  </span>
-                  {r.otherActionsPercent !== null && (
-                    <span className="text-[10px] text-muted-foreground ml-1">
-                      ({r.otherActionsPercent}%)
-                    </span>
-                  )}
-                </td>
-
-                {/* Nieprogramowe: Plan ODB */}
-                <td className="p-1 text-center">
-                  <Input
-                    type="number"
-                    min={0}
-                    value={mTargets.otherRecipients}
-                    onChange={(e) => onCellChange(r.month, "otherRecipients", e.target.value)}
-                    className="h-6 w-16 text-center text-[11px] font-mono mx-auto bg-background p-0.5"
-                    title="Zaplanowani odbiorcy nieprogramowi"
-                  />
-                </td>
-
-                {/* Nieprogramowe: Wykonano ODB (%) */}
-                <td className="p-1 text-center border-r border-border">
-                  <span className="font-bold text-foreground">
-                    {r.actualOtherRecipients}
-                  </span>
-                  {r.otherRecipientsPercent !== null && (
-                    <span className="text-[10px] text-muted-foreground ml-1">
-                      ({r.otherRecipientsPercent}%)
-                    </span>
-                  )}
-                </td>
-
-                {/* Łącznie Działania (Plan / Fakt) */}
-                <td className="py-2 px-2 text-center">
-                  <span className="font-bold text-foreground">{r.actualTotalActions}</span>
-                  <span className="text-muted-foreground text-[10px]"> / {r.targetTotalActions}</span>
-                </td>
-
-                {/* Łącznie Odbiorcy (Plan / Fakt) */}
-                <td className="py-2 px-2 text-center">
-                  <span className="font-bold text-foreground">{r.actualTotalRecipients.toLocaleString("pl-PL")}</span>
-                  <span className="text-muted-foreground text-[10px]"> / {r.targetTotalRecipients.toLocaleString("pl-PL")}</span>
-                </td>
-
-                {/* Status Zgodności */}
-                <td className="py-2 px-2 text-center">
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] font-semibold py-0.5 px-2 ${
-                      isSuccess
-                        ? "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300"
-                        : isWarning
-                        ? "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300"
-                        : "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300"
-                    }`}
-                  >
-                    {isSuccess ? (
-                      <CheckCircle2 className="size-3 mr-1 inline" />
-                    ) : isWarning ? (
-                      <AlertTriangle className="size-3 mr-1 inline" />
-                    ) : (
-                      <XCircle className="size-3 mr-1 inline" />
+                <td className="py-2 px-2 text-center font-sans">
+                  <div className="flex flex-col items-center gap-1">
+                    <ComplianceStatusBadge status={comparison.status} />
+                    {!isCumulative && r.openActionsCount > 0 && (
+                      <span
+                        className="inline-flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-400"
+                        title="Działania z tego miesiąca, które nie są oznaczone jako wykonane ani odwołane – nie są liczone do ewidencji wykonania"
+                      >
+                        <Clock className="size-3" />
+                        {r.openActionsCount} niezamkn.
+                      </span>
                     )}
-                    {r.totalActionsPercent !== null ? `${r.totalActionsPercent}% planu` : "Brak planu"}
-                  </Badge>
+                  </div>
                 </td>
               </tr>
             );
@@ -244,61 +152,78 @@ export function TargetsComplianceTable({
         </tbody>
         <tfoot className="bg-muted/50 font-bold border-t-2 border-border text-foreground font-mono text-[11px]">
           <tr>
-            <td className="py-2.5 px-3 font-sans border-r border-border">RAZEM (ROK):</td>
-            {/* Programowe DZ */}
-            <td className="p-1.5 text-center text-foreground">
-              {summary.targetProgramActions}
+            <td className="py-2.5 px-3 font-sans border-r border-border">
+              {lastMonth > 0 ? `Narastająco do: ${MONTH_NAMES_PL[lastMonth - 1].toLowerCase()}` : "Narastająco"}
             </td>
-            <td className="p-1.5 text-center text-foreground">
-              {summary.actualProgramActions} ({summary.programActionsPercent ?? 0}%)
-            </td>
-            {/* Programowe ODB */}
-            <td className="p-1.5 text-center text-foreground">
-              {summary.targetProgramRecipients.toLocaleString("pl-PL")}
-            </td>
-            <td className="p-1.5 text-center text-foreground border-r border-border">
-              {summary.actualProgramRecipients.toLocaleString("pl-PL")} ({summary.programRecipientsPercent ?? 0}%)
-            </td>
-
-            {/* Nieprogramowe DZ */}
-            <td className="p-1.5 text-center text-foreground">
-              {summary.targetOtherActions}
-            </td>
-            <td className="p-1.5 text-center text-foreground">
-              {summary.actualOtherActions} ({summary.otherActionsPercent ?? 0}%)
-            </td>
-            {/* Nieprogramowe ODB */}
-            <td className="p-1.5 text-center text-foreground">
-              {summary.targetOtherRecipients.toLocaleString("pl-PL")}
-            </td>
-            <td className="p-1.5 text-center text-foreground border-r border-border">
-              {summary.actualOtherRecipients.toLocaleString("pl-PL")} ({summary.otherRecipientsPercent ?? 0}%)
-            </td>
-
-            {/* Łącznie */}
-            <td className="py-2 px-2 text-center text-foreground">
-              {summary.actualTotalActions} / {summary.targetTotalActions} ({summary.totalActionsPercent ?? 0}%)
-            </td>
-            <td className="py-2 px-2 text-center text-foreground">
-              {summary.actualTotalRecipients.toLocaleString("pl-PL")} / {summary.targetTotalRecipients.toLocaleString("pl-PL")} ({summary.totalRecipientsPercent ?? 0}%)
-            </td>
-            <td className="py-2 px-2 text-center">
-              <Badge
-                variant="outline"
-                className={`text-[10px] font-bold py-0.5 px-2.5 ${
-                  summary.complianceStatus === "compliant"
-                    ? "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300"
-                    : summary.complianceStatus === "warning"
-                    ? "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300"
-                    : "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300"
-                }`}
-              >
-                {summary.totalActionsPercent !== null ? `${summary.totalActionsPercent}% zgodności` : "Brak planu"}
-              </Badge>
+            {REPORT_METRIC_KEYS.map((k) => (
+              <FooterCells key={k} metric={k} comparison={summary.cumulative} active={lastMonth > 0} />
+            ))}
+            <td className="py-2 px-2 text-center font-sans">
+              <ComplianceStatusBadge status={summary.cumulative.status} />
             </td>
           </tr>
         </tfoot>
       </table>
     </div>
+  );
+}
+
+function SubHeaders({ metric }: { metric: OzipzReportMetricKey }) {
+  return (
+    <>
+      <th className="py-1 px-1.5 text-center w-20" title={`Liczba z wysłanego sprawozdania: ${METRIC_TITLES[metric]}`}>
+        Sprawozd.
+      </th>
+      <th
+        className={`py-1 px-1.5 text-center w-24 ${metric.endsWith("Recipients") ? "border-r border-border" : ""}`}
+        title={`Wykonanie zapisane w ewidencji: ${METRIC_TITLES[metric]}`}
+      >
+        Ewidencja
+      </th>
+    </>
+  );
+}
+
+function MetricCells({
+  row,
+  metric,
+  comparison,
+  editable,
+  onCellChange,
+}: {
+  row: OzipzMonthlyComplianceRow;
+  metric: OzipzReportMetricKey;
+  comparison: OzipzReportComparison;
+  editable: boolean;
+  onCellChange: TargetsComplianceTableProps["onCellChange"];
+}) {
+  return (
+    <>
+      <td className="p-1 text-center">
+        {editable ? (
+          <Input
+            type="number"
+            min={0}
+            value={row.hasReport ? comparison.reported[metric] : ""}
+            placeholder="–"
+            onChange={(e) => onCellChange(row.month, metric, e.target.value)}
+            className={`h-6 text-center text-[11px] font-mono mx-auto bg-background p-0.5 ${metric.endsWith("Recipients") ? "w-16" : "w-14"}`}
+            title={`${row.monthLabel} – ${METRIC_TITLES[metric]} wg wysłanego sprawozdania`}
+          />
+        ) : (
+          <span className="text-muted-foreground">{fmt(comparison.reported[metric])}</span>
+        )}
+      </td>
+      <RecordedCell comparison={comparison} metric={metric} active={row.hasReport} />
+    </>
+  );
+}
+
+function FooterCells({ metric, comparison, active }: { metric: OzipzReportMetricKey; comparison: OzipzReportComparison; active: boolean }) {
+  return (
+    <>
+      <td className="p-1.5 text-center">{fmt(comparison.reported[metric])}</td>
+      <RecordedCell comparison={comparison} metric={metric} active={active} />
+    </>
   );
 }

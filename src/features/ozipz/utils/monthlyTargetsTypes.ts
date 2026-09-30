@@ -1,89 +1,59 @@
+/**
+ * Liczby z miesięcznego sprawozdania wysłanego do kierownictwa (wpisywane ręcznie z pliku).
+ * Nazwy pól zostają zgodne z tabelą monthly_targets.
+ */
 export interface OzipzMonthlyTargetItem {
   month: number; // 1 - 12
-  programActions: number; // Planowana liczba działań programowych (DZ)
-  programRecipients: number; // Planowana liczba odbiorców programowych (ODB)
-  otherActions: number; // Planowana liczba działań nieprogramowych (DZ)
-  otherRecipients: number; // Planowana liczba odbiorców nieprogramowych (ODB)
+  programActions: number; // Działania programowe (DZ) wykazane w sprawozdaniu
+  programRecipients: number; // Odbiorcy działań programowych (ODB) wykazani w sprawozdaniu
+  otherActions: number; // Działania nieprogramowe (DZ) wykazane w sprawozdaniu
+  otherRecipients: number; // Odbiorcy działań nieprogramowych (ODB) wykazani w sprawozdaniu
   notes?: string;
 }
 
 export type OzipzYearlyMonthlyTargets = Record<number, OzipzMonthlyTargetItem>;
 
+export const REPORT_METRIC_KEYS = [
+  "programActions",
+  "programRecipients",
+  "otherActions",
+  "otherRecipients",
+] as const;
+
+export type OzipzReportMetricKey = (typeof REPORT_METRIC_KEYS)[number];
+
+export type OzipzReportMetrics = Record<OzipzReportMetricKey, number>;
+
+/** zgodne – ewidencja = sprawozdanie; rozbieznosc – różnica w min. jednej liczbie; brak_sprawozdania – nie wpisano */
+export type OzipzReportComplianceStatus = "zgodne" | "rozbieznosc" | "brak_sprawozdania";
+
+export interface OzipzReportComparison {
+  reported: OzipzReportMetrics; // wg wysłanego sprawozdania
+  recorded: OzipzReportMetrics; // wg ewidencji (tylko działania wykonane)
+  diff: OzipzReportMetrics; // ewidencja - sprawozdanie
+  status: OzipzReportComplianceStatus;
+}
+
 export interface OzipzMonthlyComplianceRow {
   month: number;
   monthLabel: string;
   monthEmoji: string;
-
-  // Planowane wartości z planu pracy
-  targetProgramActions: number;
-  targetProgramRecipients: number;
-  targetOtherActions: number;
-  targetOtherRecipients: number;
-  targetTotalActions: number;
-  targetTotalRecipients: number;
-
-  // Realizacja (wykonanie faktyczne z ewidencji)
-  actualProgramActions: number;
-  actualProgramRecipients: number;
-  actualOtherActions: number;
-  actualOtherRecipients: number;
-  actualTotalActions: number;
-  actualTotalRecipients: number;
-
-  // Wskaźniki zgodności (% wykonania planu)
-  programActionsPercent: number | null;
-  programRecipientsPercent: number | null;
-  otherActionsPercent: number | null;
-  otherRecipientsPercent: number | null;
-  totalActionsPercent: number | null;
-  totalRecipientsPercent: number | null;
-
-  // Odchylenia (Różnica = Wykonano - Plan)
-  diffProgramActions: number;
-  diffProgramRecipients: number;
-  diffOtherActions: number;
-  diffOtherRecipients: number;
-  diffTotalActions: number;
-  diffTotalRecipients: number;
-
-  // Status zgodności z planem
-  complianceStatus: "compliant" | "warning" | "danger" | "no_target";
+  hasReport: boolean;
+  monthly: OzipzReportComparison;
+  /** Od stycznia do tego miesiąca włącznie. */
+  cumulative: OzipzReportComparison;
+  /** Działania z tego miesiąca, które nie są odwołane ani oznaczone jako wykonane. */
+  openActionsCount: number;
 }
 
 export interface OzipzAnnualComplianceSummary {
-  // Sumy planowane w planie pracy
-  targetProgramActions: number;
-  targetProgramRecipients: number;
-  targetOtherActions: number;
-  targetOtherRecipients: number;
-  targetTotalActions: number;
-  targetTotalRecipients: number;
-
-  // Sumy wykonane w ewidencji
-  actualProgramActions: number;
-  actualProgramRecipients: number;
-  actualOtherActions: number;
-  actualOtherRecipients: number;
-  actualTotalActions: number;
-  actualTotalRecipients: number;
-
-  // Procenty roczne zgodności
-  programActionsPercent: number | null;
-  programRecipientsPercent: number | null;
-  otherActionsPercent: number | null;
-  otherRecipientsPercent: number | null;
-  totalActionsPercent: number | null;
-  totalRecipientsPercent: number | null;
-
-  // Różnice roczne
-  diffProgramActions: number;
-  diffProgramRecipients: number;
-  diffOtherActions: number;
-  diffOtherRecipients: number;
-  diffTotalActions: number;
-  diffTotalRecipients: number;
-
-  complianceStatus: "compliant" | "warning" | "danger" | "no_target";
+  reportedMonthsCount: number;
+  matchingMonthsCount: number;
+  mismatchedMonthsCount: number;
+  /** Ostatni miesiąc z wpisanym sprawozdaniem (0, gdy brak). */
+  lastReportedMonth: number;
+  /** Narastająco od stycznia do ostatniego miesiąca ze sprawozdaniem. */
+  cumulative: OzipzReportComparison;
 }
 
 export const MONTH_NAMES_PL = [

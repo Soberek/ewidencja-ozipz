@@ -21,80 +21,74 @@ describe("MonthlyTargetsComplianceTab", () => {
           updatedAt: "2026-01-01T00:00:00Z",
         },
       ],
-      scheduleEvents: [
-        {
-          id: "sch-1",
-          title: "Zadanie programowe w marcu",
-          month: 3,
-          year: 2026,
-          eventDate: "2026-03-15",
-          location: "Szkoła",
-          responsiblePerson: "Jan Kowalski",
-          status: "zaplanowane",
-          programId: "prog-1",
-          plannedCount: 3,
-          createdAt: "2026-01-01T00:00:00Z",
-          updatedAt: "2026-01-01T00:00:00Z",
-        },
-      ],
     });
   });
 
-  it("renders tab with initial targets loaded from DB store", () => {
+  it("renders tab with reported values loaded from DB store", () => {
     render(<MonthlyTargetsComplianceTab year={2026} actions={[]} />);
 
-    expect(screen.getByText("Zgodność z Planem Pracy:")).toBeDefined();
-    expect(screen.getByText("Zapisz Plan")).toBeDefined();
-    expect(screen.getByText("Pobierz z Harmonogramu")).toBeDefined();
-    expect(screen.getByText("Rozdziel Równomiernie")).toBeDefined();
-    expect(screen.getByText("Wyczyść")).toBeDefined();
+    expect(screen.getByText("Zgodność ze sprawozdaniami:")).toBeDefined();
+    expect(screen.queryByText("Pobierz z Harmonogramu")).toBeNull();
+    expect(screen.getByRole("button", { name: "Miesięcznie" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Narastająco" })).toBeDefined();
+    expect(screen.getByTitle("Styczeń – działania programowe wg wysłanego sprawozdania")).toHaveProperty("value", "5");
 
-    const saveButton = screen.getByRole("button", { name: /Zapisz Plan/i });
+    const saveButton = screen.getByRole("button", { name: /^Zapisz$/ });
     expect(saveButton.hasAttribute("disabled")).toBe(true);
   });
 
-  it("allows pulling targets from schedule and enables Save button", async () => {
-    render(<MonthlyTargetsComplianceTab year={2026} actions={[]} />);
+  it("flags a month whose records differ from the sent report", () => {
+    render(
+      <MonthlyTargetsComplianceTab
+        year={2026}
+        actions={[
+          {
+            id: "a1",
+            title: "Prelekcja",
+            actionType: "prelekcja",
+            date: "2026-01-10",
+            programId: "prog-1",
+            participantsCount: 100,
+            numberOfActions: 5,
+            status: "wykonane",
+          } as never,
+        ]}
+      />
+    );
 
-    const pullButton = screen.getByRole("button", { name: /Pobierz z Harmonogramu/i });
-    fireEvent.click(pullButton);
-
-    const saveButton = screen.getByRole("button", { name: /Zapisz Plan/i });
-    expect(saveButton.hasAttribute("disabled")).toBe(false);
+    // Styczeń: nieprogramowe w sprawozdaniu 2 DZ / 40 ODB, w ewidencji 0
+    expect(screen.getAllByText("Rozbieżność").length).toBeGreaterThan(0);
   });
 
-  it("saves targets persistently to the database store when Save is clicked", async () => {
+  it("saves reported values to the database store after editing a cell", async () => {
     const saveMock = vi.fn().mockResolvedValue([]);
     useOzipzDbStore.setState({ saveMonthlyTargets: saveMock });
 
     render(<MonthlyTargetsComplianceTab year={2026} actions={[]} />);
 
-    const pullButton = screen.getByRole("button", { name: /Pobierz z Harmonogramu/i });
-    fireEvent.click(pullButton);
+    fireEvent.change(screen.getByTitle("Luty – działania programowe wg wysłanego sprawozdania"), {
+      target: { value: "7" },
+    });
 
-    const saveButton = screen.getByRole("button", { name: /Zapisz Plan/i });
+    const saveButton = screen.getByRole("button", { name: /^Zapisz$/ });
+    expect(saveButton.hasAttribute("disabled")).toBe(false);
     fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(saveMock).toHaveBeenCalledWith(2026, expect.any(Object));
+      expect(saveMock).toHaveBeenCalledWith(2026, expect.objectContaining({ 2: expect.objectContaining({ programActions: 7 }) }));
     });
   });
 
-  it("opens ConfirmDialog on clear click and clears targets upon confirmation", async () => {
+  it("opens ConfirmDialog on clear click and clears reported values upon confirmation", async () => {
     render(<MonthlyTargetsComplianceTab year={2026} actions={[]} />);
 
-    const clearButton = screen.getByRole("button", { name: /Wyczyść/i });
-    fireEvent.click(clearButton);
+    fireEvent.click(screen.getByRole("button", { name: "Wyczyść" }));
+    expect(screen.getByText("Wyczyść wpisane sprawozdania")).toBeDefined();
 
-    // Confirm dialog should be visible
-    expect(screen.getByText("Wyczyść plan wykonania")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Wyczyść sprawozdania" }));
 
-    const confirmBtn = screen.getByRole("button", { name: "Wyczyść plan" });
-    fireEvent.click(confirmBtn);
-
-    // Save button should now be enabled (dirty state)
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Wyczyść plan" })).toBeNull());
-    const saveButton = screen.getByRole("button", { name: /Zapisz Plan/i });
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Wyczyść sprawozdania" })).toBeNull());
+    const saveButton = screen.getByRole("button", { name: /^Zapisz$/ });
     expect(saveButton.hasAttribute("disabled")).toBe(false);
   });
 });

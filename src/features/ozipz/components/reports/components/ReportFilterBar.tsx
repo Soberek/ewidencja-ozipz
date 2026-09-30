@@ -33,7 +33,7 @@ const REPORT_VIEW_OPTIONS: { value: ReportViewMode; label: string }[] = [
   { value: "wakacje", label: "Bezpieczne Wakacje" },
   { value: "miernik", label: "Wykonanie miernika" },
   { value: "gis", label: "Sprawozdanie GIS" },
-  { value: "cele_miesieczne", label: "Zgodność z planem pracy" },
+  { value: "cele_miesieczne", label: "Zgodność ze sprawozdaniami" },
   { value: "gminy", label: "Zestawienie gminne" },
 ];
 

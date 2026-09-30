@@ -1,13 +1,19 @@
 import type { OzipzAction } from "../types/ozipz.types";
 import { isProgramAction } from "./ozipzCalculations";
+import { isActionCancelled, isActionExecuted } from "./calculators/actionMetrics";
 import { safeParseDate } from "./dateUtils";
 import {
   MONTH_NAMES_PL,
   MONTH_EMOJIS,
+  REPORT_METRIC_KEYS,
   type OzipzYearlyMonthlyTargets,
   type OzipzMonthlyComplianceRow,
   type OzipzAnnualComplianceSummary,
+  type OzipzReportMetrics,
+  type OzipzReportComparison,
 } from "./monthlyTargetsTypes";
+
+const POSTPONED_STATUSES = new Set(["odroczone", "postponed"]);
 
 /**
  * Bezpieczne pobranie odbiorców z działania
@@ -25,29 +31,51 @@ export function getActionCount(a: OzipzAction): number {
   return Number.isFinite(count) && count > 0 ? count : 1;
 }
 
-/**
- * Oblicza procent zgodności/wykonania (zaokrąglony do liczb całkowitych)
- */
-export function calculatePercent(actual: number, target: number): number | null {
-  if (target <= 0) return null;
-  return Math.round((actual / target) * 100);
+export function emptyReportMetrics(): OzipzReportMetrics {
+  return { programActions: 0, programRecipients: 0, otherActions: 0, otherRecipients: 0 };
+}
+
+function addMetrics(a: OzipzReportMetrics, b: OzipzReportMetrics): OzipzReportMetrics {
+  const out = emptyReportMetrics();
+  for (const k of REPORT_METRIC_KEYS) out[k] = a[k] + b[k];
+  return out;
+}
+
+/** Czy w sprawozdaniu za miesiąc wpisano jakąkolwiek liczbę (same zera = nie wpisano). */
+export function hasReportedValues(m: OzipzReportMetrics): boolean {
+  return REPORT_METRIC_KEYS.some((k) => m[k] > 0);
 }
 
 /**
- * Wyznacza status zgodności na podstawie procentu wykonania planu
+ * Porównuje liczby ze sprawozdania z ewidencją. Sprawozdanie to wykonanie, więc zgodność
+ * oznacza równość co do sztuki – każda różnica jest rozbieżnością.
  */
-export function getComplianceStatus(
-  percent: number | null,
-  targetTotal: number
-): "compliant" | "warning" | "danger" | "no_target" {
-  if (targetTotal <= 0 || percent === null) return "no_target";
-  if (percent >= 100) return "compliant";
-  if (percent >= 70) return "warning";
-  return "danger";
+export function compareWithReport(
+  reported: OzipzReportMetrics,
+  recorded: OzipzReportMetrics,
+  hasReport: boolean
+): OzipzReportComparison {
+  const diff = emptyReportMetrics();
+  for (const k of REPORT_METRIC_KEYS) diff[k] = recorded[k] - reported[k];
+  const status = !hasReport
+    ? "brak_sprawozdania"
+    : REPORT_METRIC_KEYS.every((k) => diff[k] === 0)
+    ? "zgodne"
+    : "rozbieznosc";
+  return { reported, recorded, diff, status };
+}
+
+function readReported(targets: OzipzYearlyMonthlyTargets, month: number): OzipzReportMetrics {
+  const item = targets[month];
+  const out = emptyReportMetrics();
+  if (!item) return out;
+  for (const k of REPORT_METRIC_KEYS) out[k] = Math.max(0, Number(item[k]) || 0);
+  return out;
 }
 
 /**
- * Główna funkcja analityczna obliczająca pełną macierz zgodności planu wykonania z ewidencją
+ * Zestawia liczby z wysłanych sprawozdań miesięcznych z wykonaniem zapisanym w ewidencji,
+ * miesięcznie i narastająco od stycznia.
  */
 export function calculateMonthlyComplianceMatrix(params: {
   actions: OzipzAction[];
@@ -60,180 +88,74 @@ export function calculateMonthlyComplianceMatrix(params: {
 } {
   const { actions, targets, year, customKindMap } = params;
 
-  // 1. Zgrupuj akcje per miesiąc (1-12) z podziałem na programowe i nieprogramowe
-  const actualsPerMonth: Record<
-    number,
-    {
-      progActions: number;
-      progRecipients: number;
-      otherActions: number;
-      otherRecipients: number;
-    }
-  > = {};
+  const recordedPerMonth: OzipzReportMetrics[] = Array.from({ length: 13 }, emptyReportMetrics);
+  const openPerMonth: number[] = new Array(13).fill(0);
 
-  for (let m = 1; m <= 12; m++) {
-    actualsPerMonth[m] = {
-      progActions: 0,
-      progRecipients: 0,
-      otherActions: 0,
-      otherRecipients: 0,
-    };
-  }
-
-  actions.forEach((a) => {
-    if (a.status === "odwolane" || a.status === "cancelled") return;
-    if (!a.date) return;
+  for (const a of actions) {
+    if (!a.date || isActionCancelled(a.status) || POSTPONED_STATUSES.has(a.status ?? "")) continue;
 
     const parsed = safeParseDate(a.date);
-    if (!parsed || parsed.getFullYear() !== year) return;
+    if (!parsed || parsed.getFullYear() !== year) continue;
+    const month = parsed.getMonth() + 1;
 
-    const monthNum = parsed.getMonth() + 1;
-    if (monthNum < 1 || monthNum > 12) return;
-
-    const count = getActionCount(a);
-    const recipients = getActionRecipients(a);
-
-    if (isProgramAction(a, customKindMap)) {
-      actualsPerMonth[monthNum].progActions += count;
-      actualsPerMonth[monthNum].progRecipients += recipients;
-    } else {
-      actualsPerMonth[monthNum].otherActions += count;
-      actualsPerMonth[monthNum].otherRecipients += recipients;
+    // Do sprawozdania trafia wyłącznie wykonanie – niezamknięte wpisy tylko sygnalizujemy.
+    if (!isActionExecuted(a.status)) {
+      openPerMonth[month] += 1;
+      continue;
     }
-  });
 
-  // 2. Zbuduj wiersze dla 12 miesięcy
+    const bucket = recordedPerMonth[month];
+    if (isProgramAction(a, customKindMap)) {
+      bucket.programActions += getActionCount(a);
+      bucket.programRecipients += getActionRecipients(a);
+    } else {
+      bucket.otherActions += getActionCount(a);
+      bucket.otherRecipients += getActionRecipients(a);
+    }
+  }
+
   const rows: OzipzMonthlyComplianceRow[] = [];
-
-  let sumTargetProgActions = 0;
-  let sumTargetProgRecipients = 0;
-  let sumTargetOtherActions = 0;
-  let sumTargetOtherRecipients = 0;
-  let sumActualProgActions = 0;
-  let sumActualProgRecipients = 0;
-  let sumActualOtherActions = 0;
-  let sumActualOtherRecipients = 0;
+  let cumReported = emptyReportMetrics();
+  let cumRecorded = emptyReportMetrics();
+  let reportedMonthsCount = 0;
+  let matchingMonthsCount = 0;
+  let lastReportedMonth = 0;
 
   for (let m = 1; m <= 12; m++) {
-    const targetItem = targets[m] || {
-      month: m,
-      programActions: 0,
-      programRecipients: 0,
-      otherActions: 0,
-      otherRecipients: 0,
-    };
+    const reported = readReported(targets, m);
+    const recorded = recordedPerMonth[m];
+    const hasReport = hasReportedValues(reported);
 
-    const targetProgAct = Math.max(0, Number(targetItem.programActions) || 0);
-    const targetProgRec = Math.max(0, Number(targetItem.programRecipients) || 0);
-    const targetOtherAct = Math.max(0, Number(targetItem.otherActions) || 0);
-    const targetOtherRec = Math.max(0, Number(targetItem.otherRecipients) || 0);
+    cumReported = addMetrics(cumReported, reported);
+    cumRecorded = addMetrics(cumRecorded, recorded);
 
-    const actualProgAct = actualsPerMonth[m].progActions;
-    const actualProgRec = actualsPerMonth[m].progRecipients;
-    const actualOtherAct = actualsPerMonth[m].otherActions;
-    const actualOtherRec = actualsPerMonth[m].otherRecipients;
-
-    const targetTotalAct = targetProgAct + targetOtherAct;
-    const targetTotalRec = targetProgRec + targetOtherRec;
-    const actualTotalAct = actualProgAct + actualOtherAct;
-    const actualTotalRec = actualProgRec + actualOtherRec;
-
-    sumTargetProgActions += targetProgAct;
-    sumTargetProgRecipients += targetProgRec;
-    sumTargetOtherActions += targetOtherAct;
-    sumTargetOtherRecipients += targetOtherRec;
-    sumActualProgActions += actualProgAct;
-    sumActualProgRecipients += actualProgRec;
-    sumActualOtherActions += actualOtherAct;
-    sumActualOtherRecipients += actualOtherRec;
-
-    const progActPercent = calculatePercent(actualProgAct, targetProgAct);
-    const progRecPercent = calculatePercent(actualProgRec, targetProgRec);
-    const otherActPercent = calculatePercent(actualOtherAct, targetOtherAct);
-    const otherRecPercent = calculatePercent(actualOtherRec, targetOtherRec);
-    const totalActPercent = calculatePercent(actualTotalAct, targetTotalAct);
-    const totalRecPercent = calculatePercent(actualTotalRec, targetTotalRec);
+    const monthly = compareWithReport(reported, recorded, hasReport);
+    if (hasReport) {
+      reportedMonthsCount += 1;
+      lastReportedMonth = m;
+      if (monthly.status === "zgodne") matchingMonthsCount += 1;
+    }
 
     rows.push({
       month: m,
       monthLabel: MONTH_NAMES_PL[m - 1],
       monthEmoji: MONTH_EMOJIS[m - 1],
-
-      targetProgramActions: targetProgAct,
-      targetProgramRecipients: targetProgRec,
-      targetOtherActions: targetOtherAct,
-      targetOtherRecipients: targetOtherRec,
-      targetTotalActions: targetTotalAct,
-      targetTotalRecipients: targetTotalRec,
-
-      actualProgramActions: actualProgAct,
-      actualProgramRecipients: actualProgRec,
-      actualOtherActions: actualOtherAct,
-      actualOtherRecipients: actualOtherRec,
-      actualTotalActions: actualTotalAct,
-      actualTotalRecipients: actualTotalRec,
-
-      programActionsPercent: progActPercent,
-      programRecipientsPercent: progRecPercent,
-      otherActionsPercent: otherActPercent,
-      otherRecipientsPercent: otherRecPercent,
-      totalActionsPercent: totalActPercent,
-      totalRecipientsPercent: totalRecPercent,
-
-      diffProgramActions: actualProgAct - targetProgAct,
-      diffProgramRecipients: actualProgRec - targetProgRec,
-      diffOtherActions: actualOtherAct - targetOtherAct,
-      diffOtherRecipients: actualOtherRec - targetOtherRec,
-      diffTotalActions: actualTotalAct - targetTotalAct,
-      diffTotalRecipients: actualTotalRec - targetTotalRec,
-
-      complianceStatus: getComplianceStatus(totalActPercent, targetTotalAct),
+      hasReport,
+      monthly,
+      cumulative: compareWithReport(cumReported, cumRecorded, hasReport),
+      openActionsCount: openPerMonth[m],
     });
   }
 
-  // 3. Zbuduj podsumowanie roczne
-  const sumTargetTotalAct = sumTargetProgActions + sumTargetOtherActions;
-  const sumTargetTotalRec = sumTargetProgRecipients + sumTargetOtherRecipients;
-  const sumActualTotalAct = sumActualProgActions + sumActualOtherActions;
-  const sumActualTotalRec = sumActualProgRecipients + sumActualOtherRecipients;
-
-  const progActAnnualPercent = calculatePercent(sumActualProgActions, sumTargetProgActions);
-  const progRecAnnualPercent = calculatePercent(sumActualProgRecipients, sumTargetProgRecipients);
-  const otherActAnnualPercent = calculatePercent(sumActualOtherActions, sumTargetOtherActions);
-  const otherRecAnnualPercent = calculatePercent(sumActualOtherRecipients, sumTargetOtherRecipients);
-  const totalActAnnualPercent = calculatePercent(sumActualTotalAct, sumTargetTotalAct);
-  const totalRecAnnualPercent = calculatePercent(sumActualTotalRec, sumTargetTotalRec);
-
   const summary: OzipzAnnualComplianceSummary = {
-    targetProgramActions: sumTargetProgActions,
-    targetProgramRecipients: sumTargetProgRecipients,
-    targetOtherActions: sumTargetOtherActions,
-    targetOtherRecipients: sumTargetOtherRecipients,
-    targetTotalActions: sumTargetTotalAct,
-    targetTotalRecipients: sumTargetTotalRec,
-
-    actualProgramActions: sumActualProgActions,
-    actualProgramRecipients: sumActualProgRecipients,
-    actualOtherActions: sumActualOtherActions,
-    actualOtherRecipients: sumActualOtherRecipients,
-    actualTotalActions: sumActualTotalAct,
-    actualTotalRecipients: sumActualTotalRec,
-
-    programActionsPercent: progActAnnualPercent,
-    programRecipientsPercent: progRecAnnualPercent,
-    otherActionsPercent: otherActAnnualPercent,
-    otherRecipientsPercent: otherRecAnnualPercent,
-    totalActionsPercent: totalActAnnualPercent,
-    totalRecipientsPercent: totalRecAnnualPercent,
-
-    diffProgramActions: sumActualProgActions - sumTargetProgActions,
-    diffProgramRecipients: sumActualProgRecipients - sumTargetProgRecipients,
-    diffOtherActions: sumActualOtherActions - sumTargetOtherActions,
-    diffOtherRecipients: sumActualOtherRecipients - sumTargetOtherRecipients,
-    diffTotalActions: sumActualTotalAct - sumTargetTotalAct,
-    diffTotalRecipients: sumActualTotalRec - sumTargetTotalRec,
-
-    complianceStatus: getComplianceStatus(totalActAnnualPercent, sumTargetTotalAct),
+    reportedMonthsCount,
+    matchingMonthsCount,
+    mismatchedMonthsCount: reportedMonthsCount - matchingMonthsCount,
+    lastReportedMonth,
+    cumulative:
+      lastReportedMonth > 0
+        ? rows[lastReportedMonth - 1].cumulative
+        : compareWithReport(emptyReportMetrics(), emptyReportMetrics(), false),
   };
 
   return { rows, summary };

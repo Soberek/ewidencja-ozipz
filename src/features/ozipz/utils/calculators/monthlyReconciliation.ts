@@ -141,37 +141,3 @@ export function reconcileMonthlySummary(
     allMatched,
   };
 }
-
-export const DEFAULT_2026_EXPECTED_MONTHLY_TARGETS: ExpectedMonthlyTargetsMap = {
-  "01": { tasksCount: 27, actionsCount: 37, recipientsCount: 753, materialsCount: 0, doneCount: 27 },
-  "02": { tasksCount: 25, actionsCount: 29, recipientsCount: 528, materialsCount: 0, doneCount: 25 },
-  "03": { tasksCount: 41, actionsCount: 45, recipientsCount: 1515, materialsCount: 0, doneCount: 41 },
-  "04": { tasksCount: 39, actionsCount: 46, recipientsCount: 943, materialsCount: 0, doneCount: 39 },
-  "05": { tasksCount: 64, actionsCount: 72, recipientsCount: 938, materialsCount: 0, doneCount: 64 },
-  "06": { tasksCount: 33, actionsCount: 34, recipientsCount: 1606, materialsCount: 0, doneCount: 33 },
-  "07": { tasksCount: 21, actionsCount: 21, recipientsCount: 540, materialsCount: 10, doneCount: 21 },
-  "08": { tasksCount: 8, actionsCount: 8, recipientsCount: 599, materialsCount: 10, doneCount: 8 },
-  "09": { tasksCount: 1, actionsCount: 1, recipientsCount: 1, materialsCount: 0, doneCount: 0 },
-};
-
-export const DEFAULT_2026_EXPECTED_MONTHLY_TARGETS_PROGRAM: ExpectedMonthlyTargetsMap = {
-  "01": { tasksCount: 3, actionsCount: 3, recipientsCount: 46, materialsCount: 0, doneCount: 3 },
-  "02": { tasksCount: 7, actionsCount: 7, recipientsCount: 181, materialsCount: 0, doneCount: 7 },
-  "03": { tasksCount: 13, actionsCount: 13, recipientsCount: 312, materialsCount: 0, doneCount: 13 },
-  "04": { tasksCount: 22, actionsCount: 22, recipientsCount: 398, materialsCount: 0, doneCount: 22 },
-  "05": { tasksCount: 24, actionsCount: 24, recipientsCount: 361, materialsCount: 0, doneCount: 24 },
-  "06": { tasksCount: 14, actionsCount: 14, recipientsCount: 364, materialsCount: 0, doneCount: 14 },
-  "07": { tasksCount: 0, actionsCount: 0, recipientsCount: 0, materialsCount: 0, doneCount: 0 },
-  "08": { tasksCount: 2, actionsCount: 2, recipientsCount: 2, materialsCount: 0, doneCount: 2 },
-};
-
-export const DEFAULT_2026_EXPECTED_MONTHLY_TARGETS_NON_PROGRAM: ExpectedMonthlyTargetsMap = {
-  "01": { tasksCount: 24, actionsCount: 34, recipientsCount: 707, materialsCount: 0, doneCount: 24 },
-  "02": { tasksCount: 18, actionsCount: 22, recipientsCount: 347, materialsCount: 0, doneCount: 18 },
-  "03": { tasksCount: 28, actionsCount: 32, recipientsCount: 1203, materialsCount: 0, doneCount: 28 },
-  "04": { tasksCount: 17, actionsCount: 24, recipientsCount: 545, materialsCount: 0, doneCount: 17 },
-  "05": { tasksCount: 40, actionsCount: 48, recipientsCount: 577, materialsCount: 0, doneCount: 40 },
-  "06": { tasksCount: 19, actionsCount: 20, recipientsCount: 1242, materialsCount: 0, doneCount: 19 },
-  "07": { tasksCount: 21, actionsCount: 21, recipientsCount: 540, materialsCount: 10, doneCount: 21 },
-  "08": { tasksCount: 6, actionsCount: 6, recipientsCount: 597, materialsCount: 10, doneCount: 6 },
-};

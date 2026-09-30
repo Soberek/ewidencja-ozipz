@@ -1,22 +1,25 @@
-import type { OzipzScheduleEvent, OzipzMonthlyTarget, OzipzProgram } from "../types/ozipz.types";
-import { resolveScheduleProgram, getEventMonth } from "./scheduleExecutionUtils";
-import { getYearNumber } from "./dateUtils";
+import type { OzipzMonthlyTarget } from "../types/ozipz.types";
 
 export type {
   OzipzMonthlyTargetItem,
   OzipzYearlyMonthlyTargets,
   OzipzMonthlyComplianceRow,
   OzipzAnnualComplianceSummary,
+  OzipzReportMetricKey,
+  OzipzReportMetrics,
+  OzipzReportComparison,
+  OzipzReportComplianceStatus,
 } from "./monthlyTargetsTypes";
 import {
   MONTH_NAMES_PL,
   MONTH_EMOJIS,
+  REPORT_METRIC_KEYS,
   type OzipzYearlyMonthlyTargets,
 } from "./monthlyTargetsTypes";
-export { MONTH_NAMES_PL, MONTH_EMOJIS };
+export { MONTH_NAMES_PL, MONTH_EMOJIS, REPORT_METRIC_KEYS };
 
 /**
- * Generuje domyślny szablon planu pracy dla 12 miesięcy danego roku
+ * Generuje pusty szablon sprawozdań dla 12 miesięcy danego roku
  */
 export function getDefaultMonthlyTargets(): OzipzYearlyMonthlyTargets {
   const result: OzipzYearlyMonthlyTargets = {};
@@ -52,46 +55,12 @@ export function monthlyTargetsArrayToYearlyMap(targets: OzipzMonthlyTarget[]): O
   return result;
 }
 
-/**
- * Pobiera zaplanowane zadania bezpośrednio z Harmonogramu / Planu Pracy (OzipzScheduleEvent)
- */
-export function extractTargetsFromScheduleEvents(
-  events: OzipzScheduleEvent[],
-  year: number,
-  programs?: OzipzProgram[]
-): OzipzYearlyMonthlyTargets {
-  const result = getDefaultMonthlyTargets();
-
-  events.forEach((ev) => {
-    if (ev.status === "odwolane" || ev.status === "cancelled") return;
-
-    const evYear = (typeof ev.year === "number" && ev.year > 1900)
-      ? ev.year
-      : (ev.eventDate ? getYearNumber(ev.eventDate, 0) : 0);
-
-    if (evYear !== year) return;
-
-    const m = getEventMonth(ev);
-    if (!m || m < 1 || m > 12) return;
-
-    const count = Number(ev.plannedCount) || 1;
-    const isProg = resolveScheduleProgram(ev, programs).isProgrammatic;
-
-    if (isProg) {
-      result[m].programActions += count;
-    } else {
-      result[m].otherActions += count;
-    }
-  });
-
-  return result;
-}
-
 export {
   getActionRecipients,
   getActionCount,
-  calculatePercent,
-  getComplianceStatus,
+  emptyReportMetrics,
+  hasReportedValues,
+  compareWithReport,
   calculateMonthlyComplianceMatrix,
 } from "./monthlyTargetsCompliance";
 
@@ -99,7 +68,7 @@ export {
 const STORAGE_KEY_PREFIX = "ozipz_monthly_work_plan_targets_";
 
 /**
- * Wczytuje plan pracy z pamięci lokalnej dla danego roku
+ * Wczytuje sprawozdania z pamięci lokalnej (starsze wersje aplikacji) dla danego roku
  */
 export function loadMonthlyTargets(year: number): OzipzYearlyMonthlyTargets {
   try {
@@ -129,7 +98,7 @@ export function loadMonthlyTargets(year: number): OzipzYearlyMonthlyTargets {
 }
 
 /**
- * Zapisuje plan pracy do pamięci lokalnej dla danego roku
+ * Zapisuje sprawozdania do pamięci lokalnej dla danego roku
  */
 export function saveMonthlyTargets(year: number, targets: OzipzYearlyMonthlyTargets): void {
   try {
