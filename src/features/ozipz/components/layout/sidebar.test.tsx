@@ -37,6 +37,13 @@ describe("OzipzSidebar routing and navigation", () => {
     expect(resolveCurrentPage("/slownik-dzialania")?.item.id).toBe("slowniki");
   });
 
+  it("maps tool pages to the Narzędzia entry with the tool name as subtitle", () => {
+    const page = resolveCurrentPage("/narzedzia/lista-obecnosci");
+    expect(page?.item.id).toBe("narzedzia");
+    expect(page?.subtitle).toBe("Lista obecności");
+    expect(resolveCurrentPage("/narzedzia/druk-rozdzielnika")?.subtitle).toBe("Druk rozdzielnika");
+  });
+
   it("displays badge counts when provided", () => {
     renderSidebar("/dzialania", { counts: { dzialania: 42, harmonogram: 7 } });
     expect(screen.getByText("42")).toBeDefined();

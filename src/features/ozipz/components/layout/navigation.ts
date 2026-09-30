@@ -21,6 +21,8 @@ import {
   ClipboardPen,
   Printer,
   History,
+  Wrench,
+  CalendarClock,
   type LucideIcon,
 } from "lucide-react";
 import type { HealthPromotionTab } from "../../types/ozipz.types";
@@ -41,6 +43,49 @@ export interface SidebarGroupConfig {
   items: SidebarItemConfig[];
 }
 
+export interface ToolConfig {
+  id: string;
+  path: string;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+  keywords?: string[];
+}
+
+/** Narzędzia dostępne w module „Narzędzia”. Nowe narzędzie: wpis tutaj + widok w ToolsSection. */
+export const TOOLS = [
+  {
+    id: "lista-obecnosci",
+    path: "/narzedzia/lista-obecnosci",
+    label: "Lista obecności",
+    description: "Druk listy obecności uczestników zajęć lub prelekcji (F/PT/PZ/01/01).",
+    icon: ClipboardPen,
+    keywords: ["obecność", "druk", "prelekcja", "podpisy"],
+  },
+  {
+    id: "druk-rozdzielnika",
+    path: "/narzedzia/druk-rozdzielnika",
+    label: "Druk rozdzielnika",
+    description: "Rozdzielnik materiałów do podpisu — z zadania w rejestrze albo pusty blankiet.",
+    icon: Printer,
+    keywords: ["rozdzielnik", "blankiet", "druk", "podpis"],
+  },
+  {
+    id: "praca-w-dniu-wolnym",
+    path: "/narzedzia/praca-w-dniu-wolnym",
+    label: "Praca w dniu wolnym",
+    description: "Wniosek do Dyrektora o zgodę na pracę w sobotę, niedzielę lub święto — z listą pracowników i kontrolą błędów.",
+    icon: CalendarClock,
+    keywords: ["wniosek", "sobota", "niedziela", "święto", "zgoda", "dzień wolny", "nadgodziny"],
+  },
+] as const satisfies readonly ToolConfig[];
+
+export type ToolId = (typeof TOOLS)[number]["id"];
+
+export function findTool(id: string | undefined): ToolConfig | undefined {
+  return TOOLS.find((tool) => tool.id === id);
+}
+
 export const SIDEBAR_GROUPS: readonly SidebarGroupConfig[] = [
   {
     id: "work",
@@ -49,8 +94,8 @@ export const SIDEBAR_GROUPS: readonly SidebarGroupConfig[] = [
       { id: "pulpit", path: "/", label: "Pulpit główny", icon: LayoutDashboard, end: true, keywords: ["start", "dashboard"] },
       { id: "dzialania", path: "/dzialania", label: "Rejestr działań", icon: FileCheck, keywords: ["akcje", "ewidencja"] },
       { id: "harmonogram", path: "/harmonogram", label: "Harmonogram", icon: Calendar, keywords: ["kalendarz", "plan"] },
-      { id: "lista-obecnosci", path: "/lista-obecnosci", label: "Lista obecności", icon: ClipboardPen, keywords: ["obecność", "druk", "prelekcja", "podpisy"] },
       { id: "sprawozdania", path: "/sprawozdania", label: "Mierniki i sprawozdania", icon: BarChart3, keywords: ["raport", "miernik budżetowy", "statystyki"] },
+      { id: "narzedzia", path: "/narzedzia", label: "Narzędzia", icon: Wrench, keywords: TOOLS.flatMap((tool) => [tool.label, ...tool.keywords]) },
     ],
   },
   {
@@ -69,7 +114,6 @@ export const SIDEBAR_GROUPS: readonly SidebarGroupConfig[] = [
     items: [
       { id: "materialy", path: "/materialy", label: "Katalog materiałów", icon: Package, keywords: ["ulotki", "plakaty", "magazyn"] },
       { id: "rozdzielniki", path: "/rozdzielniki", label: "Rozdzielniki", icon: Boxes, keywords: ["dystrybucja", "wydania"] },
-      { id: "druk-rozdzielnika", path: "/druk-rozdzielnika", label: "Druk rozdzielnika", icon: Printer, keywords: ["rozdzielnik", "blankiet", "druk", "podpis"] },
       { id: "publikacje", path: "/publikacje", label: "Publikacje media", icon: Globe, keywords: ["artykuły", "gov", "x"] },
     ],
   },
@@ -130,6 +174,8 @@ export function resolveCurrentPage(pathname: string): CurrentPage | undefined {
   if (pathname === "/miernik-budzetowy") return withSubtitle("/sprawozdania", "Miernik budżetowy");
   if (pathname === "/pulpit") return findByPath("/");
   if (pathname === "/slownik-dzialania") return findByPath("/slowniki");
+  const tool = TOOLS.find((item) => item.path === pathname);
+  if (tool) return withSubtitle("/narzedzia", tool.label);
   return findByPath(pathname);
 }
 
@@ -143,7 +189,7 @@ export function normalizeNavQuery(value: string): string {
     .trim();
 }
 
-export function matchesNavQuery(item: SidebarItemConfig, query: string): boolean {
+export function matchesNavQuery(item: Pick<SidebarItemConfig, "label" | "keywords">, query: string): boolean {
   if (!query) return true;
   return [item.label, ...(item.keywords ?? [])].some((text) => normalizeNavQuery(text).includes(query));
 }

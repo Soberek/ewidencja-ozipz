@@ -8,9 +8,9 @@ import { useModalStore } from "../../store/useModalStore";
 import { useGlobalSearchStore } from "../../store/useGlobalSearchStore";
 import { useShallow } from "zustand/react/shallow";
 import { buildSearchIndex, searchIndex, type SearchEntry, type SearchSources } from "../../utils/globalSearch";
-import { SIDEBAR_FOOTER_ITEMS, SIDEBAR_GROUPS, matchesNavQuery, normalizeNavQuery } from "./navigation";
+import { SIDEBAR_FOOTER_ITEMS, SIDEBAR_GROUPS, TOOLS, matchesNavQuery, normalizeNavQuery } from "./navigation";
 
-const MODULES = [...SIDEBAR_GROUPS.flatMap((group) => group.items), ...SIDEBAR_FOOTER_ITEMS];
+const MODULES = [...SIDEBAR_GROUPS.flatMap((group) => group.items), ...TOOLS, ...SIDEBAR_FOOTER_ITEMS];
 
 /** Wyszukiwarka wszystkich rekordów ewidencji i modułów (Ctrl+K). */
 export function GlobalSearchDialog() {

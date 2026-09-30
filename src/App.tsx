@@ -46,8 +46,7 @@ const ContactsSection = lazyExport(() => import("./features/ozipz/components/con
 const TemplatesSection = lazyExport(() => import("./features/ozipz/components/templates/TemplatesSection"), "TemplatesSection");
 const StaffSection = lazyExport(() => import("./features/ozipz/components/staff/StaffSection"), "StaffSection");
 const RegistersSection = lazyExport(() => import("./features/ozipz/components/registers/RegistersSection"), "RegistersSection");
-const AttendanceListSection = lazyExport(() => import("./features/ozipz/components/attendance/AttendanceListSection"), "AttendanceListSection");
-const RozdzielnikPrintSection = lazyExport(() => import("./features/ozipz/components/materials/RozdzielnikPrintSection"), "RozdzielnikPrintSection");
+const ToolsSection = lazyExport(() => import("./features/ozipz/components/tools/ToolsSection"), "ToolsSection");
 const HistorySection = lazyExport(() => import("./features/ozipz/components/history/HistorySection"), "HistorySection");
 const SettingsSection = lazyExport(() => import("./features/ozipz/components/settings/SettingsSection"), "SettingsSection");
 
@@ -58,14 +57,13 @@ const ROUTE_PRELOADERS: Record<string, () => Promise<unknown>> = {
   "/dzialania": ActionsSection.preload,
   "/dzialania/nowe": ActionEditorSection.preload,
   "/harmonogram": ScheduleSection.preload,
-  "/lista-obecnosci": AttendanceListSection.preload,
   "/sprawozdania": ReportsSection.preload,
+  "/narzedzia": ToolsSection.preload,
   "/znaki": JrwaSection.preload,
   "/pisma": LettersSection.preload,
   "/rejestry": RegistersSection.preload,
   "/materialy": MaterialsSection.preload,
   "/rozdzielniki": MaterialsSection.preload,
-  "/druk-rozdzielnika": RozdzielnikPrintSection.preload,
   "/skany": ScansSection.preload,
   "/publikacje": PublicationsSection.preload,
   "/lokalizacje": FacilitiesSection.preload,
@@ -200,10 +198,15 @@ function AppContent() {
 
                 {/* Harmonogram, Sprawozdania i JRWA */}
                 <Route path="/harmonogram" element={<ScheduleSection />} />
-                <Route path="/lista-obecnosci" element={<AttendanceListSection />} />
                 <Route path="/sprawozdania" element={<ReportsSection />} />
                 <Route path="/miernik-budzetowy" element={<ReportsSection initialMode="miernik" />} />
                 <Route path="/znaki" element={<JrwaSection />} />
+
+                {/* Narzędzia (druki i pomocnicze generatory) */}
+                <Route path="/narzedzia" element={<ToolsSection />} />
+                <Route path="/narzedzia/:toolId" element={<ToolsSection />} />
+                <Route path="/lista-obecnosci" element={<Navigate to="/narzedzia/lista-obecnosci" replace />} />
+                <Route path="/druk-rozdzielnika" element={<Navigate to="/narzedzia/druk-rozdzielnika" replace />} />
 
 
                 {/* Ewidencja, Pisma, Magazyn i Archiwum */}
@@ -211,7 +214,6 @@ function AppContent() {
                 <Route path="/rejestry" element={<RegistersSection />} />
                 <Route path="/materialy" element={<MaterialsSection defaultTab="catalog" />} />
                 <Route path="/rozdzielniki" element={<MaterialsSection defaultTab="distributions" />} />
-                <Route path="/druk-rozdzielnika" element={<RozdzielnikPrintSection />} />
                 <Route path="/skany" element={<ScansSection />} />
                 <Route path="/publikacje" element={<PublicationsSection />} />
 

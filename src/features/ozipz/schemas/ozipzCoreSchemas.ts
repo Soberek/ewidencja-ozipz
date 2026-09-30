@@ -23,8 +23,7 @@ export const HealthPromotionTabSchema = z.enum([
   "znaki",
   "materialy",
   "ustawienia",
-  "lista-obecnosci",
-  "druk-rozdzielnika",
+  "narzedzia",
   "historia",
 ]);
 
