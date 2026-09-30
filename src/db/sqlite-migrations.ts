@@ -168,7 +168,15 @@ export async function migrateDatabase(db: ISqlDatabase): Promise<{ migrated: boo
 
   const auxiliary = statements.filter((sql) => !sql.startsWith("CREATE TABLE"));
   const lockTriggers = auxiliary.filter((sql) => sql.startsWith("CREATE TRIGGER IF NOT EXISTS protect_closed_month_"));
-  const batch = ["PRAGMA foreign_keys = OFF", "BEGIN IMMEDIATE"];
+  const startVersion = version[0]?.user_version ?? 0;
+  const batch = [
+    "PRAGMA foreign_keys = OFF",
+    "BEGIN IMMEDIATE",
+    // Wersja sprawdzana ponownie pod blokadą zapisu: jeśli inny komputer zdążył zmigrować bazę, przerywamy bez zmian.
+    `CREATE TEMP TABLE migration_version_guard (version INTEGER CHECK (version = ${startVersion}))`,
+    "INSERT INTO migration_version_guard SELECT user_version FROM pragma_user_version",
+    "DROP TABLE migration_version_guard",
+  ];
   // Views and triggers must be removed before table replacement to avoid broken references
   // (e.g. triggers on dependent tables referencing parent tables being dropped/recreated).
   for (const view of existing.filter((entry) => entry.type === "view")) {
@@ -250,6 +258,9 @@ export async function migrateDatabase(db: ISqlDatabase): Promise<{ migrated: boo
     await db.execute(batch.join(";\n") + ";");
   } catch (error) {
     try { await db.execute("ROLLBACK;"); } catch { /* BEGIN itself may have failed. */ }
+    try { await db.execute("DROP TABLE IF EXISTS temp.migration_version_guard;"); } catch { /* already gone */ }
+    const now = await db.select<Array<{ user_version: number }>>("PRAGMA user_version;");
+    if (now[0]?.user_version === SCHEMA_VERSION) return { migrated: false, backupPath };
     throw new Error(`Nie udało się zaktualizować bazy. Dane nie zostały usunięte. ${String(error)}`);
   } finally {
     await db.execute("PRAGMA foreign_keys = ON;");

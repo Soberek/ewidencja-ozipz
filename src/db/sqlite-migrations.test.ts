@@ -505,6 +505,32 @@ describe("schema v6 integrity", () => {
       .toEqual({ n: "Anna Nowak-Kowal", c: "600 000 000 / a.nowak@sp1.pl", id: null });
   });
 
+  it("does not migrate twice when another computer finished the migration in the meantime", async () => {
+    const raw = legacy();
+    raw.exec("PRAGMA user_version = 10");
+    insert(raw, "ozipz_actions", { id: "keep", title: "Działanie", date: "2026-09-20" });
+    const base = adapter(raw);
+    let otherComputerDone = false;
+    const racing: ISqlDatabase = {
+      select: base.select,
+      async execute(sql, values) {
+        // Tuż przed naszą transakcją migracji drugi komputer kończy własną.
+        if (!otherComputerDone && sql.includes("migration_version_guard")) {
+          otherComputerDone = true;
+          expect((await migrateDatabase(adapter(raw))).migrated).toBe(true);
+        }
+        return base.execute(sql, values);
+      },
+    };
+
+    expect((await migrateDatabase(racing)).migrated).toBe(false);
+    expect(raw.prepare("PRAGMA user_version").get()?.user_version).toBe(SCHEMA_VERSION);
+    expect(raw.prepare("SELECT title FROM ozipz_actions WHERE id = 'keep'").get()).toEqual({ title: "Działanie" });
+    expect(raw.prepare("SELECT count(*) n FROM sqlite_master WHERE name = 'sync_ozipz_dictionaries_codes'").get()).toEqual({ n: 1 });
+    // Kolejny start widzi aktualną bazę.
+    expect((await migrateDatabase(base)).migrated).toBe(false);
+  });
+
   it("runs the JRWA cleanup once per database instead of on every start", async () => {
     const raw = new DatabaseSync(":memory:"); databases.push(raw);
     const db = adapter(raw);
