@@ -1,5 +1,5 @@
 import type { OzipzAction, OzipzJrwaCase, OzipzProgram } from "../types/ozipz.types";
-import { KNOWN_JRWA_CATALOG } from "./programJrwaCatalog";
+import { extractCleanJrwaSymbol, getStoreJrwaItems } from "./calculators/jrwaClassification";
 import { izrzSeriaForDzialanie, parseNumerIzrz, formatNumerIzrz } from "./izrzUtils";
 import { JRWA_DEFAULT_SECTION } from "../constants";
 
@@ -188,9 +188,9 @@ export function getJrwaDetails(
 
   // Wyciągnij symbol (np. "966.14" z "JRWA 966.14", "(JRWA 966.14)", "OZiPZ.966.14.1.2026")
   let cleanSymbol = "";
-  const match = rawSymbolOrText.match(/966\.[0-9]+|9011\.[0-9]+|0442/);
+  const match = extractCleanJrwaSymbol({ jrwaSign: rawSymbolOrText });
   if (match) {
-    cleanSymbol = match[0];
+    cleanSymbol = match;
   } else {
     cleanSymbol = rawSymbolOrText.replace(/[^0-9.]/g, "").trim();
   }
@@ -204,7 +204,7 @@ export function getJrwaDetails(
       return pSym === cleanSymbol;
     });
     if (matchedProgram) {
-      const foundInCatalog = KNOWN_JRWA_CATALOG.find((k) => k.symbol === cleanSymbol);
+      const foundInCatalog = getStoreJrwaItems()?.find((d) => d.code?.trim() === cleanSymbol);
       return {
         symbol: cleanSymbol,
         label: matchedProgram.name,
@@ -216,13 +216,13 @@ export function getJrwaDetails(
     }
   }
 
-  // 2. Sprawdź w katalogu JRWA
-  const found = KNOWN_JRWA_CATALOG.find((k) => k.symbol === cleanSymbol);
-  if (found) {
+  // 2. Sprawdź w słowniku JRWA z bazy
+  const dictItem = getStoreJrwaItems()?.find((d) => d.code?.trim() === cleanSymbol);
+  if (dictItem) {
     return {
-      symbol: found.symbol,
-      label: found.label,
-      description: found.description || found.label,
+      symbol: cleanSymbol,
+      label: dictItem.label,
+      description: dictItem.description || dictItem.label,
     };
   }
 

@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Trash2, Printer } from "lucide-react";
 import type { OzipzScheduleEvent } from "../../types/ozipz.types";
-import { useDictionaries } from "../../store/useOzipzDbStore";
+import { useDictionaries, usePrograms } from "../../store/useOzipzDbStore";
+import { scheduleProgramLabel } from "../../utils/scheduleProgramResolver";
 import { toast } from "sonner";
 
 interface AdnotacjeListDialogProps {
@@ -20,6 +21,7 @@ export function AdnotacjeListDialog({
   onRemoveAnnotation,
 }: AdnotacjeListDialogProps) {
   const dictStore = useDictionaries();
+  const { programs } = usePrograms();
   if (!event) return null;
 
   const reason = (dictStore.annotationReasons || []).find((r) => r.code === event.annotationReasonCode);
@@ -62,7 +64,7 @@ export function AdnotacjeListDialog({
                 <span className="font-semibold text-foreground">Osoba odpowiedzialna:</span> {event.responsiblePerson || "—"}
               </div>
               <div>
-                <span className="font-semibold text-foreground">JRWA / Program:</span> {event.jrwa || event.programName || "—"}
+                <span className="font-semibold text-foreground">JRWA / Program:</span> {scheduleProgramLabel(event, programs)}
               </div>
               <div>
                 <span className="font-semibold text-foreground">Lokalizacja:</span> {event.location || "—"}

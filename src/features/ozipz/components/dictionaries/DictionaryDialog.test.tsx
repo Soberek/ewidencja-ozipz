@@ -81,7 +81,7 @@ describe("DictionaryDialog Component", () => {
     const handleClose = vi.fn();
 
     const existing: OzipzDictionaryItem = {
-      id: "dict-jrwa-14",
+      id: "dict_jrwa_966_14",
       dictType: "jrwaSymbol",
       code: "966.14",
       label: "Bezpieczne Wakacje",
@@ -114,7 +114,7 @@ describe("DictionaryDialog Component", () => {
 
     await waitFor(() => {
       expect(handleUpdate).toHaveBeenCalledWith(
-        "dict-jrwa-14",
+        "dict_jrwa_966_14",
         expect.objectContaining({
           kind: "PROGRAMOWE",
         })
@@ -125,7 +125,7 @@ describe("DictionaryDialog Component", () => {
   it("saves and pre-populates the GIS report area for JRWA symbols", async () => {
     const handleUpdate = vi.fn();
     const existing: OzipzDictionaryItem = {
-      id: "dict-jrwa-16",
+      id: "dict_jrwa_966_16",
       dictType: "jrwaSymbol",
       code: "966.16",
       label: "Promocja Zdrowia Psychicznego",
@@ -153,7 +153,7 @@ describe("DictionaryDialog Component", () => {
     fireEvent.click(screen.getByRole("button", { name: /Zapisz zmiany/i }));
 
     await waitFor(() => {
-      expect(handleUpdate).toHaveBeenCalledWith("dict-jrwa-16", expect.objectContaining({ gisCategory: "uzaleznienia" }));
+      expect(handleUpdate).toHaveBeenCalledWith("dict_jrwa_966_16", expect.objectContaining({ gisCategory: "uzaleznienia" }));
     });
   });
 

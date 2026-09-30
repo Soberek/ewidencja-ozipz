@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { JRWA_DICTIONARY_FIXTURE } from "../../../../test/fixtures/jrwaCatalog";
 import type { OzipzAction, OzipzDictionaryItem, OzipzFacility } from "../../types/ozipz.types";
 import {
-  DEFAULT_JRWA_GIS_CATEGORY_MAP,
   buildJrwaGisCategoryMap,
   calculateGisReports,
   classifyGisForm,
@@ -46,26 +46,21 @@ function jrwaItem(code: string, overrides: Partial<OzipzDictionaryItem> = {}): O
   };
 }
 
-const gisCategoryMap = buildJrwaGisCategoryMap();
+const gisCategoryMap = buildJrwaGisCategoryMap(JRWA_DICTIONARY_FIXTURE);
+
 
 describe("GIS categories (JRWA -> obszar sprawozdania)", () => {
-  it("maps the default catalog according to the Better-OZ categorisation", () => {
-    expect(DEFAULT_JRWA_GIS_CATEGORY_MAP.get("966.5")).toBe("uzaleznienia");
-    expect(DEFAULT_JRWA_GIS_CATEGORY_MAP.get("966.6")).toBe("uzaleznienia");
-    expect(DEFAULT_JRWA_GIS_CATEGORY_MAP.get("966.8")).toBe("szczepienia");
-    expect(DEFAULT_JRWA_GIS_CATEGORY_MAP.get("966.11")).toBe("szczepienia");
-    expect(DEFAULT_JRWA_GIS_CATEGORY_MAP.get("966.1")).toBe("otylosc");
-    expect(DEFAULT_JRWA_GIS_CATEGORY_MAP.get("966.7")).toBe("otylosc");
-    expect(DEFAULT_JRWA_GIS_CATEGORY_MAP.get("966.12")).toBe("otylosc");
-    expect(DEFAULT_JRWA_GIS_CATEGORY_MAP.get("966.2")).toBe("sti");
-    expect(DEFAULT_JRWA_GIS_CATEGORY_MAP.get("966.18")).toBe("sti");
-    expect(DEFAULT_JRWA_GIS_CATEGORY_MAP.get("966.14")).toBe("inne");
-    expect(DEFAULT_JRWA_GIS_CATEGORY_MAP.get("966.16")).toBe("inne");
-    expect(DEFAULT_JRWA_GIS_CATEGORY_MAP.get("0442")).toBe("brak");
-    expect(DEFAULT_JRWA_GIS_CATEGORY_MAP.get("9011.2")).toBe("brak");
+  it("takes GIS areas only from the JRWA dictionary", () => {
+    expect(buildJrwaGisCategoryMap().size).toBe(0);
+    expect(gisCategoryMap.get("966.5")).toBe("uzaleznienia");
+    expect(gisCategoryMap.get("966.8")).toBe("szczepienia");
+    expect(gisCategoryMap.get("966.1")).toBe("otylosc");
+    expect(gisCategoryMap.get("966.18")).toBe("sti");
+    expect(gisCategoryMap.get("966.14")).toBe("inne");
+    expect(gisCategoryMap.get("0442")).toBe("brak");
   });
 
-  it("lets dictionary entries override defaults and add new symbols", () => {
+  it("builds the map only from the given dictionary entries", () => {
     const map = buildJrwaGisCategoryMap([
       jrwaItem("966.16", { gisCategory: "uzaleznienia" }),
       jrwaItem("966.20", { gisCategory: "inne" }),
@@ -76,7 +71,7 @@ describe("GIS categories (JRWA -> obszar sprawozdania)", () => {
     expect(map.get("966.20")).toBe("inne");
     expect(map.has("966.21")).toBe(false);
     expect(map.has("x")).toBe(false);
-    expect(map.get("966.1")).toBe("otylosc");
+    expect(map.has("966.1")).toBe(false);
   });
 
   it("resolves the category from the case sign", () => {

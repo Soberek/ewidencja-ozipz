@@ -92,7 +92,7 @@ export function ProgramsCatalogTab({
         accessorKey: "jrwaSymbol",
         sortable: true,
         cell: ({ row }) => {
-          const jrwa = row.jrwaSymbol || getProgramJrwaSymbol(row);
+          const jrwa = getProgramJrwaSymbol(row);
           return jrwa ? (
             <Badge
               variant="outline"

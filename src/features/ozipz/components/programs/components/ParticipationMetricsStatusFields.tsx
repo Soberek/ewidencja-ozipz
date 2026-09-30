@@ -1,29 +1,17 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, type SelectOption } from "@/components/ui/select";
-import { FileText, Star, Users } from "lucide-react";
+import { FileText, Users } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import type { ParticipationFormInput } from "../ParticipationDialog";
 
 interface ParticipationMetricsStatusFieldsProps {
   register: UseFormRegister<ParticipationFormInput>;
   errors: FieldErrors<ParticipationFormInput>;
-  currentEvaluationGrade?: string;
-  onEvaluationGradeChange?: (val: string) => void;
 }
-
-const evaluationGradeOptions: SelectOption[] = [
-  { value: "bardzo_dobra", label: "Bardzo dobra (5)", badge: "5", badgeVariant: "success" },
-  { value: "dobra", label: "Dobra (4)", badge: "4", badgeVariant: "secondary" },
-  { value: "przecietna", label: "Przeciętna (3)", badge: "3", badgeVariant: "outline" },
-  { value: "slaba", label: "Niska (2)", badge: "2", badgeVariant: "destructive" },
-];
 
 export function ParticipationMetricsStatusFields({
   register,
   errors,
-  currentEvaluationGrade = "",
-  onEvaluationGradeChange,
 }: ParticipationMetricsStatusFieldsProps) {
   return (
     <>
@@ -87,7 +75,7 @@ export function ParticipationMetricsStatusFields({
       </div>
 
       {/* Statusy Deklaracji i Sprawozdania */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-muted/20 border border-border/70 rounded-[3px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-muted/20 border border-border/70 rounded-[3px]">
         <div className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -112,20 +100,6 @@ export function ParticipationMetricsStatusFields({
           </label>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <Star className="size-3.5 text-amber-500 shrink-0" />
-          <div className="flex-1">
-            <Select
-              value={currentEvaluationGrade}
-              onChange={(val) => onEvaluationGradeChange?.(val)}
-              options={evaluationGradeOptions}
-              placeholder="Ocena realizacji..."
-              searchable={false}
-              clearable
-              size="sm"
-            />
-          </div>
-        </div>
       </div>
 
       {/* Uwagi */}

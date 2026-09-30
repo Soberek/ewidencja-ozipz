@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import { AlertTriangle, GraduationCap, Building2, MapPin, School } from "lucide-react";
 import { SearchableSelect, Select, type SelectOption } from "@/components/ui/select";
-import { currentSchoolYear } from "../../../utils/participationUtils";
+import { currentSchoolYear, JRWA_PROGRAM_PREFIX } from "../../../utils/participationUtils";
+import { getProgramJrwaSymbol } from "../../../utils/programJrwaUtils";
 import type { UseFormRegister, FieldErrors } from "react-hook-form";
-import type { OzipzProgram, OzipzFacility, OzipzSchoolParticipation } from "../../../types/ozipz.types";
+import type { OzipzProgram, OzipzFacility, OzipzSchoolParticipation, OzipzDictionaryItem } from "../../../types/ozipz.types";
 import type { ParticipationFormInput } from "../ParticipationDialog";
 
 interface ParticipationProgramFacilityFieldsProps {
@@ -11,6 +12,8 @@ interface ParticipationProgramFacilityFieldsProps {
   errors: FieldErrors<ParticipationFormInput>;
   selectedFacId: string;
   programs: OzipzProgram[];
+  /** Symbole ze słownika JRWA bez programu w katalogu – program powstaje przy zapisie zgłoszenia. */
+  jrwaWithoutProgram?: OzipzDictionaryItem[];
   facilities: OzipzFacility[];
   /** Zgłoszenia do wybranego programu w wybranym roku szkolnym (bez edytowanego). */
   programYearEntries: OzipzSchoolParticipation[];
@@ -28,6 +31,7 @@ export function ParticipationProgramFacilityFields({
   errors,
   selectedFacId,
   programs,
+  jrwaWithoutProgram = [],
   facilities,
   programYearEntries,
   schoolYear,
@@ -38,15 +42,34 @@ export function ParticipationProgramFacilityFields({
   currentProgramId = "",
 }: ParticipationProgramFacilityFieldsProps) {
   const programOptions: SelectOption[] = useMemo(() => {
-    return programs.map((p) => ({
-      value: p.id,
-      label: p.name,
-      description: `Edycja: ${p.editionYear || "ciągły"}`,
-      badge: p.jrwaSymbol || undefined,
-      badgeVariant: "secondary",
+    const fromCatalog: SelectOption[] = programs.map((p) => {
+      const jrwa = getProgramJrwaSymbol(p);
+      return {
+        value: p.id,
+        label: p.name,
+        description: jrwa ? `JRWA ${jrwa}` : undefined,
+        badge: jrwa || undefined,
+        badgeVariant: "secondary",
+        icon: GraduationCap,
+      };
+    });
+    const fromDictionary: SelectOption[] = jrwaWithoutProgram.map((d) => ({
+      value: `${JRWA_PROGRAM_PREFIX}${d.code}`,
+      label: d.label,
+      description: `JRWA ${d.code} · ze słownika – program zostanie dodany do katalogu`,
+      group: "Słownik JRWA (bez programu w katalogu)",
+      badge: d.code,
+      badgeVariant: "outline",
       icon: GraduationCap,
     }));
-  }, [programs]);
+    const byJrwa = (a: SelectOption, b: SelectOption) =>
+      (a.badge || "").localeCompare(b.badge || "", undefined, { numeric: true });
+    if (fromDictionary.length === 0) return fromCatalog;
+    return [
+      ...fromCatalog.map((o) => ({ ...o, group: "Katalog programów" })),
+      ...fromDictionary.sort(byJrwa),
+    ];
+  }, [programs, jrwaWithoutProgram]);
 
   const schoolYearSelectOptions: SelectOption[] = useMemo(() => {
     const current = currentSchoolYear();

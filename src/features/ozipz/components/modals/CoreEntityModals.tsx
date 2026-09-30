@@ -117,6 +117,16 @@ export function CoreEntityModals({
         initialProgramId={(payload as { programId?: string })?.programId}
         initialFacilityId={(payload as { facilityId?: string })?.facilityId}
         programs={db.programs}
+        jrwaSymbols={db.dictionaryItems.filter((d) => d.dictType === "jrwaSymbol")}
+        onCreateProgram={(data) =>
+          runModalAction(
+            () => db.addProgram(data),
+            `Dodano program „${data.name}” (JRWA ${data.jrwaSymbol}) do katalogu.`,
+            "Błąd dodawania programu",
+            undefined,
+            { rethrow: true }
+          )
+        }
         participations={db.participations}
         facilities={db.facilities}
         contacts={db.contacts}

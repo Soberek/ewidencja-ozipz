@@ -36,6 +36,16 @@ export function combineActionNotes(description: string, notes: string): string {
   return [description.trim(), notes.trim() ? `Uwagi: ${notes.trim()}` : ""].filter(Boolean).join("\n\n");
 }
 
+/**
+ * Pozycja słownika kampanii dla wartości z formularza. Starsze działania i szablony trzymają
+ * etykietę, harmonogram – id pozycji; nowe zapisy – kod słownika.
+ */
+export function findCampaign(campaignDict: OzipzDictionaryItem[], value: string | undefined): OzipzDictionaryItem | undefined {
+  const v = (value || "").trim();
+  if (!v) return undefined;
+  return campaignDict.find((c) => c.code === v) || campaignDict.find((c) => c.id === v || c.label === v);
+}
+
 export function buildActionCleanPayload(
   params: BuildActionPayloadParams
 ): Omit<OzipzAction, "id" | "createdAt" | "updatedAt"> {
@@ -44,7 +54,7 @@ export function buildActionCleanPayload(
     isPublication, isNoJrwa, formattedAudienceString, totalDirectParticipants, classificationSymbol,
   } = params;
 
-  const campaign = campaignDict.find((c) => c.label === data.campaignId);
+  const campaign = findCampaign(campaignDict, data.campaignId);
   const combinedNotes = combineActionNotes(activitiesDescription, additionalNotes);
 
   return {
@@ -56,7 +66,7 @@ export function buildActionCleanPayload(
     municipality: municipalityName(data.municipality),
     programId: data.programId || undefined,
     programName: data.programName || undefined,
-    campaignId: data.campaignId || undefined,
+    campaignId: campaign?.code || data.campaignId || undefined,
     campaignName: campaign ? campaign.label : undefined,
     topic: data.topic || "",
     audienceGroup: isPublication ? PUBLICATION_DEFAULTS.audienceGroup : formattedAudienceString,

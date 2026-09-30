@@ -94,15 +94,18 @@ export function ScheduleTableView({
         sortable: true,
         cell: ({ row }) => {
           const progName = row.resolvedProgramName || row.programName;
+          const symbol = row.resolvedJrwaSymbol;
           return progName ? (
-            <Badge
-              variant="outline"
-              className="bg-purple-50 text-purple-800 border-purple-200 text-[10px] max-w-[190px] dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 flex items-center gap-1"
-              title={progName}
-            >
-              <ShieldCheck className="size-3 text-purple-600 dark:text-purple-400 shrink-0" />
-              <span className="truncate">{progName}</span>
-            </Badge>
+            <div className="max-w-[220px] space-y-0.5" title={symbol ? `${progName} (JRWA ${symbol})` : progName}>
+              <Badge
+                variant="outline"
+                className="bg-purple-50 text-purple-800 border-purple-200 text-[10px] max-w-full dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 flex items-center gap-1"
+              >
+                <ShieldCheck className="size-3 text-purple-600 dark:text-purple-400 shrink-0" />
+                <span className="line-clamp-2 break-words whitespace-normal leading-tight">{progName}</span>
+              </Badge>
+              {symbol && <p className="text-[10px] font-mono text-muted-foreground">JRWA {symbol}</p>}
+            </div>
           ) : (
             <span className="text-[10px] text-muted-foreground italic">Działanie ogólne</span>
           );

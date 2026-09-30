@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { OzipzAction, OzipzDictionaryItem, OzipzFacility } from "../types/ozipz.types";
+import type { OzipzAction, OzipzDictionaryItem, OzipzFacility, OzipzScheduleEvent } from "../types/ozipz.types";
 import {
   buildDictionaryUsageIndex,
   formatUsageSummary,
@@ -74,6 +74,26 @@ describe("dictionaryUsage", () => {
     expect(formatUsageSummary(undefined)).toBe("Nieużywana w rekordach");
     expect(getDictionaryUsageModules("custom")).toEqual([]);
     expect(getDictionaryUsageModules("activityType").map((m) => m.module)).toEqual(["Działania", "Harmonogram"]);
+  });
+
+  it("matches actions by the JRWA symbol inside the case sign, without confusing 966.1 with 966.14", () => {
+    const items = [dict("j1", "jrwaSymbol", "966.1", "Trzymaj Formę"), dict("j14", "jrwaSymbol", "966.14", "Bezpieczne Wakacje")];
+    const index = buildDictionaryUsageIndex(items, {
+      actions: [action({ jrwaSign: "OZiPZ.966.14.40.2026" }), action({ jrwaSign: "OZiPZ.966.1.3.2026" })],
+    });
+    expect(index.get("j14")?.total).toBe(1);
+    expect(index.get("j1")?.total).toBe(1);
+  });
+
+  it("matches municipalities stored without the „Gmina” prefix and campaigns stored by item id", () => {
+    const items = [dict("gm", "municipality", "gmina_mysliborz", "Gmina Myślibórz"), dict("dict_camp_1", "campaign", "grypa", "Akcja Grypa")];
+    const index = buildDictionaryUsageIndex(items, {
+      facilities: [{ municipality: "Myślibórz", type: "szkola" } as OzipzFacility],
+      actions: [action({ municipality: "Gmina Myślibórz" })],
+      scheduleEvents: [{ campaignId: "dict_camp_1" } as OzipzScheduleEvent],
+    });
+    expect(index.get("gm")?.total).toBe(2);
+    expect(index.get("dict_camp_1")?.total).toBe(1);
   });
 
   it("hides internal entries", () => {

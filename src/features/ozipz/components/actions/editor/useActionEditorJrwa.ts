@@ -53,8 +53,8 @@ export function useActionEditorJrwa({
   const [generatedJrwaMeta, setGeneratedJrwaMeta] = useState<GeneratedJrwaMeta | null>(null);
 
   const jrwaSymbolsList = useMemo(
-    () => getAllJrwaSymbols(programs, dictionaryItems),
-    [programs, dictionaryItems]
+    () => getAllJrwaSymbols(dictionaryItems),
+    [dictionaryItems]
   );
 
   const formYear = () => Number(String(watch("date") || "").slice(0, 4)) || new Date().getFullYear();
@@ -99,7 +99,7 @@ export function useActionEditorJrwa({
         if (!currentTitle || programs.some((p) => p.name === currentTitle)) {
           setValue("title", prog.name);
         }
-        const autoSymbol = getProgramJrwaSymbol(prog, prog.name, watch("actionType"));
+        const autoSymbol = getProgramJrwaSymbol(prog);
         setSelectedJrwaSymbol(autoSymbol);
         assignSignForSymbol(autoSymbol);
       }
@@ -148,8 +148,8 @@ export function useActionEditorJrwa({
 
   const handleGenerateJrwaSign = () => {
     if (isNoJrwa) return;
-    const symbol = selectedJrwaSymbol || "966.1";
-    applyGeneratedSign(generateNextJrwaSign({ symbol, year: formYear(), actions, jrwaCases }));
+    // Bez wybranego symbolu nie zgadujemy teczki – nadawany jest tylko numer IZRZ.
+    applyGeneratedSign(generateNextJrwaSign({ symbol: selectedJrwaSymbol, year: formYear(), actions, jrwaCases }));
   };
 
   /** Po "Zapisz i dodaj podobne": kolejne działanie dostaje następny wolny znak (z uwzględnieniem właśnie zapisanego). */
@@ -251,10 +251,10 @@ export function useActionEditorJrwa({
     if (action.programId) {
       const prog = programs.find((p) => p.id === action.programId);
       if (prog) {
-        const sym = getProgramJrwaSymbol(prog, prog.name, action.actionType);
+        const sym = getProgramJrwaSymbol(prog);
         setSelectedJrwaSymbol(sym);
         // Znak nadajemy tylko nowym wpisom (np. z planu pracy lub kopii) — nie istniejącym działaniom otwartym do edycji.
-        if (!action.jrwaSign && !action.id && !isNoJrwaActionType(action.actionType)) {
+        if (sym && !action.jrwaSign && !action.id && !isNoJrwaActionType(action.actionType)) {
           const year = Number(String(action.date || "").slice(0, 4)) || new Date().getFullYear();
           applyGeneratedSign(generateNextJrwaSign({ symbol: sym, year, actions, jrwaCases }));
         }

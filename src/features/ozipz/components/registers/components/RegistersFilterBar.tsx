@@ -126,7 +126,7 @@ export function RegistersFilterBar({
             Bieżący rok
           </Chip>
           <span className="ml-2 mr-0.5 text-[11px] font-semibold text-muted-foreground">JRWA:</span>
-          {(["966.1", "966.3", "966.4"] as const).map((symbol) => (
+          {jrwaSymbols.filter((s) => s.kind === "PROGRAMOWE").map(({ code: symbol }) => (
             <Chip key={symbol} active={jrwa === symbol} onClick={() => onJrwaChange(jrwa === symbol ? "" : symbol)}>
               {symbol}
             </Chip>

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ParticipationDialog } from "./ParticipationDialog";
-import type { OzipzContact, OzipzFacility, OzipzProgram, OzipzSchoolParticipation } from "../../types/ozipz.types";
+import type { OzipzContact, OzipzDictionaryItem, OzipzFacility, OzipzProgram, OzipzSchoolParticipation } from "../../types/ozipz.types";
 
 const facility: OzipzFacility = {
   id: "school-1", name: "Szkoła nr 1", type: "szkola", address: "Szkolna 1",
@@ -306,5 +306,45 @@ describe("ParticipationDialog – szkolny koordynator ze Spisu Kontaktów", () =
 
     expect((await screen.findAllByText("Wybierz program z katalogu.")).length).toBeGreaterThan(0);
     expect(onUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe("ParticipationDialog – program, rok szkolny i słownik JRWA", () => {
+  const oldProgram: OzipzProgram = { ...program, id: "program-old", name: "Program z zeszłego roku", editionYear: "2025/2026", jrwaSymbol: "966.7" };
+  const jrwaItem = {
+    id: "dict_jrwa_966_20", dictType: "jrwaSymbol", code: "966.20", label: "Tylko Pomyśl",
+    description: "Profilaktyka zdrowia psychicznego", isSystem: false, createdAt: "2026-01-01", updatedAt: "2026-01-01",
+  } as OzipzDictionaryItem;
+
+  it("nie pokazuje oceny realizacji w formularzu", () => {
+    renderDialog({ contacts: [contact({})] });
+    expect(screen.queryByText("Ocena realizacji...")).toBeNull();
+  });
+
+  it("wybór programu nie zmienia roku szkolnego na rok edycji programu", async () => {
+    renderDialog({ initialProgramId: undefined, programs: [program, oldProgram], contacts: [contact({})] });
+    const yearSelect = screen.getByRole("combobox", { name: /Rok Szkolny/ });
+    const before = yearSelect.textContent;
+
+    fireEvent.click(screen.getByText("-- Wybierz program profilaktyczny --"));
+    fireEvent.click(within(screen.getByRole("listbox")).getByText("Program z zeszłego roku"));
+
+    expect(yearSelect.textContent).toBe(before);
+    expect(yearSelect.textContent).not.toContain("2025/2026");
+  });
+
+  it("pozwala wybrać symbol JRWA ze słownika bez programu i tworzy program przy zapisie", async () => {
+    const created: OzipzProgram = { ...program, id: "program-new", code: "JRWA-966.20", name: "Tylko Pomyśl", jrwaSymbol: "966.20" };
+    const onCreateProgram = vi.fn().mockResolvedValue(created);
+    const { onSave } = renderDialog({ initialProgramId: undefined, jrwaSymbols: [jrwaItem], onCreateProgram, contacts: [contact({})] });
+
+    fireEvent.click(screen.getByText("-- Wybierz program profilaktyczny --"));
+    fireEvent.click(within(screen.getByRole("listbox")).getByText("Tylko Pomyśl"));
+    fireEvent.change(pupilsInput(), { target: { value: "30" } });
+    save();
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(onCreateProgram).toHaveBeenCalledWith(expect.objectContaining({ name: "Tylko Pomyśl", jrwaSymbol: "966.20" }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ programId: "program-new", programName: "Tylko Pomyśl" }));
   });
 });

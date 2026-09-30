@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { JRWA_DICTIONARY_FIXTURE } from "../../test/fixtures/jrwaCatalog";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Autocomplete } from "@/components/ui/autocomplete";
 import { SearchableSelect } from "@/components/ui/select";
@@ -388,7 +389,7 @@ describe("Core Modules UX/UI Harmonization — Adversarial Challenger Test Suite
           onEducatorChange={vi.fn()}
           search=""
           onSearchChange={vi.fn()}
-          jrwaSymbols={[]}
+          jrwaSymbols={JRWA_DICTIONARY_FIXTURE}
           educators={[]}
           isFiltered={false}
           onClearFilters={vi.fn()}
@@ -424,7 +425,7 @@ describe("Core Modules UX/UI Harmonization — Adversarial Challenger Test Suite
           onEducatorChange={vi.fn()}
           search=""
           onSearchChange={vi.fn()}
-          jrwaSymbols={[]}
+          jrwaSymbols={JRWA_DICTIONARY_FIXTURE}
           educators={[]}
           isFiltered={true}
           onClearFilters={vi.fn()}
@@ -456,7 +457,7 @@ describe("Core Modules UX/UI Harmonization — Adversarial Challenger Test Suite
           onEducatorChange={vi.fn()}
           search=""
           onSearchChange={vi.fn()}
-          jrwaSymbols={[]}
+          jrwaSymbols={JRWA_DICTIONARY_FIXTURE}
           educators={[]}
           isFiltered={true}
           onClearFilters={vi.fn()}

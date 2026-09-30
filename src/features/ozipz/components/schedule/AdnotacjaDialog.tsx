@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { FileText, Sparkles } from "lucide-react";
 import type { OzipzScheduleEvent } from "../../types/ozipz.types";
-import { useDictionaries } from "../../store/useOzipzDbStore";
+import { useDictionaries, usePrograms } from "../../store/useOzipzDbStore";
+import { scheduleProgramLabel } from "../../utils/scheduleProgramResolver";
 
 const AdnotacjaFormSchema = z.object({
   powodKod: z.string().min(1, "Wybierz powód niewykonania ze słownika"),
@@ -34,6 +35,7 @@ export function AdnotacjaDialog({ open, onOpenChange, event, onSave }: Adnotacja
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState("");
   const dictStore = useDictionaries();
+  const { programs } = usePrograms();
 
   const dynamicReasons = (dictStore.annotationReasons ?? []).map((d) => ({ kod: d.code, tytul: d.label, opis: d.description || d.label }));
 
@@ -112,7 +114,7 @@ export function AdnotacjaDialog({ open, onOpenChange, event, onSave }: Adnotacja
         <div className="font-semibold text-foreground">{event.title}</div>
         <div className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
           <span>Termin: {event.eventDate || "—"}</span>
-          <span>Program / JRWA: {event.jrwa || event.programName || "—"}</span>
+          <span>Program / JRWA: {scheduleProgramLabel(event, programs)}</span>
           <span>Lokalizacja: {event.location || "—"}</span>
         </div>
       </div>

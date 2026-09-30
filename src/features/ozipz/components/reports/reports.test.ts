@@ -12,7 +12,8 @@ import {
 } from "../../utils/ozipzCalculations";
 import { buildReportAnnexRows, buildReportHierarchy } from "../../utils/reportAnnex";
 import { buildVacationSummary, isVacationAction } from "../../utils/vacationReporting";
-import type { OzipzAction } from "../../types/ozipz.types";
+import type { OzipzAction, OzipzProgram } from "../../types/ozipz.types";
+import { useOzipzDbStore } from "../../store/useOzipzDbStore";
 import { MonthlyTargetsComplianceTab } from "./components/MonthlyTargetsComplianceTab";
 
 describe("Ewidencja OZiPZ - Moduł Mierników i Sprawozdań edu-report", () => {
@@ -222,6 +223,12 @@ describe("Ewidencja OZiPZ - Moduł Mierników i Sprawozdań edu-report", () => {
   });
 
   it("accurately calculates all 14 authentic actions of August 2026 (14 DZ, 679 ODB)", () => {
+    // Katalog programów z bazy – symbole JRWA programów
+    const program = (id: string, jrwaSymbol: string) =>
+      ({ id, code: id, name: id, jrwaSymbol, editionYear: "2025/2026", createdAt: "", updatedAt: "" }) as OzipzProgram;
+    useOzipzDbStore.setState({
+      programs: [program("bezpieczne-wakacje", "966.14"), program("higiena-tarcza", "966.4"), program("zdrowe-zeby", "966.3"), program("porozmawiajmy-o-zdrowiu", "966.5")],
+    });
     // 14 rzeczywistych akcji z sierpnia 2026 z bazy danych
     const augustActions = [
       {

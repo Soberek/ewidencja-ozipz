@@ -1,5 +1,8 @@
 import type { OzipzContact, OzipzSchoolParticipation } from "../types/ozipz.types";
 
+/** Prefiks wartości listy programów dla symbolu JRWA ze słownika, który nie ma jeszcze programu w katalogu. */
+export const JRWA_PROGRAM_PREFIX = "jrwa:";
+
 export function currentSchoolYear(date = new Date()): string {
   const year = date.getFullYear() - (date.getMonth() < 8 ? 1 : 0);
   return `${year}/${year + 1}`;

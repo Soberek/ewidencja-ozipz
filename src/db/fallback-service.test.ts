@@ -18,8 +18,8 @@ describe("FallbackDatabaseService (LocalStorage & In-Memory Fallback)", () => {
       expect(await empty.getActions()).toEqual([]);
       expect(await empty.getScheduleEvents()).toEqual([]);
       expect(await empty.getStaff()).toEqual([]);
-      const dictionaryTypes = new Set((await empty.getDictionaryItems()).map((d) => d.dictType));
-      expect([...dictionaryTypes]).toEqual(["jrwaSymbol"]);
+      // Brak wbudowanych słowników – także JRWA pochodzi wyłącznie z danych
+      expect(await empty.getDictionaryItems()).toEqual([]);
     });
 
     it("reads a stored dataset", async () => {

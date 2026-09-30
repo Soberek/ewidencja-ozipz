@@ -7,73 +7,17 @@ import {
   getJrwaDetails,
 } from "./programJrwaUtils";
 import type { OzipzProgram, OzipzAction, OzipzJrwaCase } from "../types/ozipz.types";
+import { useOzipzDbStore } from "../store/useOzipzDbStore";
+import { JRWA_DICTIONARY_FIXTURE } from "../../../test/fixtures/jrwaCatalog";
 
 describe("programJrwaUtils", () => {
-  it("extracts JRWA symbol from program description or ID correctly", () => {
-    const wakacjeProg = {
-      id: "bezpieczne-wakacje",
-      code: "BEZP-WAKACJE",
-      name: "Bezpieczeństwo dzieci podczas wypoczynku letniego i zimowego (bezpieczne wakacje)",
-      description: "Program edukacyjny OZiPZ na rok 2026 (JRWA 966.14). Typ: NIEPROGRAMOWE",
-      editionYear: "2025/2026",
-      createdAt: "2026-01-01",
-      updatedAt: "2026-01-01",
-    } as OzipzProgram;
-
-    expect(getProgramJrwaSymbol(wakacjeProg)).toBe("966.14");
-
-    const trzymajFormeProg = {
-      id: "trzymaj-forme",
-      code: "TF",
-      name: "Trzymaj Formę",
-      description: "Program edukacyjny OZiPZ na rok 2026 (JRWA 966.1). Typ: PROGRAMOWE",
-      editionYear: "2025/2026",
-      createdAt: "2026-01-01",
-      updatedAt: "2026-01-01",
-    } as OzipzProgram;
-
-    expect(getProgramJrwaSymbol(trzymajFormeProg)).toBe("966.1");
-
-    const mlodziProg = {
-      id: "mlodzi-swiadomi",
-      code: "MLODZI",
-      name: "#MłodziŚwiadomi",
-      description: "",
-      editionYear: "2025/2026",
-      createdAt: "2026-01-01",
-      updatedAt: "2026-01-01",
-    } as OzipzProgram;
-
-    expect(getProgramJrwaSymbol(mlodziProg)).toBe("966.18");
-
-    // Nowy program dodany przez użytkownika z jawnym polem jrwaSymbol
-    const customProg = {
-      id: "prog-custom-123",
-      code: "NOWY_PROG",
-      name: "Nowy Program Autorski OZiPZ",
-      editionYear: "2026/2027",
-      jrwaSymbol: "966.19",
-      description: "Własny program edukacyjny",
-      createdAt: "2026-08-29",
-      updatedAt: "2026-08-29",
-    } as OzipzProgram;
-
-    expect(getProgramJrwaSymbol(customProg)).toBe("966.19");
-
-    const statProg = {
-      id: "sprawozdawczosc-statystyczna",
-      code: "STAT",
-      name: "Sprawozdawczość statystyczna",
-      editionYear: "2025/2026",
-    } as OzipzProgram;
-    expect(getProgramJrwaSymbol(statProg)).toBe("0442");
-  });
-
-  it("extracts JRWA symbol from action title or actionType when program is missing", () => {
-    expect(getProgramJrwaSymbol(null, "Prelekcja o bezpiecznych wakacjach nad wodą")).toBe("966.14");
-    expect(getProgramJrwaSymbol(null, "Warsztaty o zdrowym odżywianiu", "Konkurs")).toBe("966.7");
-    expect(getProgramJrwaSymbol(null, "Szkolenie koordynatorów", "Szkolenie")).toBe("9011.1");
-    expect(getProgramJrwaSymbol(null, "Sprawozdanie okresowe", "Sprawozdanie")).toBe("0442");
+  it("takes the JRWA symbol only from the program record – never guesses it", () => {
+    const base = { code: "X", editionYear: "2025/2026", createdAt: "2026-01-01", updatedAt: "2026-01-01" };
+    expect(getProgramJrwaSymbol({ ...base, id: "prog-custom-123", name: "Nowy Program", jrwaSymbol: " 966.19 " } as OzipzProgram)).toBe("966.19");
+    // Brak symbolu w bazie = brak symbolu, nawet gdy nazwa lub opis coś sugerują
+    expect(getProgramJrwaSymbol({ ...base, id: "trzymaj-forme", name: "Trzymaj Formę", description: "(JRWA 966.1)" } as OzipzProgram)).toBe("");
+    expect(getProgramJrwaSymbol({ ...base, id: "sprawozdawczosc-statystyczna", name: "Sprawozdawczość statystyczna" } as OzipzProgram)).toBe("");
+    expect(getProgramJrwaSymbol(null)).toBe("");
   });
 
   it("generates next sequential JRWA case number (per symbol) and global IZRZ (continuity 1,2,3...)", () => {
@@ -161,8 +105,9 @@ describe("programJrwaUtils", () => {
     expect(next966_10.fullCaseSign).toBe("OZiPZ.966.10.1.2026");
   });
 
-  it("returns all JRWA symbols sorted natural order", () => {
-    const list = getAllJrwaSymbols();
+  it("returns JRWA symbols only from the dictionary, in natural order", () => {
+    expect(getAllJrwaSymbols([])).toEqual([]);
+    const list = getAllJrwaSymbols(JRWA_DICTIONARY_FIXTURE);
     expect(list.length).toBeGreaterThan(15);
     const symbols = list.map((l) => l.symbol);
     expect(symbols).toContain("966.14");
@@ -180,6 +125,9 @@ describe("programJrwaUtils", () => {
   });
 
   it("returns full JRWA details (label, description, symbol) via getJrwaDetails", () => {
+    useOzipzDbStore.setState({ dictionaryItems: [] });
+    expect(getJrwaDetails("966.14")?.label).toBe("Teczka JRWA 966.14");
+    useOzipzDbStore.setState({ dictionaryItems: JRWA_DICTIONARY_FIXTURE });
     const details14 = getJrwaDetails("966.14");
     expect(details14).toBeDefined();
     expect(details14?.symbol).toBe("966.14");

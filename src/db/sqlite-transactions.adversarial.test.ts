@@ -729,7 +729,7 @@ describe("Empirical Challenger: SQLite Multi-Table Transactions", () => {
   });
 
   describe("Fresh database", () => {
-    it("starts empty apart from the official JRWA catalog", async () => {
+    it("starts completely empty – no built-in dictionaries", async () => {
       const fresh = createInMemorySqlite();
       await initTables(fresh);
       const empty = new SqliteDatabaseService(fresh);
@@ -738,8 +738,7 @@ describe("Empirical Challenger: SQLite Multi-Table Transactions", () => {
       expect(await empty.getStaff()).toEqual([]);
       expect(await empty.getFacilities()).toEqual([]);
       expect(await empty.getContacts()).toEqual([]);
-      const dictionaryTypes = new Set((await empty.getDictionaryItems()).map((d) => d.dictType));
-      expect([...dictionaryTypes]).toEqual(["jrwaSymbol"]);
+      expect(await empty.getDictionaryItems()).toEqual([]);
     });
   });
 });

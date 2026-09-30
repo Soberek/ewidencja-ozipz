@@ -1,6 +1,5 @@
 import type { GisCategory, OzipzAction, OzipzDictionaryItem } from "../../types/ozipz.types";
 import { GisCategorySchema } from "../../schemas/ozipzCoreSchemas";
-import { KNOWN_JRWA_CATALOG } from "../programJrwaCatalog";
 import { extractCleanJrwaSymbol } from "../calculators/jrwaClassification";
 import type { GisReportCategoryId } from "./gisReportTypes";
 
@@ -27,19 +26,15 @@ export const GIS_CATEGORY_LABELS: Record<GisCategory, string> = {
   brak: "Nie wchodzi do sprawozdania GIS",
 };
 
-export const DEFAULT_JRWA_GIS_CATEGORY_MAP: ReadonlyMap<string, GisCategory> = new Map(
-  KNOWN_JRWA_CATALOG.filter((item) => item.gisCategory).map((item) => [item.symbol, item.gisCategory!])
-);
-
 function isJrwaDictionaryItem(item: OzipzDictionaryItem): boolean {
   return item.dictType === "jrwaSymbol" || item.dictType === "symbole_jrwa" || item.dictType.toLowerCase().includes("jrwa");
 }
 
 /**
- * Mapa symbol JRWA -> obszar sprawozdania GIS. Wartości ze Słowników nadpisują domyślny katalog.
+ * Mapa symbol JRWA -> obszar sprawozdania GIS, wyłącznie ze Słownika JRWA w bazie.
  */
 export function buildJrwaGisCategoryMap(dictionaryItems?: readonly OzipzDictionaryItem[]): Map<string, GisCategory> {
-  const map = new Map(DEFAULT_JRWA_GIS_CATEGORY_MAP);
+  const map = new Map<string, GisCategory>();
   for (const item of dictionaryItems ?? []) {
     const parsed = GisCategorySchema.safeParse(item.gisCategory);
     if (isJrwaDictionaryItem(item) && item.code && parsed.success) {

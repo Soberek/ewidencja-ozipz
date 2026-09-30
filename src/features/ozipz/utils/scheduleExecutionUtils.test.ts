@@ -193,7 +193,8 @@ describe("Ewidencja OZiPZ - Rozliczanie Harmonogramu z Rejestru Działań (sched
     };
     const enriched3 = enrichScheduleEvent(eventCatalog, []);
     expect(enriched3.resolvedProgramName).toContain("Bezpieczne Wakacje");
-    expect(enriched3.isProgrammatic).toBe(true);
+    // 966.14 jest w słowniku JRWA działaniem NIEPROGRAMOWYM – tak samo jak w klasyfikacji działań
+    expect(enriched3.isProgrammatic).toBe(false);
   });
 
   it("does not match actions with status 'planowane' or 'planned'", () => {

@@ -9,6 +9,7 @@ import type {
   OzipzProgram,
   OzipzFacility,
   OzipzContact,
+  OzipzDictionaryItem,
 } from "../../types/ozipz.types";
 import {
   currentSchoolYear,
@@ -16,13 +17,17 @@ import {
   findDuplicateParticipation,
   coordinatorContactLine,
   schoolYearOptions,
+  JRWA_PROGRAM_PREFIX,
 } from "../../utils/participationUtils";
 import { SchoolParticipationSchema } from "../../schemas/ozipz.schemas";
 import { ParticipationProgramFacilityFields } from "./components/ParticipationProgramFacilityFields";
 import { ParticipationCoordinatorFields } from "./components/ParticipationCoordinatorFields";
 import { ParticipationMetricsStatusFields } from "./components/ParticipationMetricsStatusFields";
 import type { NewContactData } from "./components/CoordinatorQuickAddPanel";
+import { getProgramJrwaSymbol } from "../../utils/programJrwaUtils";
 import { isContactOfFacility, isContactWithoutFacility, suggestCoordinator } from "./participationCoordinator";
+
+type NewProgramData = Omit<OzipzProgram, "id" | "createdAt" | "updatedAt">;
 
 /** Pole liczbowe formularza: puste pole (NaN z valueAsNumber) daje czytelny komunikat zamiast błędu typu. */
 const countField = (min: number, message: string) => z.number({ error: message }).int(message).min(min, message);
@@ -56,6 +61,10 @@ interface ParticipationDialogProps {
   programs: OzipzProgram[];
   facilities: OzipzFacility[];
   participations?: OzipzSchoolParticipation[];
+  /** Słownik symboli JRWA – symbole bez programu w katalogu też można wybrać. */
+  jrwaSymbols?: OzipzDictionaryItem[];
+  /** Tworzy program w katalogu przy zapisie zgłoszenia do symbolu JRWA ze słownika. */
+  onCreateProgram?: (data: NewProgramData) => Promise<OzipzProgram | undefined>;
   /** Spis Kontaktów – źródło szkolnych koordynatorów. */
   contacts?: OzipzContact[];
   contactPositions?: string[];
@@ -75,6 +84,8 @@ export function ParticipationDialog({
   programs,
   facilities,
   participations = [],
+  jrwaSymbols = [],
+  onCreateProgram,
   contacts = [],
   contactPositions = [],
   onSave,
@@ -154,7 +165,7 @@ export function ParticipationDialog({
         facilityId: initFac?.id || "",
         facilityName: initFac?.name || "",
         municipality: initFac?.municipality || "",
-        schoolYear: initProg?.editionYear && isSchoolYear(initProg.editionYear) ? initProg.editionYear : currentSchoolYear(),
+        schoolYear: currentSchoolYear(),
         schoolCoordinatorName: coordinator?.name || "",
         schoolCoordinatorContact: coordinator ? coordinatorContactLine(coordinator) : "",
         schoolCoordinatorContactId: coordinator?.id || "",
@@ -177,6 +188,12 @@ export function ParticipationDialog({
     () => facilities.find((f) => f.id === selectedFacId) || null,
     [facilities, selectedFacId]
   );
+
+  // Symbole JRWA ze słownika, do których nie ma jeszcze programu w katalogu.
+  const jrwaWithoutProgram = useMemo(() => {
+    const used = new Set(programs.map((p) => getProgramJrwaSymbol(p)).filter(Boolean));
+    return jrwaSymbols.filter((d) => d.code && !used.has(d.code));
+  }, [programs, jrwaSymbols]);
 
   const schoolYears = useMemo(
     () => schoolYearOptions([...participations.map((p) => p.schoolYear), ...programs.map((p) => p.editionYear)]),
@@ -213,13 +230,33 @@ export function ParticipationDialog({
     if (!hasCoordinator || belongsElsewhere) applyCoordinator(suggestCoordinator(contacts, f) || null);
   };
 
+  // Rok szkolny nie zależy od programu – rok edycji w katalogu bywa nieaktualny.
   const handleProgramSelect = (progId: string) => {
     const selProg = programs.find((p) => p.id === progId);
+    const jrwa = jrwaWithoutProgram.find((d) => `${JRWA_PROGRAM_PREFIX}${d.code}` === progId);
     setValue("programId", progId, { shouldValidate: true });
-    setValue("programName", selProg?.name || "", { shouldValidate: true });
-    if (selProg) {
-      if (!editingParticipation && isSchoolYear(selProg.editionYear)) setValue("schoolYear", selProg.editionYear, { shouldValidate: true });
-    }
+    setValue("programName", selProg?.name || jrwa?.label || "", { shouldValidate: true });
+  };
+
+  const resolveProgram = async (programId: string, schoolYear: string): Promise<OzipzProgram | undefined> => {
+    const existing = programs.find((p) => p.id === programId);
+    if (existing || !programId.startsWith(JRWA_PROGRAM_PREFIX)) return existing;
+    // Program mógł już powstać (np. przy poprzedniej, nieudanej próbie zapisu).
+    const code = programId.slice(JRWA_PROGRAM_PREFIX.length);
+    const created = programs.find((p) => getProgramJrwaSymbol(p) === code);
+    const jrwa = jrwaSymbols.find((d) => d.code === code);
+    if (created || !jrwa || !onCreateProgram) return created;
+    return onCreateProgram({
+      code: `JRWA-${jrwa.code}`,
+      name: jrwa.label,
+      editionYear: schoolYear,
+      jrwaSymbol: jrwa.code,
+      targetAudience: "",
+      description: jrwa.description || "",
+      status: "aktywny",
+      participatingSchoolsCount: 0,
+      totalPupilsReached: 0,
+    });
   };
 
   const onSubmit = async (data: ParticipationFormOutput) => {
@@ -232,7 +269,13 @@ export function ParticipationDialog({
       setError("facilityName", { message: "Wybierz placówkę z bazy. Brakującą placówkę dodaj w Bazie placówek." });
       return;
     }
-    const selProg = programs.find((p) => p.id === data.programId);
+    let selProg: OzipzProgram | undefined;
+    try {
+      selProg = await resolveProgram(data.programId, data.schoolYear.trim());
+    } catch (error) {
+      setError("root", { message: error instanceof Error ? error.message : "Nie udało się dodać programu do katalogu." });
+      return;
+    }
     if (!selProg) {
       setError("programId", { message: "Wybierz program z katalogu." });
       return;
@@ -243,6 +286,7 @@ export function ParticipationDialog({
       : undefined;
     const payload: ParticipationPayload = {
       ...data,
+      programId: selProg.id,
       programName: selProg.name,
       facilityId: facility.id,
       facilityName: facility.name,
@@ -314,6 +358,7 @@ export function ParticipationDialog({
           errors={errors}
           selectedFacId={selectedFacId}
           programs={programs}
+          jrwaWithoutProgram={jrwaWithoutProgram}
           facilities={facilities}
           programYearEntries={programYearEntries}
           schoolYear={schoolYear}
@@ -339,12 +384,7 @@ export function ParticipationDialog({
           onQuickAdd={onQuickAddContact}
         />
 
-        <ParticipationMetricsStatusFields
-          register={register}
-          errors={errors}
-          currentEvaluationGrade={watch("evaluationGrade") || ""}
-          onEvaluationGradeChange={(val) => setValue("evaluationGrade", val, { shouldValidate: true })}
-        />
+        <ParticipationMetricsStatusFields register={register} errors={errors} />
       </div>
     </ModalDialog>
   );

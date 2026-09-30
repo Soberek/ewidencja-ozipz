@@ -3,6 +3,7 @@ import { render, screen, fireEvent, within, waitFor } from "@testing-library/rea
 import type { OzipzAction, OzipzDictionaryItem } from "../../../types/ozipz.types";
 import { useOzipzDbStore } from "../../../store/useOzipzDbStore";
 import { ReportGisTab } from "./ReportGisTab";
+import { JRWA_DICTIONARY_FIXTURE } from "../../../../../test/fixtures/jrwaCatalog";
 
 function action(id: string, overrides: Partial<OzipzAction>): OzipzAction {
   return {
@@ -41,7 +42,7 @@ describe("ReportGisTab", () => {
   const originalClipboard = navigator.clipboard;
 
   beforeEach(() => {
-    useOzipzDbStore.setState({ dictionaryItems: [] });
+    useOzipzDbStore.setState({ dictionaryItems: JRWA_DICTIONARY_FIXTURE });
     Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
   });
 
@@ -77,7 +78,7 @@ describe("ReportGisTab", () => {
       createdAt: "2026-01-01",
       updatedAt: "2026-01-01",
     };
-    useOzipzDbStore.setState({ dictionaryItems: [override] });
+    useOzipzDbStore.setState({ dictionaryItems: [...JRWA_DICTIONARY_FIXTURE.filter((d) => d.code !== "966.16"), override] });
 
     render(<ReportGisTab actions={actions} facilities={[]} year={2026} months={[7, 8, 9]} />);
     fireEvent.click(screen.getByRole("tab", { name: /NIEPROGRAMOWE/ }));

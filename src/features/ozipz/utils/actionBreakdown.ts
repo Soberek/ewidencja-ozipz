@@ -90,7 +90,7 @@ function programKey(action: OzipzAction): string {
 }
 
 function campaignKey(action: OzipzAction): string {
-  // Formularz działania zapisuje w campaignId etykietę ze słownika, więc nazwa i id zwykle są równe.
+  // campaignId to kod słownika (starsze wpisy: etykieta), więc grupujemy po nazwie.
   return clean(action.campaignName) || clean(action.campaignId);
 }
 

@@ -1,98 +1,44 @@
 import type { OzipzAction, OzipzDictionaryItem } from "../../types/ozipz.types";
 import { useOzipzDbStore } from "../../store/useOzipzDbStore";
 
-export interface JrwaInterwencjaItem {
-  jrwa: string;
-  nazwa: string;
-  rodzaj: "PROGRAMOWE" | "NIEPROGRAMOWE";
-  aktywna?: boolean;
-}
+type JrwaKind = "PROGRAMOWE" | "NIEPROGRAMOWE";
 
-export const DEFAULT_INTERWENCJE_JRWA: JrwaInterwencjaItem[] = [
-  { jrwa: "966.1", nazwa: "Trzymaj Formę", rodzaj: "PROGRAMOWE" },
-  { jrwa: "966.2", nazwa: "Krajowy Program Zapobiegania Zakażeniom HIV i Zwalczania AIDS", rodzaj: "PROGRAMOWE" },
-  { jrwa: "966.3", nazwa: "Zdrowe zęby mamy, marchewkę zajadamy", rodzaj: "PROGRAMOWE" },
-  { jrwa: "966.4", nazwa: "Higiena naszą tarczą ochronną", rodzaj: "PROGRAMOWE" },
-  { jrwa: "966.5", nazwa: "Porozmawiajmy o zdrowiu i nowych zagrożeniach", rodzaj: "PROGRAMOWE" },
-  { jrwa: "966.6", nazwa: "Profilaktyka używania substancji psychoaktywnych (NSP, nikotyna i światowe dni związane z nikotyną, alkohol)", rodzaj: "NIEPROGRAMOWE" },
-  { jrwa: "966.7", nazwa: "Promocja zdrowego stylu życia, aktywności fizycznej i prawidłowego odżywiania (#mojaszkołazdrowaszkoła, Dni otwarte PIS, FitSchool)", rodzaj: "NIEPROGRAMOWE" },
-  { jrwa: "966.8", nazwa: "Profilaktyka chorób zakaźnych (Podstępne WZW, Jesień bez infekcji, borelioza, KZM, grypa, covid, HPV)", rodzaj: "NIEPROGRAMOWE" },
-  { jrwa: "966.9", nazwa: "Profilaktyka chorób nowotworowych (Znamię! znam je?, Bądź swoją bohaterką)", rodzaj: "NIEPROGRAMOWE" },
-  { jrwa: "966.10", nazwa: "Promocja bezpiecznego grzybobrania i profilaktyka zatruć grzybami", rodzaj: "NIEPROGRAMOWE" },
-  { jrwa: "966.11", nazwa: "Promocja szczepień ochronnych (Europejski Tydzień Szczepień)", rodzaj: "NIEPROGRAMOWE" },
-  { jrwa: "966.12", nazwa: "Światowy Dzień Zdrowia", rodzaj: "NIEPROGRAMOWE" },
-  { jrwa: "966.13", nazwa: "Europejski i Światowy Dzień Wiedzy o Antybiotykach", rodzaj: "NIEPROGRAMOWE" },
-  { jrwa: "966.14", nazwa: "Bezpieczeństwo dzieci podczas wypoczynku letniego i zimowego (bezpieczne ferie i wakacje)", rodzaj: "NIEPROGRAMOWE" },
-  { jrwa: "966.15", nazwa: "Seniorzy (Senior w roli głównej)", rodzaj: "PROGRAMOWE" },
-  { jrwa: "966.16", nazwa: "Promocja zdrowia psychicznego (Tylko pomyśl, depresja)", rodzaj: "NIEPROGRAMOWE" },
-  { jrwa: "966.17", nazwa: "Wpływ czynników środowiskowych na zdrowie (PEM, radon)", rodzaj: "NIEPROGRAMOWE" },
-  { jrwa: "966.18", nazwa: "#MłodziŚwiadomi", rodzaj: "PROGRAMOWE" },
-  { jrwa: "0442", nazwa: "Sprawozdawczość statystyczna", rodzaj: "NIEPROGRAMOWE" },
-  { jrwa: "9011.1", nazwa: "Wymiana informacji między podmiotami w sprawach sanitarnych - współpraca z WSSE", rodzaj: "NIEPROGRAMOWE" },
-  { jrwa: "9011.2", nazwa: "Wymiana informacji między podmiotami w sprawach sanitarnych - współpraca z organami podległymi", rodzaj: "NIEPROGRAMOWE" },
-];
-
-export const JRWA_INTERVENTION_KIND_MAP = new Map<string, "PROGRAMOWE" | "NIEPROGRAMOWE">(
-  DEFAULT_INTERWENCJE_JRWA.map((item) => [item.jrwa, item.rodzaj])
-);
+const isJrwaDictionaryItem = (item: OzipzDictionaryItem) =>
+  item.dictType === "jrwaSymbol" || item.dictType === "symbole_jrwa" || item.dictType.toLowerCase().includes("jrwa");
 
 /**
- * Buduje dynamiczną mapę klasyfikacji (PROGRAMOWE / NIEPROGRAMOWE) ze słownika bazy danych
+ * Mapa klasyfikacji (PROGRAMOWE / NIEPROGRAMOWE) ze słownika JRWA w bazie danych.
  */
-export function buildJrwaInterventionKindMap(
-  dictionaryItems?: readonly OzipzDictionaryItem[]
-): Map<string, "PROGRAMOWE" | "NIEPROGRAMOWE"> {
-  const map = new Map<string, "PROGRAMOWE" | "NIEPROGRAMOWE">(JRWA_INTERVENTION_KIND_MAP);
-  if (!dictionaryItems || dictionaryItems.length === 0) {
-    return map;
-  }
-  for (const item of dictionaryItems) {
-    if (
-      item.dictType === "jrwaSymbol" ||
-      item.dictType === "symbole_jrwa" ||
-      item.dictType.toLowerCase().includes("jrwa")
-    ) {
-      if ((item.kind === "PROGRAMOWE" || item.kind === "NIEPROGRAMOWE") && item.code) {
-        map.set(item.code.trim(), item.kind);
-      }
+export function buildJrwaInterventionKindMap(dictionaryItems?: readonly OzipzDictionaryItem[]): Map<string, JrwaKind> {
+  const map = new Map<string, JrwaKind>();
+  for (const item of dictionaryItems ?? []) {
+    if (isJrwaDictionaryItem(item) && item.code && (item.kind === "PROGRAMOWE" || item.kind === "NIEPROGRAMOWE")) {
+      map.set(item.code.trim(), item.kind);
     }
   }
   return map;
 }
 
 /**
- * Buduje dynamiczną mapę nazw JRWA ze słownika bazy danych
+ * Mapa nazw symboli JRWA ze słownika w bazie danych.
  */
-export function buildJrwaInterventionNamesMap(
-  dictionaryItems?: readonly OzipzDictionaryItem[]
-): Map<string, string> {
-  const map = new Map<string, string>(DEFAULT_INTERWENCJE_JRWA.map((i) => [i.jrwa, i.nazwa]));
-  if (!dictionaryItems || dictionaryItems.length === 0) {
-    return map;
-  }
-  for (const item of dictionaryItems) {
-    if (
-      item.dictType === "jrwaSymbol" ||
-      item.dictType === "symbole_jrwa" ||
-      item.dictType.toLowerCase().includes("jrwa")
-    ) {
-      if (item.code && item.label) {
-        const cleanCode = item.code.trim();
-        const cleanLabel = (item.label || "").replace(new RegExp(`^${cleanCode.replace(/\./g, "\\.")}\\s*[-–:]?\\s*`), "").trim();
-        map.set(cleanCode, cleanLabel || item.label.trim());
-      }
+export function buildJrwaInterventionNamesMap(dictionaryItems?: readonly OzipzDictionaryItem[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const item of dictionaryItems ?? []) {
+    if (isJrwaDictionaryItem(item) && item.code && item.label) {
+      const cleanCode = item.code.trim();
+      const cleanLabel = item.label.replace(new RegExp(`^${cleanCode.replace(/\./g, "\\.")}\\s*[-–:]?\\s*`), "").trim();
+      map.set(cleanCode, cleanLabel || item.label.trim());
     }
   }
   return map;
 }
 
-function getStoreJrwaItems(): readonly OzipzDictionaryItem[] | undefined {
+export function getStoreJrwaItems(): readonly OzipzDictionaryItem[] | undefined {
   try {
     const store = useOzipzDbStore.getState();
     if (store && Array.isArray(store.dictionaryItems) && store.dictionaryItems.length > 0) {
-      return store.dictionaryItems.filter(
-        (d) => d.dictType === "jrwaSymbol" || d.dictType === "symbole_jrwa" || d.dictType.toLowerCase().includes("jrwa")
-      );
+      return store.dictionaryItems.filter(isJrwaDictionaryItem);
     }
   } catch {
     // Store not initialized or isolated environment
@@ -101,17 +47,7 @@ function getStoreJrwaItems(): readonly OzipzDictionaryItem[] | undefined {
 }
 
 function getStoreJrwaSymbols(): string[] {
-  const symbolSet = new Set<string>();
-  const items = getStoreJrwaItems();
-  if (items) {
-    for (const i of items) {
-      if (i.code) symbolSet.add(i.code.trim());
-    }
-  }
-  for (const def of DEFAULT_INTERWENCJE_JRWA) {
-    symbolSet.add(def.jrwa.trim());
-  }
-  return Array.from(symbolSet);
+  return Array.from(new Set((getStoreJrwaItems() ?? []).map((i) => i.code?.trim()).filter(Boolean)));
 }
 
 function getStoreProgramJrwaSymbol(programId?: string | null): string | undefined {
@@ -130,6 +66,16 @@ function getStoreProgramJrwaSymbol(programId?: string | null): string | undefine
   return undefined;
 }
 
+function getStoreProgramJrwaSymbolByName(name: string): string | undefined {
+  const wanted = name.trim().toLowerCase();
+  try {
+    const prog = useOzipzDbStore.getState().programs?.find((p) => p.name?.trim().toLowerCase() === wanted);
+    return prog?.jrwaSymbol?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function getStoreCaseJrwaSymbol(caseId?: string | null): string | undefined {
   if (!caseId) return undefined;
   try {
@@ -146,32 +92,20 @@ function getStoreCaseJrwaSymbol(caseId?: string | null): string | undefined {
   return undefined;
 }
 
-export function getActiveJrwaKindMap(
-  customKindMap?: ReadonlyMap<string, "PROGRAMOWE" | "NIEPROGRAMOWE">
-): ReadonlyMap<string, "PROGRAMOWE" | "NIEPROGRAMOWE"> {
-  if (customKindMap) return customKindMap;
-  const storeItems = getStoreJrwaItems();
-  if (storeItems && storeItems.length > 0) {
-    return buildJrwaInterventionKindMap(storeItems);
-  }
-  return JRWA_INTERVENTION_KIND_MAP;
+export function getActiveJrwaKindMap(customKindMap?: ReadonlyMap<string, JrwaKind>): ReadonlyMap<string, JrwaKind> {
+  return customKindMap ?? buildJrwaInterventionKindMap(getStoreJrwaItems());
 }
 
-export function getActiveJrwaNamesMap(
-  customNamesMap?: ReadonlyMap<string, string>
-): ReadonlyMap<string, string> {
-  if (customNamesMap) return customNamesMap;
-  const storeItems = getStoreJrwaItems();
-  if (storeItems && storeItems.length > 0) {
-    return buildJrwaInterventionNamesMap(storeItems);
-  }
-  return new Map(DEFAULT_INTERWENCJE_JRWA.map((i) => [i.jrwa, i.nazwa]));
+export function getActiveJrwaNamesMap(customNamesMap?: ReadonlyMap<string, string>): ReadonlyMap<string, string> {
+  return customNamesMap ?? buildJrwaInterventionNamesMap(getStoreJrwaItems());
 }
+
+const symbolPattern = (sym: string) => new RegExp(`(?:^|[^0-9])${sym.replace(/\./g, "\\.")}(?![0-9])`);
 
 /**
- * Wyciąga czysty symbol JRWA z encji działania (np. "966.1", "966.14", "9011.1", "0442").
- * Bezwzględnie odrzuca techniczne identyfikatory UUID/SQLite (np. "jrwa-1788342527615-1-b3vw").
- * Dynamicznie rozpoznaje nowe symbole zarejestrowane w słowniku bazy danych.
+ * Wyciąga symbol JRWA z encji działania (np. "966.1", "966.14", "9011.1", "0442").
+ * Rozpoznaje wyłącznie symbole ze słownika JRWA w bazie; techniczne identyfikatory
+ * (np. "jrwa-1788342527615-1-b3vw") i symbole spoza słownika dają null.
  */
 export function extractCleanJrwaSymbol(
   action: Partial<OzipzAction>,
@@ -179,107 +113,40 @@ export function extractCleanJrwaSymbol(
 ): string | null {
   const customList = knownSymbols && knownSymbols.length > 0 ? knownSymbols : getStoreJrwaSymbols();
   const sorted = [...customList].sort((a, b) => b.length - a.length);
+  const findIn = (text: string) => sorted.find((sym) => symbolPattern(sym).test(text)) ?? null;
 
-  // 1. Znak sprawy JRWA (np. "OZiPZ.966.14.40.2026", "966.1", "9011.1", "OZiPZ.851.1.1.2026")
+  // 1. Znak sprawy JRWA (np. "OZiPZ.966.14.40.2026")
   if (action.jrwaSign && action.jrwaSign.trim()) {
-    const sign = action.jrwaSign.trim();
-    for (const sym of sorted) {
-      const escaped = sym.replace(/\./g, "\\.");
-      const regex = new RegExp(`(?:^|[^0-9])${escaped}(?![0-9])`);
-      if (regex.test(sign)) {
-        return sym;
-      }
-    }
-    const match = sign.match(/\b(966\.\d+|9011\.\d+|0442|0444)\b/);
-    if (match) return match[1];
+    const found = findIn(action.jrwaSign.trim());
+    if (found) return found;
   }
 
-  // 2. jrwaCaseId (relacja do ozipz_jrwa_cases lub legacy symbol)
+  // 2. jrwaCaseId: relacja do ozipz_jrwa_cases lub starszy zapis będący symbolem
   if (action.jrwaCaseId && action.jrwaCaseId.trim()) {
     const trimmed = action.jrwaCaseId.trim();
-    // 2a. Relacja do ozipz_jrwa_cases
     const caseSym = getStoreCaseJrwaSymbol(trimmed);
     if (caseSym) return caseSym;
-
-    // 2b. Legacy format będący symbolem
-    if (customList.includes(trimmed)) {
-      return trimmed;
-    }
-    for (const sym of sorted) {
-      const escaped = sym.replace(/\./g, "\\.");
-      const regex = new RegExp(`(?:^|[^0-9])${escaped}(?![0-9])`);
-      if (regex.test(trimmed)) {
-        return sym;
-      }
-    }
-    if (/^(966\.\d+|9011\.\d+|0442|0444)$/.test(trimmed)) {
-      return trimmed;
-    }
+    if (customList.includes(trimmed)) return trimmed;
+    const found = findIn(trimmed);
+    if (found) return found;
   }
 
-  // 3. Rozpoznanie po ID programu (wprost ze słownika programów) lub nazwie programu
+  // 3. Symbol przypisany programowi w katalogu programów (po id, a gdy go brak – po dokładnej nazwie)
   if (action.programId) {
     const progSym = getStoreProgramJrwaSymbol(action.programId);
     if (progSym) return progSym;
   }
-
-  const progText = `${action.programId || ""} ${action.programName || ""}`.toLowerCase();
-  const storeItems = getStoreJrwaItems();
-  if (storeItems) {
-    for (const item of storeItems) {
-      if (item.label && progText.includes(item.label.toLowerCase())) {
-        return item.code.trim();
-      }
-    }
+  if (action.programName && action.programName.trim()) {
+    const progSym = getStoreProgramJrwaSymbolByName(action.programName);
+    if (progSym) return progSym;
   }
-  if (progText.includes("trzymaj-forme") || progText.includes("trzymaj form")) return "966.1";
-  if (progText.includes("hiv") || progText.includes("aids")) return "966.2";
-  if (progText.includes("zdrowe-zeby") || progText.includes("zęby") || progText.includes("zeby") || progText.includes("marchewk")) return "966.3";
-  if (progText.includes("higiena") || progText.includes("tarcza")) return "966.4";
-  if (progText.includes("porozmawiajmy")) return "966.5";
-  if (progText.includes("substancj") || progText.includes("nikotyn") || progText.includes("alkohol")) return "966.6";
-  if (progText.includes("zdrowy-styl-zycia") || progText.includes("stylu życia") || progText.includes("fitschool")) return "966.7";
-  if (progText.includes("choroby-zakazne") || progText.includes("zakaźn") || progText.includes("wzw") || progText.includes("borelioz") || progText.includes("grypa")) return "966.8";
-  if (progText.includes("nowotwor") || progText.includes("znamię") || progText.includes("znamie")) return "966.9";
-  if (progText.includes("grzyb")) return "966.10";
-  if (progText.includes("szczepien")) return "966.11";
-  if (progText.includes("swiatowy-dzien-zdrowia") || progText.includes("dzień zdrowia")) return "966.12";
-  if (progText.includes("antybiotyk")) return "966.13";
-  if (progText.includes("bezpieczne-wakacje") || progText.includes("bezpieczne-ferie") || progText.includes("wypoczynk") || progText.includes("wakacj") || progText.includes("ferie")) return "966.14";
-  if (progText.includes("senior")) return "966.15";
-  if (progText.includes("psychiczn") || progText.includes("depresj")) return "966.16";
-  if (progText.includes("srodowisk") || progText.includes("środowisk") || progText.includes("radon") || progText.includes("pem")) return "966.17";
-  if (progText.includes("mlodzi-swiadomi") || progText.includes("młodziświadomi")) return "966.18";
-  if (progText.includes("sprawozdawcz") || progText.includes("stat")) return "0442";
 
-  // 4. Rozpoznanie po tytule działania
-  if (action.title) {
-    const tLower = action.title.toLowerCase();
-    if (storeItems) {
-      for (const item of storeItems) {
-        if (item.label && tLower.includes(item.label.toLowerCase())) {
-          return item.code.trim();
-        }
-      }
-    }
-    if (tLower.includes("wakacj") || tLower.includes("ferie") || tLower.includes("wypoczynek") || tLower.includes("koloni")) return "966.14";
-    if (tLower.includes("trzymaj form")) return "966.1";
-    if (tLower.includes("hiv") || tLower.includes("aids")) return "966.2";
-    if (tLower.includes("zęby") || tLower.includes("zeby") || tLower.includes("marchewk")) return "966.3";
-    if (tLower.includes("higien") || tLower.includes("tarcza")) return "966.4";
-    if (tLower.includes("nowych zagrożeni") || tLower.includes("porozmawiajmy")) return "966.5";
-    if (tLower.includes("nikotyn") || tLower.includes("papieros") || tLower.includes("alkohol") || tLower.includes("dopalacz")) return "966.6";
-    if (tLower.includes("fitschool") || tLower.includes("aktywności fizyczn") || tLower.includes("odżywiani")) return "966.7";
-    if (tLower.includes("zakaźn") || tLower.includes("wzw") || tLower.includes("borelioz") || tLower.includes("kzm") || tLower.includes("grypa")) return "966.8";
-    if (tLower.includes("nowotwor") || tLower.includes("znamię") || tLower.includes("rak")) return "966.9";
-    if (tLower.includes("grzyb")) return "966.10";
-    if (tLower.includes("szczepien")) return "966.11";
-    if (tLower.includes("dzień zdrowia")) return "966.12";
-    if (tLower.includes("antybiotyk")) return "966.13";
-    if (tLower.includes("senior")) return "966.15";
-    if (tLower.includes("psychiczn") || tLower.includes("depresj")) return "966.16";
-    if (tLower.includes("środowisk") || tLower.includes("radon")) return "966.17";
-    if (tLower.includes("młodziświadomi")) return "966.18";
+  // 4. Nazwa programu lub tytuł zawiera nazwę pozycji słownika JRWA
+  const storeItems = getStoreJrwaItems();
+  const texts = [`${action.programId || ""} ${action.programName || ""}`, action.title || ""].map((t) => t.toLowerCase());
+  for (const text of texts) {
+    const item = storeItems?.find((i) => i.label && text.includes(i.label.toLowerCase()));
+    if (item) return item.code.trim();
   }
 
   return null;

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { JRWA_DICTIONARY_FIXTURE } from "../../../../../test/fixtures/jrwaCatalog";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { RegistersFilterBar } from "./RegistersFilterBar";
 import { RegistersTypeTabs } from "./RegistersTypeTabs";
@@ -72,7 +73,7 @@ describe("Registers Module Components — UX/UI Harmonization", () => {
           onEducatorChange={vi.fn()}
           search=""
           onSearchChange={vi.fn()}
-          jrwaSymbols={[]}
+          jrwaSymbols={JRWA_DICTIONARY_FIXTURE}
           educators={[]}
           isFiltered={false}
           onClearFilters={vi.fn()}
@@ -104,7 +105,7 @@ describe("Registers Module Components — UX/UI Harmonization", () => {
           onEducatorChange={vi.fn()}
           search=""
           onSearchChange={vi.fn()}
-          jrwaSymbols={[]}
+          jrwaSymbols={JRWA_DICTIONARY_FIXTURE}
           educators={[]}
           isFiltered={true}
           onClearFilters={vi.fn()}
@@ -137,7 +138,7 @@ describe("Registers Module Components — UX/UI Harmonization", () => {
           onEducatorChange={vi.fn()}
           search=""
           onSearchChange={vi.fn()}
-          jrwaSymbols={[]}
+          jrwaSymbols={JRWA_DICTIONARY_FIXTURE}
           educators={[]}
           isFiltered={false}
           onClearFilters={vi.fn()}
@@ -168,7 +169,7 @@ describe("Registers Module Components — UX/UI Harmonization", () => {
           onEducatorChange={vi.fn()}
           search=""
           onSearchChange={vi.fn()}
-          jrwaSymbols={[]}
+          jrwaSymbols={JRWA_DICTIONARY_FIXTURE}
           educators={[]}
           isFiltered={true}
           onClearFilters={vi.fn()}
@@ -207,7 +208,7 @@ describe("Registers Module Components — UX/UI Harmonization", () => {
           onEducatorChange={vi.fn()}
           search="test search"
           onSearchChange={handleSearchChange}
-          jrwaSymbols={[]}
+          jrwaSymbols={JRWA_DICTIONARY_FIXTURE}
           educators={[]}
           isFiltered={true}
           onClearFilters={vi.fn()}

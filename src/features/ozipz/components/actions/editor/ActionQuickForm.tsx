@@ -13,7 +13,7 @@ import { ActionQuickFacilityAdd } from "./ActionQuickFacilityAdd";
 import { getProgramJrwaSymbol } from "../../../utils/programJrwaUtils";
 import type { ActionEditorSectionProps, ActionFormInput } from "./editor.types";
 import type { useActionEditorState } from "./useActionEditorState";
-import { DEFAULT_EZD_STATUS } from "./actionEditorSubmitUtils";
+import { DEFAULT_EZD_STATUS, findCampaign } from "./actionEditorSubmitUtils";
 import { EZD_STATUS_LABELS } from "../actionEzdStatus";
 import type { ActionDraft } from "./actionDraft";
 import { FIELD_INPUT, FIELD_LABEL } from "./formStyles";
@@ -85,7 +85,8 @@ export function ActionQuickForm({ state: s, data }: {
     Number(s.materialsDistributedCount) > 0 && s.canSeparateDistribution && s.separateDistribution && "+ osobna dystrybucja",
     s.linkedDistribution && "materiały w powiązanej dystrybucji",
     Number(s.indirectRecipientsCount) > 0 && `zasięg: ${s.indirectRecipientsCount}`].filter(Boolean).join(" · ");
-  const descriptionSummary = [s.campaignId, s.activitiesDescription.trim() && "opis", s.additionalNotes.trim() && "uwagi"].filter(Boolean).join(" · ");
+  const campaign = findCampaign(s.campaignDict, s.campaignId);
+  const descriptionSummary = [campaign?.label || s.campaignId, s.activitiesDescription.trim() && "opis", s.additionalNotes.trim() && "uwagi"].filter(Boolean).join(" · ");
   const selectFacility = (f: OzipzFacility) => {
     s.setValue("facilityName", f.name); s.setValue("facilityId", f.id);
     s.setValue("municipality", f.municipality || "");
@@ -165,7 +166,8 @@ export function ActionQuickForm({ state: s, data }: {
       </Disclosure>
       <Disclosure title="Opis i dodatkowe informacje" summary={descriptionSummary} reveal={Boolean(s.activitiesDescription || s.additionalNotes || s.campaignId)}>
         <div className="space-y-3">
-          <Select label="Kampania / akcja" value={s.campaignId} options={s.campaignDict.map((c) => c.label)}
+          <Select label="Kampania / akcja" value={campaign?.code || s.campaignId}
+            options={s.campaignDict.map((c) => ({ value: c.code, label: c.label }))}
             onChange={(v) => s.setValue("campaignId", v)} clearable placeholder="Wybierz, jeśli dotyczy" />
           <div><label htmlFor="action-description" className={FIELD_LABEL}>Opis czynności</label>
             <Textarea id="action-description" rows={3} value={s.activitiesDescription} onChange={(e) => s.setActivitiesDescription(e.target.value)} /></div>

@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import { useOzipzDbStore } from "../store/useOzipzDbStore";
 import {
   calculateTotalRecipients,
   calculateSyntheticActionMetrics,
@@ -23,8 +24,6 @@ import {
   calculatePercent,
   calculateMiernikWykonanie,
   isExcludedNieprogramoweWizytacja,
-  DEFAULT_INTERWENCJE_JRWA,
-  JRWA_INTERVENTION_KIND_MAP,
   buildJrwaInterventionKindMap,
   buildJrwaInterventionNamesMap,
   getActiveJrwaKindMap,
@@ -96,6 +95,18 @@ describe("ozipzCalculations", () => {
   });
 
   describe("isProgramAction & JRWA mappings", () => {
+    // Katalog programów z bazy – symbol JRWA programu pochodzi wyłącznie stąd.
+    beforeEach(() => {
+      const program = (id: string, name: string, jrwaSymbol: string) =>
+        ({ id, code: id, name, jrwaSymbol, editionYear: "2025/2026", createdAt: "", updatedAt: "" }) as OzipzProgram;
+      useOzipzDbStore.setState({
+        programs: [
+          program("trzymaj-forme", "Trzymaj Formę", "966.1"),
+          program("bezpieczne-wakacje", "Bezpieczeństwo dzieci podczas wypoczynku letniego i zimowego (bezpieczne wakacje)", "966.14"),
+        ],
+      });
+    });
+
     it("correctly determines program action based on actionType, JRWA and programId", () => {
       expect(isProgramAction({ actionType: "programowe" })).toBe(true);
       expect(isProgramAction({ actionType: "nieprogramowe" })).toBe(false);
@@ -142,19 +153,20 @@ describe("ozipzCalculations", () => {
 
       // Techniczne UUID SQLite nie jest zwracane jako symbol JRWA
       expect(extractCleanJrwaSymbol({ jrwaCaseId: "jrwa-1788342527615-1-b3vw" })).toBeNull();
-      // Ale jeśli encja ma też programName, to symbol zostanie prawidłowo wydedukowany
+      // Ale jeśli encja ma też nazwę programu z katalogu, symbol pochodzi z tego programu
       expect(
         extractCleanJrwaSymbol({
           jrwaCaseId: "jrwa-1788342527615-1-b3vw",
-          programName: "Bezpieczeństwo dzieci podczas wypoczynku letniego i zimowego",
+          programName: "Bezpieczeństwo dzieci podczas wypoczynku letniego i zimowego (bezpieczne wakacje)",
         })
       ).toBe("966.14");
+      // Program spoza katalogu i bez nazwy ze słownika – bez zgadywania
+      expect(extractCleanJrwaSymbol({ programName: "Warsztaty o wakacjach" })).toBeNull();
     });
 
-    it("contains expected default JRWA interventions list", () => {
-      expect(DEFAULT_INTERWENCJE_JRWA.length).toBeGreaterThanOrEqual(18);
-      expect(JRWA_INTERVENTION_KIND_MAP.get("966.1")).toBe("PROGRAMOWE");
-      expect(JRWA_INTERVENTION_KIND_MAP.get("966.14")).toBe("NIEPROGRAMOWE");
+    it("has no built-in JRWA classification – everything comes from the dictionary", () => {
+      expect(buildJrwaInterventionKindMap([]).size).toBe(0);
+      expect(buildJrwaInterventionNamesMap([]).size).toBe(0);
     });
 
     it("buildJrwaInterventionKindMap builds dynamic map from dictionary items overriding defaults", () => {
@@ -182,12 +194,10 @@ describe("ozipzCalculations", () => {
       ];
 
       const kindMap = buildJrwaInterventionKindMap(customItems);
-      // Overridden from default NIEPROGRAMOWE to PROGRAMOWE:
       expect(kindMap.get("966.14")).toBe("PROGRAMOWE");
-      // Newly added symbol:
       expect(kindMap.get("966.99")).toBe("PROGRAMOWE");
-      // Existing untouched symbol remains intact:
-      expect(kindMap.get("966.1")).toBe("PROGRAMOWE");
+      // Symbole spoza podanego słownika nie mają rodzaju
+      expect(kindMap.has("966.1")).toBe(false);
     });
 
     it("buildJrwaInterventionNamesMap builds dynamic map of names from dictionary items", () => {
@@ -206,10 +216,10 @@ describe("ozipzCalculations", () => {
 
       const namesMap = buildJrwaInterventionNamesMap(customItems);
       expect(namesMap.get("966.99")).toBe("Specjalny Program Profilaktyczny");
-      expect(namesMap.get("966.1")).toBe("Trzymaj Formę");
+      expect(namesMap.has("966.1")).toBe(false);
     });
 
-    it("getActiveJrwaKindMap returns non-empty map with canonical keys", () => {
+    it("getActiveJrwaKindMap reads the dictionary loaded from the database", () => {
       const activeMap = getActiveJrwaKindMap();
       expect(activeMap.size).toBeGreaterThan(0);
       expect(activeMap.get("966.1")).toBe("PROGRAMOWE");

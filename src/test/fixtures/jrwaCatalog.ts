@@ -1,4 +1,5 @@
-import type { GisCategory } from "../schemas/ozipzCoreSchemas";
+import type { OzipzDictionaryItem } from "../../features/ozipz/types/ozipz.types";
+import type { GisCategory } from "../../features/ozipz/schemas/ozipzCoreSchemas";
 
 export interface KnownJrwaItem {
   symbol: string;
@@ -10,7 +11,7 @@ export interface KnownJrwaItem {
 }
 
 /**
- * Podstawowe symbole JRWA w OZiPZ PSSE
+ * Przykładowy słownik JRWA do testów (aplikacja czyta symbole wyłącznie z bazy)
  */
 export const KNOWN_JRWA_CATALOG: KnownJrwaItem[] = [
   { symbol: "0442", label: "Sprawozdawczość Statystyczna", description: "Miesięczne, półroczne i roczne sprawozdania przesyłane do WSSE i GIS", kind: "NIEPROGRAMOWE", gisCategory: "brak" },
@@ -35,3 +36,17 @@ export const KNOWN_JRWA_CATALOG: KnownJrwaItem[] = [
   { symbol: "966.17", label: "Wpływ Czynników Środowiskowych na Zdrowie", description: "PEM, radon, jakość środowiska", kind: "NIEPROGRAMOWE", gisCategory: "inne" },
   { symbol: "966.18", label: "#MłodziŚwiadomi", description: "Program profilaktyczny #MłodziŚwiadomi", kind: "PROGRAMOWE", gisCategory: "sti" },
 ];
+
+/** Słownik JRWA w postaci wierszy `ozipz_dictionaries` – tak, jak aplikacja wczytuje go z bazy. */
+export const JRWA_DICTIONARY_FIXTURE: OzipzDictionaryItem[] = KNOWN_JRWA_CATALOG.map((d) => ({
+  id: `dict_jrwa_${d.symbol.replace(/\./g, "_")}`,
+  dictType: "jrwaSymbol",
+  code: d.symbol,
+  label: d.label,
+  description: d.description || `Symbol JRWA ${d.symbol} w wykazie akt OZiPZ`,
+  kind: d.kind,
+  gisCategory: d.gisCategory,
+  isSystem: true,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+}));

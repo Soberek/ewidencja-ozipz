@@ -82,18 +82,22 @@ describe("versioned database migration", () => {
     expect(items.find((item) => item.id === created.id)?.gisCategory).toBe("sti");
   });
 
-  it("seeds default GIS categories for the JRWA catalog but keeps user overrides", async () => {
+  it("never adds, restores or overwrites JRWA dictionary entries on start", async () => {
     const raw = new DatabaseSync(":memory:"); databases.push(raw);
     const db = adapter(raw);
     await initTables(db);
-    const categoryOf = (code: string) =>
-      raw.prepare("SELECT gis_category FROM ozipz_dictionaries WHERE dict_type = 'jrwaSymbol' AND code = ?").get(code)?.gis_category;
-    expect(categoryOf("966.11")).toBe("szczepienia");
-    expect(categoryOf("0442")).toBe("brak");
+    const jrwaRows = () => raw.prepare("SELECT code, label, gis_category FROM ozipz_dictionaries WHERE dict_type = 'jrwaSymbol' ORDER BY code").all();
+    expect(jrwaRows()).toEqual([]);
 
-    raw.prepare("UPDATE ozipz_dictionaries SET gis_category = 'uzaleznienia' WHERE dict_type = 'jrwaSymbol' AND code = '966.16'").run();
+    insert(raw, "ozipz_dictionaries", {
+      id: "dict_jrwa_966_20", dict_type: "jrwaSymbol", code: "966.20", label: "Tylko Pomyśl", gis_category: "inne",
+      kind: "PROGRAMOWE", is_system: 1, created_at: "2026-09-16", updated_at: "2026-09-16",
+    });
+    insert(raw, "ozipz_programs", { id: "p-bez-symbolu", code: "P", name: "Trzymaj Formę", edition_year: "2026/2027", created_at: "2026-09-16", updated_at: "2026-09-16" });
     await initTables(db);
-    expect(categoryOf("966.16")).toBe("uzaleznienia");
+    expect(jrwaRows()).toEqual([{ code: "966.20", label: "Tylko Pomyśl", gis_category: "inne" }]);
+    // Program bez symbolu zostaje bez symbolu – nie zgadujemy go po nazwie
+    expect(raw.prepare("SELECT jrwa_symbol FROM ozipz_programs WHERE id = 'p-bez-symbolu'").get()?.jrwa_symbol).toBeNull();
   });
 
   it("upgrades a version 1 file without losing actions", async () => {
@@ -338,6 +342,41 @@ describe("schema v6 integrity", () => {
     expect(action(raw, "open")).toMatchObject({ lead_educator: "Anna Kowalska", action_type: "Wykład otwarty", jrwa_sign: "OZiPZ.966.1.2.2026" });
     expect(action(raw, "closed")).toMatchObject({ lead_educator: "Anna Nowak", action_type: "Wykład", jrwa_sign: "OZiPZ.966.1.1.2026" });
     expect(raw.prepare("SELECT jrwa_sign FROM ozipz_registers").get()?.jrwa_sign).toBe("OZiPZ.966.1.2.2026");
+  });
+
+  it("propagates renamed dictionary labels and codes to every record that stores them", async () => {
+    const raw = await fresh();
+    insert(raw, "ozipz_dictionaries", { id: "pos", dict_type: "contactPosition", code: "koordynator_szkolny", label: "Szkolny Koordynator Programu" });
+    insert(raw, "ozipz_dictionaries", { id: "gm", dict_type: "municipality", code: "gmina_mysliborz", label: "Gmina Myślibórz" });
+    insert(raw, "ozipz_dictionaries", { id: "mt", dict_type: "materialType", code: "ulotka", label: "ulotka" });
+    insert(raw, "ozipz_dictionaries", { id: "rola", dict_type: "staffRole", code: "referent", label: "Referent" });
+    insert(raw, "ozipz_contacts", { id: "c", name: "Anna", position: "Szkolny Koordynator Programu", municipality: "Myślibórz" });
+    insert(raw, "ozipz_staff", { id: "s", full_name: "Jan", role: "referent" });
+    raw.exec("UPDATE ozipz_materials SET material_type = 'ulotka'");
+
+    raw.exec("UPDATE ozipz_dictionaries SET label = 'Koordynator szkolny' WHERE id = 'pos'");
+    raw.exec("UPDATE ozipz_dictionaries SET label = 'Gmina Myślibórz-Miasto' WHERE id = 'gm'");
+    raw.exec("UPDATE ozipz_dictionaries SET code = 'ulotka_a5' WHERE id = 'mt'");
+    raw.exec("UPDATE ozipz_dictionaries SET code = 'referent_ozipz' WHERE id = 'rola'");
+
+    expect(raw.prepare("SELECT position, municipality FROM ozipz_contacts WHERE id = 'c'").get()).toEqual({ position: "Koordynator szkolny", municipality: "Myślibórz-Miasto" });
+    expect(raw.prepare("SELECT municipality FROM ozipz_facilities WHERE id = 'f'").get()?.municipality).toBe("Myślibórz-Miasto");
+    expect(action(raw, "open").municipality).toBe("Myślibórz-Miasto");
+    expect(action(raw, "closed").municipality).toBe("Myślibórz");
+    expect(raw.prepare("SELECT material_type FROM ozipz_materials WHERE id = 'm'").get()?.material_type).toBe("ulotka_a5");
+    expect(raw.prepare("SELECT role FROM ozipz_staff WHERE id = 's'").get()?.role).toBe("referent_ozipz");
+  });
+
+  it("blocks changing the code of a JRWA symbol that already has cases, otherwise moves programs to the new code", async () => {
+    const raw = await fresh();
+    insert(raw, "ozipz_dictionaries", { id: "j1", dict_type: "jrwaSymbol", code: "966.1", label: "Trzymaj Formę" });
+    insert(raw, "ozipz_dictionaries", { id: "j20", dict_type: "jrwaSymbol", code: "966.20", label: "Tylko Pomyśl" });
+    insert(raw, "ozipz_jrwa_cases", { id: "case", section: "OZiPZ", jrwa_symbol: "966.1", case_number: 1, year: 2026, full_case_sign: "OZiPZ.966.1.1.2026" });
+    raw.exec("UPDATE ozipz_programs SET jrwa_symbol = '966.20'");
+
+    expect(() => raw.exec("UPDATE ozipz_dictionaries SET code = '966.100' WHERE id = 'j1'")).toThrow(/ma założone sprawy/);
+    raw.exec("UPDATE ozipz_dictionaries SET code = '966.21' WHERE id = 'j20'");
+    expect(raw.prepare("SELECT jrwa_symbol FROM ozipz_programs WHERE id = 'p'").get()?.jrwa_symbol).toBe("966.21");
   });
 
   it("detaches a JRWA case from its originating action when the action moves to another case", async () => {

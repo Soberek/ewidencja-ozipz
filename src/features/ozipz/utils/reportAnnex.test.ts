@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import type { OzipzAction } from "../types/ozipz.types";
+import type { OzipzAction, OzipzProgram } from "../types/ozipz.types";
+import { useOzipzDbStore } from "../store/useOzipzDbStore";
 import {
   buildReportAnnexRows,
   buildReportHierarchy,
@@ -187,6 +188,12 @@ describe("reportAnnex (Better-OZ Parity & Excel Export Engine)", () => {
     });
 
     it("unifies actions from the same program into exactly ONE group without splitting or leaking UUIDs", () => {
+      useOzipzDbStore.setState({
+        programs: [{
+          id: "bezpieczne-wakacje", code: "BW", jrwaSymbol: "966.14", editionYear: "2025/2026", createdAt: "", updatedAt: "",
+          name: "Bezpieczeństwo dzieci podczas wypoczynku letniego i zimowego (bezpieczne wakacje)",
+        } as OzipzProgram],
+      });
       const sampleActions: Partial<OzipzAction>[] = [
         {
           id: "act-stoisko",

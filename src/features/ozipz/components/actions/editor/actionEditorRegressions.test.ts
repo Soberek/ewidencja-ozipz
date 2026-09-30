@@ -251,6 +251,21 @@ describe("Pomocnicze funkcje zapisu", () => {
     expect(findDuplicateAction({ ...payload, date: "2026-09-11" }, [registered])).toBeUndefined();
   });
 
+  it("zapisują kampanię kodem słownika, także gdy formularz ma starszą etykietę lub id pozycji", () => {
+    const campaignDict = [
+      { id: "dict_camp_hpv", dictType: "campaign", code: "nie_odbieraj_sobie_glosu_hpv", label: "Nie odbieraj sobie głosu (HPV)", isSystem: true, createdAt: "", updatedAt: "" },
+    ];
+    for (const campaignId of ["nie_odbieraj_sobie_glosu_hpv", "Nie odbieraj sobie głosu (HPV)", "dict_camp_hpv"]) {
+      const payload = buildActionCleanPayload({
+        data: { ...registered, campaignId } as ActionFormOutput,
+        campaignDict, activitiesDescription: "", additionalNotes: "", isPublication: false, isNoJrwa: false,
+        formattedAudienceString: "", totalDirectParticipants: 0,
+      });
+      expect(payload.campaignId).toBe("nie_odbieraj_sobie_glosu_hpv");
+      expect(payload.campaignName).toBe("Nie odbieraj sobie głosu (HPV)");
+    }
+  });
+
   it("wyciągają czytelną przyczynę błędu", () => {
     expect(describeSaveError(new Error("error returned from database: (code: 787) FOREIGN KEY constraint failed"))).toBe("FOREIGN KEY constraint failed");
     expect(describeSaveError(new Error("Zadanie harmonogramu jest już powiązane z innym działaniem."))).toBe("Zadanie harmonogramu jest już powiązane z innym działaniem.");

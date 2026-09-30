@@ -3,9 +3,10 @@ import { renderHook, act } from "@testing-library/react";
 import { useOzipzDbStore } from "./useOzipzDbStore";
 import { isProgramAction } from "../utils/ozipzCalculations";
 import { buildReportAnnexRows } from "../utils/reportAnnex";
-import { resolveScheduleProgram } from "../utils/scheduleProgramResolver";
+import { resolveScheduleProgram, scheduleProgramLabel } from "../utils/scheduleProgramResolver";
+import { getActiveJrwaNamesMap } from "../utils/calculators/jrwaClassification";
 import { useReportsData } from "../components/reports/useReportsData";
-import type { OzipzAction, OzipzScheduleEvent } from "../types/ozipz.types";
+import type { OzipzAction, OzipzProgram, OzipzScheduleEvent } from "../types/ozipz.types";
 
 describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () => {
   beforeEach(async () => {
@@ -226,7 +227,7 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
     const resAdmin = resolveScheduleProgram(eventAdmin);
     expect(resAdmin.isProgrammatic).toBe(false);
 
-    // 966.14 is resolved as Bezpieczne Wakacje in schedule
+    // 966.14 is resolved as Bezpieczne Wakacje in schedule – NIEPROGRAMOWE in the JRWA dictionary
     const event96614: OzipzScheduleEvent = {
       id: "sch-test-14",
       title: "Spotkanie profilaktyczne Bezpieczne Wakacje",
@@ -239,7 +240,7 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       updatedAt: "2026-01-01",
     };
     const res14 = resolveScheduleProgram(event96614);
-    expect(res14.isProgrammatic).toBe(true);
+    expect(res14.isProgrammatic).toBe(false);
     expect(res14.name).toContain("Bezpieczne Wakacje");
 
     // 966.3 is PROGRAMOWE
@@ -280,6 +281,23 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
     const resCustom = resolveScheduleProgram(eventCustom);
     expect(resCustom.isProgrammatic).toBe(true);
     expect(resCustom.name).toBe("Nowy Program Promocji Zdrowia");
+
+    // Imported schedule rows keep the JRWA symbol only in category / title
+    const importedProgram = resolveScheduleProgram({ ...event9663, id: "sch-imp-1", jrwa: undefined, category: "JRWA 966.1", title: "Konkurs (quiz) (JRWA 966.1)" });
+    expect(importedProgram.symbol).toBe("966.1");
+    expect(importedProgram.isProgrammatic).toBe(true);
+    const importedOther = resolveScheduleProgram({ ...event9663, id: "sch-imp-2", jrwa: undefined, category: "JRWA 966.14", title: "Dystrybucja (JRWA 966.14)" });
+    expect(importedOther.symbol).toBe("966.14");
+    expect(importedOther.isProgrammatic).toBe(false);
+
+    // Kilka programów pod jednym symbolem (ferie i wakacje) – nazwa teczki ze słownika, nie przypadkowy program
+    const twoPrograms = [
+      { id: "bezpieczne-ferie", name: "Bezpieczne ferie", jrwaSymbol: "966.14" },
+      { id: "bezpieczne-wakacje", name: "Bezpieczne wakacje", jrwaSymbol: "966.14" },
+    ] as OzipzProgram[];
+    const shared = resolveScheduleProgram({ ...event9663, id: "sch-imp-3", jrwa: undefined, category: "JRWA 966.14" }, twoPrograms);
+    expect(shared.name).toBe(getActiveJrwaNamesMap().get("966.14"));
+    expect(scheduleProgramLabel({ ...event9663, id: "sch-imp-4", jrwa: undefined, category: "JRWA 966.1" }, [])).toMatch(/\(JRWA 966\.1\)$/);
   });
 
   it("immediately recalculates useReportsData live KPI when JRWA dictionary item classification changes", async () => {

@@ -10,6 +10,7 @@ import type {
   OzipzScheduleEvent,
   OzipzStaff,
 } from "../types/ozipz.types";
+import { municipalityName } from "./facilityUtils";
 
 /**
  * Indeks użycia pozycji słownikowych w rekordach aplikacji.
@@ -146,13 +147,41 @@ export function buildDictionaryUsageIndex(
       const label = normalizeDictionaryValue(item.label);
       if (label && !lookup.has(label)) lookup.set(label, item.id);
     }
+    // Rekordy trzymają gołą nazwę gminy („Myślibórz”), słownik – z prefiksem („Gmina Myślibórz”).
+    if (dictType === "municipality") {
+      for (const item of typeItems) {
+        const name = normalizeDictionaryValue(municipalityName(item.label));
+        if (name && !lookup.has(name)) lookup.set(name, item.id);
+      }
+    }
+    // Część formularzy (np. Harmonogram – kampanie) zapisuje identyfikator pozycji słownika.
+    for (const item of typeItems) {
+      const id = normalizeDictionaryValue(item.id);
+      if (id && !lookup.has(id)) lookup.set(id, item.id);
+    }
+    // Znak sprawy (np. „OZiPZ.966.14.40.2026”) zawiera symbol JRWA jako segment – najdłuższy symbol wygrywa.
+    const jrwaCodes =
+      dictType === "jrwaSymbol"
+        ? typeItems
+            .map((item) => ({ code: normalizeDictionaryValue(item.code), id: item.id }))
+            .filter((c) => c.code)
+            .sort((a, b) => b.code.length - a.code.length)
+        : [];
+    const resolve = (value: string | undefined | null): string | undefined => {
+      const normalized = normalizeDictionaryValue(value);
+      const exact =
+        lookup.get(normalized) ??
+        (dictType === "municipality" ? lookup.get(normalizeDictionaryValue(municipalityName(value))) : undefined);
+      if (exact || !normalized) return exact;
+      return jrwaCodes.find((c) => new RegExp(`(?:^|\\.)${c.code.replace(/\./g, "\\.")}\\.\\d`).test(normalized))?.id;
+    };
 
     for (const source of sources) {
       const perItem = new Map<string, number>();
       for (const values of source.collect(data)) {
         const matched = new Set<string>();
         for (const value of values) {
-          const id = lookup.get(normalizeDictionaryValue(value));
+          const id = resolve(value);
           if (id) matched.add(id);
         }
         matched.forEach((id) => perItem.set(id, (perItem.get(id) ?? 0) + 1));

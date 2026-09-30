@@ -20,7 +20,7 @@ import type {
   OzipzRegisterItem,
 } from "../../features/ozipz/types/ozipz.types";
 import { ADNOTACJA_POWODY } from "./annotationReasonsSeed";
-import { KNOWN_JRWA_CATALOG, getProgramJrwaSymbol } from "../../features/ozipz/utils/programJrwaUtils";
+import { JRWA_DICTIONARY_FIXTURE } from "./jrwaCatalog";
 import rawData from "./firebase_migrated_data.json";
 import { cleanLegacyFacilityContact } from "../../db/sqlite-migrations";
 
@@ -152,19 +152,7 @@ const missingDocTypes: OzipzDictionaryItem[] = initialDocTypes.filter(
   updatedAt: "2026-01-01T00:00:00.000Z",
 }));
 
-// Symbole JRWA ze słownika jednolitego rzeczowego wykazu akt (oficjalny katalog PSSE OZiPZ)
-const canonicalJrwaSymbols: OzipzDictionaryItem[] = KNOWN_JRWA_CATALOG.map((j) => ({
-  id: `dict_jrwa_${j.symbol.replace(/\./g, "_")}`,
-  dictType: "jrwaSymbol",
-  code: j.symbol,
-  label: j.label,
-  description: j.description || `Symbol JRWA ${j.symbol} w wykazie akt OZiPZ`,
-  kind: j.kind,
-  gisCategory: j.gisCategory,
-  isSystem: true,
-  createdAt: "2026-01-01T00:00:00.000Z",
-  updatedAt: "2026-01-01T00:00:00.000Z",
-}));
+const canonicalJrwaSymbols: OzipzDictionaryItem[] = JRWA_DICTIONARY_FIXTURE;
 
 // Dodatkowe standardowe programy profilaktyczne OZiPZ jeśli nie ma ich w snapshot
 const additionalOfficialPrograms: OzipzProgram[] = [
@@ -256,16 +244,38 @@ const additionalOfficialPrograms: OzipzProgram[] = [
 
 const existingProgramIds = new Set(parsedRaw.programs.map((p) => p.id));
 
-// Zapewnij obecność symbolu JRWA we wszystkich programach profilaktycznych
+// Symbole JRWA programów – tak jak w katalogu programów w bazie produkcyjnej
+const PROGRAM_JRWA_SYMBOLS: Record<string, string> = {
+  "antybiotyki": "966.13",
+  "bezpieczne-ferie": "966.14",
+  "bezpieczne-wakacje": "966.14",
+  "choroby-nowotworowe": "966.9",
+  "choroby-zakazne": "966.8",
+  "czynniki-srodowiskowe": "966.17",
+  "grzybobranie": "966.10",
+  "higiena-tarcza": "966.4",
+  "hiv-aids": "966.2",
+  "mlodzi-swiadomi": "966.18",
+  "porozmawiajmy-o-zdrowiu": "966.5",
+  "seniorzy": "966.15",
+  "sprawozdawczosc-statystyczna": "0442",
+  "substancje-psychoaktywne": "966.6",
+  "swiatowy-dzien-zdrowia": "966.12",
+  "szczepienia": "966.11",
+  "trzymaj-forme": "966.1",
+  "wspolpraca-organy-podlegle": "9011.2",
+  "wspolpraca-wsse": "9011.1",
+  "zdrowe-zeby": "966.3",
+  "zdrowie-psychiczne": "966.16",
+  "zdrowy-styl-zycia": "966.7",
+};
+
 const normalizedPrograms: OzipzProgram[] = [
-  ...parsedRaw.programs.map((p) => {
-    const symbol = p.jrwaSymbol || getProgramJrwaSymbol(p);
-    return {
-      ...p,
-      jrwaSymbol: symbol,
-      editionYear: p.editionYear || "2025/2026",
-    };
-  }),
+  ...parsedRaw.programs.map((p) => ({
+    ...p,
+    jrwaSymbol: p.jrwaSymbol || PROGRAM_JRWA_SYMBOLS[p.id] || "",
+    editionYear: p.editionYear || "2025/2026",
+  })),
   ...additionalOfficialPrograms.filter((p) => !existingProgramIds.has(p.id)),
 ];
 

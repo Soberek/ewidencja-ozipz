@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import type { OzipzProgram, OzipzDictionaryItem } from "../../types/ozipz.types";
 import { ProgramSchema } from "../../schemas/ozipz.schemas";
-import { KNOWN_JRWA_CATALOG, getProgramJrwaSymbol } from "../../utils/programJrwaUtils";
+import { getProgramJrwaSymbol } from "../../utils/programJrwaUtils";
 import { useDictionaries } from "../../store/useOzipzDbStore";
 import { z } from "zod";
 
@@ -56,16 +56,10 @@ export function ProgramDialog({
     const fromDb = dbJrwaSymbols || [];
     const map = new Map<string, { symbol: string; label: string }>();
 
-    // Najpierw słowniki z bazy
+    // Wyłącznie Słownik JRWA z bazy
     for (const d of [...fromProps, ...fromDb]) {
       if (d.code) {
         map.set(d.code, { symbol: d.code, label: d.label || `JRWA ${d.code}` });
-      }
-    }
-    // Fallback ze znanego katalogu
-    for (const k of KNOWN_JRWA_CATALOG) {
-      if (!map.has(k.symbol)) {
-        map.set(k.symbol, { symbol: k.symbol, label: k.label });
       }
     }
 
@@ -120,7 +114,7 @@ export function ProgramDialog({
         code: editingProgram.code,
         name: editingProgram.name,
         editionYear: editingProgram.editionYear || "",
-        jrwaSymbol: editingProgram.jrwaSymbol || getProgramJrwaSymbol(editingProgram),
+        jrwaSymbol: getProgramJrwaSymbol(editingProgram),
         targetAudience: editingProgram.targetAudience || "",
         description: editingProgram.description || "",
         status: editingProgram.status || "aktywny",
