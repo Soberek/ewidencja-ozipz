@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Building2, CalendarDays, ClipboardList, GraduationCap, Package, Printer } from "lucide-react";
+import { Building2, CalendarDays, ClipboardList, GraduationCap, Package, Printer, School } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -11,6 +11,8 @@ import { formatFacilityAddress } from "../../utils/facilityUtils";
 import { compareDatesDesc, formatDatePl } from "../../utils/dateUtils";
 import { A4PrintPreview, printPreviewFrame } from "../print/A4PrintPreview";
 import { RozdzielnikItemsEditor } from "./components/RozdzielnikItemsEditor";
+import { RozdzielnikTemplatesPanel } from "./components/RozdzielnikTemplatesPanel";
+import type { RozdzielnikTemplate } from "../../utils/rozdzielnikTemplates";
 
 export function RozdzielnikPrintSection() {
   const actions = useOzipzDbStore((s) => s.actions);
@@ -20,6 +22,7 @@ export function RozdzielnikPrintSection() {
   const previewRef = useRef<HTMLIFrameElement>(null);
 
   const [actionId, setActionId] = useState("");
+  const [facilityId, setFacilityId] = useState("");
   const [date, setDate] = useState("");
   const [programText, setProgramText] = useState("");
   const [institutionText, setInstitutionText] = useState("");
@@ -50,6 +53,37 @@ export function RozdzielnikPrintSection() {
     [tasksWithMaterials]
   );
 
+  const facilityOptions: SelectOption[] = useMemo(
+    () =>
+      facilities.map((f) => ({
+        value: f.id,
+        label: f.name,
+        group: f.municipality
+          ? f.municipality.toLowerCase().startsWith("gmina")
+            ? f.municipality
+            : `Gmina ${f.municipality}`
+          : "Inne",
+        description: formatFacilityAddress(f),
+        icon: f.isComplex ? Building2 : School,
+      })),
+    [facilities]
+  );
+
+  const facilityLine = (id: string | undefined) => {
+    const facility = facilities.find((f) => f.id === id);
+    return facility ? [facility.name, formatFacilityAddress(facility)].filter(Boolean).join(", ") : undefined;
+  };
+
+  const handleFacilitySelect = (id: string) => {
+    setFacilityId(id);
+    setInstitutionText(facilityLine(id) ?? "");
+  };
+
+  const handleTemplateApply = (template: RozdzielnikTemplate) => {
+    if (template.programName) setProgramText(template.programName);
+    setItems(template.items.map((item) => ({ ...item })));
+  };
+
   const materialTitles = useMemo(() => materials.map((m) => m.title), [materials]);
 
   const handleTaskSelect = (id: string) => {
@@ -57,12 +91,10 @@ export function RozdzielnikPrintSection() {
     const task = tasksWithMaterials.find((t) => t.action.id === id);
     if (!task) return;
     const { action } = task;
-    const facility = facilities.find((f) => f.id === action.facilityId);
     setDate(action.date);
     setProgramText(action.programName || action.campaignName || action.topic || "");
-    setInstitutionText(
-      facility ? [facility.name, formatFacilityAddress(facility)].filter(Boolean).join(", ") : action.facilityName
-    );
+    setFacilityId(action.facilityId ?? "");
+    setInstitutionText(facilityLine(action.facilityId) ?? action.facilityName);
     setItems(task.items);
   };
 
@@ -72,8 +104,8 @@ export function RozdzielnikPrintSection() {
   );
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 items-start">
-      <Card className="w-full lg:w-[440px] lg:shrink-0 p-4 space-y-4">
+    <div className="flex flex-col lg:flex-row lg:flex-wrap gap-4 items-start">
+      <Card className="w-full lg:w-[400px] lg:shrink-0 p-4 space-y-4">
         <div>
           <h2 className="text-sm font-bold">Rozdzielnik materiałów</h2>
           <p className="text-xs text-muted-foreground">
@@ -126,12 +158,21 @@ export function RozdzielnikPrintSection() {
             <Building2 className="size-3.5 text-primary" />
             Instytucja/organizacja
           </label>
+          <SearchableSelect
+            value={facilityId}
+            onChange={handleFacilitySelect}
+            options={facilityOptions}
+            placeholder="-- Wybierz z bazy placówek --"
+            searchPlaceholder="Szukaj placówki..."
+            clearable
+            size="sm"
+          />
           <Textarea
             aria-label="Instytucja/organizacja"
             value={institutionText}
             onChange={(e) => setInstitutionText(e.target.value)}
             rows={2}
-            placeholder="Puste = do wpisania ręcznie"
+            placeholder="Wybierz z bazy albo wpisz ręcznie; puste = do wpisania na wydruku"
             className="text-xs"
           />
         </div>
@@ -151,6 +192,8 @@ export function RozdzielnikPrintSection() {
       </Card>
 
       <A4PrintPreview ref={previewRef} html={html} title="Podgląd rozdzielnika" />
+
+      <RozdzielnikTemplatesPanel programName={programText} items={items} onApply={handleTemplateApply} />
     </div>
   );
 }

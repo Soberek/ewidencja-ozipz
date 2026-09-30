@@ -18,6 +18,8 @@ import { FallbackDictionariesRepository } from "./repositories/fallback/fallback
 import { FallbackStaffContactsRepository } from "./repositories/fallback/fallback-staff-contacts.repository";
 import { FallbackRegistryRepository } from "./repositories/fallback/fallback-registry.repository";
 import { FallbackMonthlyTargetsRepository } from "./repositories/fallback/fallback-monthly-targets.repository";
+import { FallbackRozdzielnikTemplatesRepository } from "./repositories/fallback/fallback-rozdzielnik-templates.repository";
+import type { RozdzielnikTemplate } from "../features/ozipz/utils/rozdzielnikTemplates";
 import { getStoredClosedMonths } from "../features/ozipz/utils/dateUtils";
 import type { ChangeLogEntry } from "./change-log";
 
@@ -32,6 +34,7 @@ export class FallbackDatabaseService implements IOzipzDatabaseService {
   private readonly staffContactsRepo: FallbackStaffContactsRepository;
   private readonly registryRepo: FallbackRegistryRepository;
   private readonly monthlyTargetsRepo: FallbackMonthlyTargetsRepository;
+  private readonly rozdzielnikTemplatesRepo: FallbackRozdzielnikTemplatesRepository;
 
   constructor() {
     this.scheduleRepo = new FallbackScheduleRepository();
@@ -44,6 +47,7 @@ export class FallbackDatabaseService implements IOzipzDatabaseService {
     this.staffContactsRepo = new FallbackStaffContactsRepository();
     this.registryRepo = new FallbackRegistryRepository();
     this.monthlyTargetsRepo = new FallbackMonthlyTargetsRepository();
+    this.rozdzielnikTemplatesRepo = new FallbackRozdzielnikTemplatesRepository();
   }
 
   async getClosedMonths(): Promise<string[]> { return [...getStoredClosedMonths()].filter((month) => typeof month === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(month)).sort(); }
@@ -145,6 +149,10 @@ export class FallbackDatabaseService implements IOzipzDatabaseService {
   saveMonthlyTargets(year: number, targets: OzipzYearlyMonthlyTargets): Promise<OzipzMonthlyTarget[]> { return this.monthlyTargetsRepo.saveMonthlyTargets(year, targets); }
   getMetricPlan(year: number): Promise<MetricPlanState | null> { return this.monthlyTargetsRepo.getMetricPlan(year); }
   saveMetricPlan(year: number, plan: MetricPlanState): Promise<void> { return this.monthlyTargetsRepo.saveMetricPlan(year, plan); }
+  // Szablony rozdzielnika
+  getRozdzielnikTemplates(): Promise<RozdzielnikTemplate[]> { return this.rozdzielnikTemplatesRepo.getRozdzielnikTemplates(); }
+  saveRozdzielnikTemplate(t: RozdzielnikTemplate): Promise<void> { return this.rozdzielnikTemplatesRepo.saveRozdzielnikTemplate(t); }
+  deleteRozdzielnikTemplate(id: string): Promise<void> { return this.rozdzielnikTemplatesRepo.deleteRozdzielnikTemplate(id); }
   // Historia zmian wymaga SQLite; tryb awaryjny jej nie prowadzi.
   async getChangeLog(): Promise<ChangeLogEntry[]> { return []; }
   async getRecordHistory(): Promise<ChangeLogEntry[]> { return []; }

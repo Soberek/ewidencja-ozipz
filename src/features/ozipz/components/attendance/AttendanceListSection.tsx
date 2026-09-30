@@ -88,6 +88,7 @@ export function AttendanceListSection() {
             options={programOptions}
             placeholder="-- Wybierz program --"
             searchPlaceholder="Szukaj programu po nazwie lub JRWA..."
+            clearable
             size="sm"
           />
           <Textarea
@@ -120,6 +121,7 @@ export function AttendanceListSection() {
             options={facilityOptions}
             placeholder="-- Wybierz placówkę --"
             searchPlaceholder="Szukaj placówki..."
+            clearable
             size="sm"
           />
           <Textarea

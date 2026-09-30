@@ -272,6 +272,9 @@ export const OzipzDbService: IOzipzDatabaseService = {
   async saveMonthlyTargets(year, targets) { return (await resolveService()).saveMonthlyTargets(year, targets); },
   async getMetricPlan(year) { return (await resolveService()).getMetricPlan(year); },
   async saveMetricPlan(year, plan) { return (await resolveService()).saveMetricPlan(year, plan); },
+  async getRozdzielnikTemplates() { return (await resolveService()).getRozdzielnikTemplates(); },
+  async saveRozdzielnikTemplate(template) { return (await resolveService()).saveRozdzielnikTemplate(template); },
+  async deleteRozdzielnikTemplate(id) { return (await resolveService()).deleteRozdzielnikTemplate(id); },
 
   async getChangeLog(filter) { return (await resolveService()).getChangeLog(filter); },
   async getRecordHistory(tableName, rowId) { return (await resolveService()).getRecordHistory(tableName, rowId); },

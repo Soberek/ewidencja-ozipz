@@ -21,6 +21,7 @@ import type {
 import type { CompanionDistributionPayload, SaveActionWithRelationsParams, SaveActionWithRelationsResult } from "../types";
 import type { OzipzYearlyMonthlyTargets } from "../../features/ozipz/utils/monthlyTargetsUtils";
 import type { MetricPlanState } from "../../features/ozipz/components/reports/components/reportConstants";
+import type { RozdzielnikTemplate } from "../../features/ozipz/utils/rozdzielnikTemplates";
 
 export interface IActionsRepository {
   getActions(): Promise<OzipzAction[]>;
@@ -128,4 +129,11 @@ export interface IMonthlyTargetsRepository {
   /** Roczny plan miernika (działania i uczestnicy); null, gdy dla roku nie zapisano planu. */
   getMetricPlan(year: number): Promise<MetricPlanState | null>;
   saveMetricPlan(year: number, plan: MetricPlanState): Promise<void>;
+}
+
+export interface IRozdzielnikTemplatesRepository {
+  getRozdzielnikTemplates(): Promise<RozdzielnikTemplate[]>;
+  /** Dodaje albo zastępuje szablon o tym samym id. */
+  saveRozdzielnikTemplate(template: RozdzielnikTemplate): Promise<void>;
+  deleteRozdzielnikTemplate(id: string): Promise<void>;
 }

@@ -20,6 +20,7 @@ import type {
 } from "../../features/ozipz/types/ozipz.types";
 import type { OzipzYearlyMonthlyTargets } from "../../features/ozipz/utils/monthlyTargetsUtils";
 import type { MetricPlanState } from "../../features/ozipz/components/reports/components/reportConstants";
+import type { RozdzielnikTemplate } from "../../features/ozipz/utils/rozdzielnikTemplates";
 import type { ChangeLogEntry, ChangeLogFilter } from "../change-log";
 
 /** Osobne działanie „Dystrybucja” zapisywane razem z działaniem głównym i powiązane z nim przez `linkedActionId`. */
@@ -139,6 +140,10 @@ export interface IOzipzDatabaseService {
   saveMonthlyTargets(year: number, targets: OzipzYearlyMonthlyTargets): Promise<OzipzMonthlyTarget[]>;
   getMetricPlan(year: number): Promise<MetricPlanState | null>;
   saveMetricPlan(year: number, plan: MetricPlanState): Promise<void>;
+
+  getRozdzielnikTemplates(): Promise<RozdzielnikTemplate[]>;
+  saveRozdzielnikTemplate(template: RozdzielnikTemplate): Promise<void>;
+  deleteRozdzielnikTemplate(id: string): Promise<void>;
 
   getFacilityActivitySummary(facilityId: string): Promise<FacilityActivitySummary>;
 

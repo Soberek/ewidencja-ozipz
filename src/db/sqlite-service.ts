@@ -17,6 +17,8 @@ import { SqliteDictionariesRepository } from "./repositories/sqlite/sqlite-dicti
 import { SqliteStaffContactsRepository } from "./repositories/sqlite/sqlite-staff-contacts.repository";
 import { SqliteRegistryRepository } from "./repositories/sqlite/sqlite-registry.repository";
 import { SqliteMonthlyTargetsRepository } from "./repositories/sqlite/sqlite-monthly-targets.repository";
+import { SqliteRozdzielnikTemplatesRepository } from "./repositories/sqlite/sqlite-rozdzielnik-templates.repository";
+import type { RozdzielnikTemplate } from "../features/ozipz/utils/rozdzielnikTemplates";
 import { getRestoreGroup, listChangeLog, listRecordHistory, restoreChange, type ChangeLogEntry, type ChangeLogFilter } from "./change-log";
 
 export { initTables } from "./sqlite-schema";
@@ -33,6 +35,7 @@ export class SqliteDatabaseService implements IOzipzDatabaseService {
   private readonly staffContactsRepo: SqliteStaffContactsRepository;
   private readonly registryRepo: SqliteRegistryRepository;
   private readonly monthlyTargetsRepo: SqliteMonthlyTargetsRepository;
+  private readonly rozdzielnikTemplatesRepo: SqliteRozdzielnikTemplatesRepository;
 
   constructor(private readonly db: ISqlDatabase) {
     this.scheduleRepo = new SqliteScheduleRepository(db);
@@ -45,6 +48,7 @@ export class SqliteDatabaseService implements IOzipzDatabaseService {
     this.staffContactsRepo = new SqliteStaffContactsRepository(db);
     this.registryRepo = new SqliteRegistryRepository(db);
     this.monthlyTargetsRepo = new SqliteMonthlyTargetsRepository(db);
+    this.rozdzielnikTemplatesRepo = new SqliteRozdzielnikTemplatesRepository(db);
   }
 
   async getClosedMonths(): Promise<string[]> {
@@ -150,6 +154,10 @@ export class SqliteDatabaseService implements IOzipzDatabaseService {
   saveMonthlyTargets(year: number, targets: OzipzYearlyMonthlyTargets): Promise<OzipzMonthlyTarget[]> { return this.monthlyTargetsRepo.saveMonthlyTargets(year, targets); }
   getMetricPlan(year: number): Promise<MetricPlanState | null> { return this.monthlyTargetsRepo.getMetricPlan(year); }
   saveMetricPlan(year: number, plan: MetricPlanState): Promise<void> { return this.monthlyTargetsRepo.saveMetricPlan(year, plan); }
+  // Szablony rozdzielnika
+  getRozdzielnikTemplates(): Promise<RozdzielnikTemplate[]> { return this.rozdzielnikTemplatesRepo.getRozdzielnikTemplates(); }
+  saveRozdzielnikTemplate(t: RozdzielnikTemplate): Promise<void> { return this.rozdzielnikTemplatesRepo.saveRozdzielnikTemplate(t); }
+  deleteRozdzielnikTemplate(id: string): Promise<void> { return this.rozdzielnikTemplatesRepo.deleteRozdzielnikTemplate(id); }
   // Historia zmian i kosz
   getChangeLog(filter?: ChangeLogFilter): Promise<ChangeLogEntry[]> { return listChangeLog(this.db, filter); }
   getRecordHistory(tableName: string, rowId: string): Promise<ChangeLogEntry[]> { return listRecordHistory(this.db, tableName, rowId); }
