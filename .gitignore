@@ -75,3 +75,6 @@ desktop.ini
 
 # Pliki zgłoszeń z lokalnej bazy deweloperskiej
 /Zgłoszenia/
+
+# Notatki agentów z przeglądów (lokalne, poza repozytorium)
+/.agents/
