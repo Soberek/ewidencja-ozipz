@@ -249,6 +249,9 @@ describe("Pomocnicze funkcje zapisu", () => {
     });
     expect(findDuplicateAction(payload, [registered])?.id).toBe("act-1");
     expect(findDuplicateAction({ ...payload, date: "2026-09-11" }, [registered])).toBeUndefined();
+    // Te same dane, ale inny program lub kampania – to osobne działanie.
+    expect(findDuplicateAction({ ...payload, programId: "prog-inny", programName: "Inny program" }, [registered])).toBeUndefined();
+    expect(findDuplicateAction({ ...payload, campaignId: "hpv" }, [registered])).toBeUndefined();
   });
 
   it("zapisują kampanię kodem słownika, także gdy formularz ma starszą etykietę lub id pozycji", () => {

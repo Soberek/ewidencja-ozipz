@@ -1,6 +1,6 @@
 import { useDeferredValue, useMemo } from "react";
 import type { OzipzAction, OzipzProgram } from "../../../types/ozipz.types";
-import { filterActionsList, computeActiveFiltersCount, generateActiveFilterChips } from "./actionsFilterLogic";
+import { filterActionsList, generateActiveFilterChips } from "./actionsFilterLogic";
 import { useActionFilterState } from "./useActionFilterState";
 import { useActionSelection } from "./useActionSelection";
 import { useActionToolsState } from "./useActionToolsState";
@@ -16,7 +16,6 @@ export interface UseActionsFilteringParams {
 
 export function useActionsFiltering({ actions, programs, onDeleteAction, onUpdateAction, defaultMonth, defaultYear }: UseActionsFilteringParams) {
   const currentYear = new Date().getFullYear();
-  const currentMonthStr = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
 
   const filterState = useActionFilterState({ defaultMonth, defaultYear });
   const tools = useActionToolsState();
@@ -34,70 +33,43 @@ export function useActionsFiltering({ actions, programs, onDeleteAction, onUpdat
     return filterActionsList(actions, {
       programs,
       search: deferredSearch, effectivePeriod: filterState.effectivePeriod, yearFilter: filterState.yearFilter, statusFilter: filterState.statusFilter,
-      quickFilterEzd: filterState.quickFilterEzd, quickFilterCurrentMonth: filterState.quickFilterCurrentMonth,
+      quickFilterEzd: filterState.quickFilterEzd,
       quickFilterProgramOnly: filterState.quickFilterProgramOnly, quickFilterInProgress: filterState.quickFilterInProgress,
       materialsOnlyFilter: filterState.materialsOnlyFilter, quickFilterPublications: filterState.quickFilterPublications,
       hidePublications: filterState.hidePublications, selectedMunicipalities: filterState.selectedMunicipalities,
       selectedPrograms: filterState.selectedPrograms, selectedActivityTypes: filterState.selectedActivityTypes,
       selectedTopics: filterState.selectedTopics, educatorFilter: filterState.educatorFilter,
-      ezdFilter: filterState.ezdFilter, currentMonthStr,
+      ezdFilter: filterState.ezdFilter,
     });
   }, [
     actions, programs, deferredSearch, filterState.effectivePeriod, filterState.yearFilter, filterState.statusFilter,
-    filterState.quickFilterEzd, filterState.quickFilterCurrentMonth, filterState.quickFilterProgramOnly,
+    filterState.quickFilterEzd, filterState.quickFilterProgramOnly,
     filterState.quickFilterInProgress, filterState.materialsOnlyFilter, filterState.quickFilterPublications,
     filterState.hidePublications, filterState.selectedMunicipalities, filterState.selectedPrograms,
     filterState.selectedActivityTypes, filterState.selectedTopics, filterState.educatorFilter,
-    filterState.ezdFilter, currentMonthStr,
+    filterState.ezdFilter,
   ]);
 
-  const activeFiltersCount = useMemo(() => {
-    return computeActiveFiltersCount({
+  // Setery z useState są stabilne, więc etykiety przeliczają się tylko po zmianie wartości filtrów.
+  const activeFilterChips = useMemo(() => generateActiveFilterChips(
+    {
       search: filterState.search, effectivePeriod: filterState.effectivePeriod, yearFilter: filterState.yearFilter,
-      quickFilterEzd: filterState.quickFilterEzd, quickFilterCurrentMonth: filterState.quickFilterCurrentMonth,
-      quickFilterProgramOnly: filterState.quickFilterProgramOnly, quickFilterInProgress: filterState.quickFilterInProgress,
-      materialsOnlyFilter: filterState.materialsOnlyFilter, quickFilterPublications: filterState.quickFilterPublications,
-      hidePublications: filterState.hidePublications, statusFilter: filterState.statusFilter, selectedMunicipalities: filterState.selectedMunicipalities,
-      selectedPrograms: filterState.selectedPrograms, selectedActivityTypes: filterState.selectedActivityTypes,
-      selectedTopics: filterState.selectedTopics, educatorFilter: filterState.educatorFilter, ezdFilter: filterState.ezdFilter,
-    });
-  }, [
-    filterState.search, filterState.effectivePeriod, filterState.yearFilter, filterState.quickFilterEzd,
-    filterState.quickFilterCurrentMonth, filterState.quickFilterProgramOnly,
-    filterState.quickFilterInProgress, filterState.materialsOnlyFilter,
-    filterState.quickFilterPublications, filterState.hidePublications, filterState.statusFilter,
-    filterState.selectedMunicipalities, filterState.selectedPrograms,
-    filterState.selectedActivityTypes, filterState.selectedTopics,
-    filterState.educatorFilter, filterState.ezdFilter,
-  ]);
-
-  const activeFilterChips = useMemo(() => {
-    return generateActiveFilterChips(
-      {
-        selectedMunicipalities: filterState.selectedMunicipalities,
-        selectedPrograms: filterState.selectedPrograms,
-        selectedActivityTypes: filterState.selectedActivityTypes,
-        selectedTopics: filterState.selectedTopics,
-        educatorFilter: filterState.educatorFilter,
-        effectivePeriod: filterState.effectivePeriod,
-        ezdFilter: filterState.ezdFilter,
-        materialsOnlyFilter: filterState.materialsOnlyFilter,
-        quickFilterPublications: filterState.quickFilterPublications,
-        yearFilter: filterState.yearFilter,
-      },
-      filterState,
-      programs
-    );
-  }, [
-    filterState.selectedMunicipalities, filterState.selectedPrograms, programs,
-    filterState.selectedActivityTypes, filterState.selectedTopics,
-    filterState.educatorFilter, filterState.effectivePeriod, filterState.ezdFilter,
-    filterState.materialsOnlyFilter, filterState.quickFilterPublications, filterState.yearFilter,
-    filterState.setYearFilter, filterState.setSelectedMunicipalities, filterState.setSelectedPrograms,
-    filterState.setSelectedActivityTypes, filterState.setSelectedTopics,
-    filterState.setEducatorFilter, filterState.setSelectedMonth,
-    filterState.setPeriodFilter, filterState.setEzdFilter,
-    filterState.setMaterialsOnlyFilter, filterState.setQuickFilterPublications,
+      statusFilter: filterState.statusFilter, publicationsMode: filterState.publicationsMode,
+      quickFilterEzd: filterState.quickFilterEzd, quickFilterProgramOnly: filterState.quickFilterProgramOnly,
+      quickFilterInProgress: filterState.quickFilterInProgress, materialsOnlyFilter: filterState.materialsOnlyFilter,
+      selectedMunicipalities: filterState.selectedMunicipalities, selectedPrograms: filterState.selectedPrograms,
+      selectedActivityTypes: filterState.selectedActivityTypes, selectedTopics: filterState.selectedTopics,
+      educatorFilter: filterState.educatorFilter, ezdFilter: filterState.ezdFilter,
+    },
+    filterState,
+    { period: filterState.defaultMonth, year: filterState.defaultYear },
+    programs
+  ), [
+    filterState.search, filterState.effectivePeriod, filterState.yearFilter, filterState.statusFilter,
+    filterState.publicationsMode, filterState.quickFilterEzd, filterState.quickFilterProgramOnly,
+    filterState.quickFilterInProgress, filterState.materialsOnlyFilter, filterState.selectedMunicipalities,
+    filterState.selectedPrograms, filterState.selectedActivityTypes, filterState.selectedTopics,
+    filterState.educatorFilter, filterState.ezdFilter, filterState.defaultMonth, filterState.defaultYear, programs,
   ]);
 
   const selection = useActionSelection({ actions, filteredActions, onDeleteAction, onUpdateAction });
@@ -108,7 +80,7 @@ export function useActionsFiltering({ actions, programs, onDeleteAction, onUpdat
     ...selection,
     availableYears,
     filteredActions,
-    activeFiltersCount,
+    activeFiltersCount: activeFilterChips.length,
     activeFilterChips,
   };
 }

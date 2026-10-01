@@ -1,9 +1,13 @@
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useActionsFiltering } from "./useActionsFiltering";
 import type { OzipzAction } from "../../../types/ozipz.types";
+import { ACTION_FILTERS_STORAGE_KEY } from "./useActionFilterState";
 
 describe("useActionsFiltering Hook - Smart Filtering Logic", () => {
+  // Filtry są zapamiętywane – każdy test zaczyna od domyślnych.
+  beforeEach(() => localStorage.removeItem(ACTION_FILTERS_STORAGE_KEY));
+
   const mockActions: OzipzAction[] = [
     {
       id: "act-1",
@@ -297,7 +301,7 @@ describe("useActionsFiltering Hook - Smart Filtering Logic", () => {
     expect(result.current.filteredActions[0].id).toBe("act-2");
   });
 
-  it("resets all active filters when handleClearFilters is called", () => {
+  it("handleClearFilters restores the default view", () => {
     const { result } = renderHook(() =>
       useActionsFiltering({
         actions: mockActions,
@@ -325,8 +329,10 @@ describe("useActionsFiltering Hook - Smart Filtering Logic", () => {
     expect(result.current.periodFilter).toBe("");
     expect(result.current.materialsOnlyFilter).toBe(false);
     expect(result.current.quickFilterEzd).toBe(false);
-    expect(result.current.statusFilter).toBe("wszystkie");
-    expect(result.current.filteredActions.some((action) => action.id === "act-4")).toBe(true);
+    expect(result.current.statusFilter).toBe("aktywne");
+    expect(result.current.publicationsMode).toBe("ukryte");
+    // Domyślnie odroczone działania są schowane.
+    expect(result.current.filteredActions.some((action) => action.id === "act-4")).toBe(false);
     expect(result.current.activeFiltersCount).toBe(0);
     expect(result.current.activeFilterChips).toEqual([]);
   });
@@ -506,21 +512,22 @@ describe("useActionsFiltering Hook - Smart Filtering Logic", () => {
     );
 
     act(() => {
-      result.current.togglePublicationsQuickFilter();
+      result.current.setPublicationsMode("tylko");
     });
 
     expect(result.current.quickFilterPublications).toBe(true);
     expect(result.current.filteredActions.length).toBe(1);
     expect(result.current.filteredActions[0].id).toBe("pub-1");
-    expect(result.current.activeFilterChips.some((c) => c.value === "Publikacje media (FB, X, www)")).toBe(true);
+    expect(result.current.activeFilterChips.find((c) => c.id === "publications")?.value).toBe("Tylko publikacje");
 
     act(() => {
-      result.current.togglePublicationsQuickFilter();
+      result.current.activeFilterChips.find((c) => c.id === "publications")?.onRemove();
     });
     expect(result.current.quickFilterPublications).toBe(false);
+    expect(result.current.publicationsMode).toBe("ukryte");
   });
 
-  it("has hidePublications active by default (publications hidden) and allows unclicking/toggling", () => {
+  it("hides publications by default and lets the user show them", () => {
     localStorage.clear();
     const actionsWithPubs: OzipzAction[] = [
       ...mockActions,
@@ -552,15 +559,16 @@ describe("useActionsFiltering Hook - Smart Filtering Logic", () => {
       })
     );
 
-    // 1. Domyślnie filtr hidePublications jest ZAWSZE aktywny
+    // 1. Domyślnie publikacje są schowane i nie liczą się jako aktywny filtr
     expect(result.current.hidePublications).toBe(true);
+    expect(result.current.activeFilterChips.some((c) => c.id === "publications")).toBe(false);
     // Publikacja "pub-fb" jest schowana w tabeli działań
     expect(result.current.filteredActions.some((a) => a.id === "pub-fb")).toBe(false);
     expect(result.current.filteredActions.length).toBe(3); // act-1, act-2, act-3
 
-    // 2. Użytkownik odklika filtr (chce zobaczyć publikacje)
+    // 2. Użytkownik chce zobaczyć publikacje razem z innymi działaniami
     act(() => {
-      result.current.toggleHidePublications();
+      result.current.setPublicationsMode("widoczne");
     });
 
     expect(result.current.hidePublications).toBe(false);
@@ -568,24 +576,14 @@ describe("useActionsFiltering Hook - Smart Filtering Logic", () => {
     expect(result.current.filteredActions.some((a) => a.id === "pub-fb")).toBe(true);
     expect(result.current.filteredActions.length).toBe(4);
 
-    // 3. Ponowne kliknięcie znowu chowa publikacje
-    act(() => {
-      result.current.toggleHidePublications();
-    });
-    expect(result.current.hidePublications).toBe(true);
-    expect(result.current.filteredActions.some((a) => a.id === "pub-fb")).toBe(false);
+    expect(result.current.activeFilterChips.find((c) => c.id === "publications")?.value).toBe("Widoczne");
 
-    // 4. Wyczyszczenie filtrów pokazuje również publikacje
-    act(() => {
-      result.current.toggleHidePublications();
-    });
-    expect(result.current.hidePublications).toBe(false);
-
+    // 3. Wyczyszczenie filtrów wraca do widoku domyślnego – publikacje znów schowane
     act(() => {
       result.current.handleClearFilters();
     });
-    expect(result.current.hidePublications).toBe(false);
-    expect(result.current.filteredActions.some((a) => a.id === "pub-fb")).toBe(true);
+    expect(result.current.hidePublications).toBe(true);
+    expect(result.current.filteredActions.some((a) => a.id === "pub-fb")).toBe(false);
   });
 
   it("filters actions by information card number (izrzSign)", () => {

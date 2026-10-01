@@ -279,7 +279,7 @@ export function useActionEditorState({
     if (!isEditMode) {
       const duplicate = findDuplicateAction(cleanPayload, actions);
       const duplicateKey = duplicate
-        ? [duplicate.id, cleanPayload.date, cleanPayload.title, cleanPayload.facilityName, cleanPayload.actionType].join("|")
+        ? [duplicate.id, cleanPayload.date, cleanPayload.title, cleanPayload.facilityName, cleanPayload.actionType, cleanPayload.programId, cleanPayload.campaignId].join("|")
         : null;
       const warning = duplicateWarningRef.current;
       if (duplicate && duplicateKey && !(warning?.key === duplicateKey && Date.now() - warning.at >= DUPLICATE_CONFIRM_DELAY_MS)) {

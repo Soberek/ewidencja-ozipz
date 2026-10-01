@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act, waitFor, cleanup } from "@testing-library/react";
-import { filterActionsList, computeActiveFiltersCount, generateActiveFilterChips, type FilterChipSetters } from "./actionsFilterLogic";
+import { filterActionsList, generateActiveFilterChips, type FilterChipSetters, type FilterChipState } from "./actionsFilterLogic";
 import { useActionsFiltering } from "./useActionsFiltering";
 import { useClosedMonths } from "./useClosedMonths";
 import { useOzipzDbStore } from "../../../store/useOzipzDbStore";
@@ -15,10 +15,10 @@ const action = (id: string, date: string, participantsCount = 10): OzipzAction =
 const actions = [action("a1", "2025-09-15", 5), action("a2", "2026-09-10", 20), action("a3", "2026-03-02", 30)];
 
 const baseCriteria = {
-  search: "", effectivePeriod: "", statusFilter: "wszystkie" as const, quickFilterEzd: false, quickFilterCurrentMonth: false,
+  search: "", effectivePeriod: "", statusFilter: "wszystkie" as const, quickFilterEzd: false,
   quickFilterProgramOnly: false, quickFilterInProgress: false, materialsOnlyFilter: false, quickFilterPublications: false,
   hidePublications: false, selectedMunicipalities: [], selectedPrograms: [], selectedActivityTypes: [], selectedTopics: [],
-  educatorFilter: "", ezdFilter: "all", currentMonthStr: "2026-09",
+  educatorFilter: "", ezdFilter: "all",
 };
 
 describe("Filtr roku w rejestrze działań", () => {
@@ -29,18 +29,23 @@ describe("Filtr roku w rejestrze działań", () => {
     expect(filterActionsList(actions, { ...baseCriteria, yearFilter: "2025" }).map((a) => a.id)).toEqual(["a1"]);
   });
 
-  it("rok liczy się jako aktywny filtr i ma własny chip", () => {
-    const counts = { ...baseCriteria, statusFilter: "wszystkie" };
-    expect(computeActiveFiltersCount({ ...counts, yearFilter: "2026" }) - computeActiveFiltersCount(counts)).toBe(1);
+  it("rok i okres mają etykietę tylko, gdy odbiegają od widoku domyślnego; usunięcie ją przywraca", () => {
+    const defaults = { period: "10", year: "2026" };
+    const state: FilterChipState = {
+      search: "", effectivePeriod: "10", yearFilter: "2026", statusFilter: "aktywne", publicationsMode: "ukryte",
+      quickFilterEzd: false, quickFilterProgramOnly: false, quickFilterInProgress: false, materialsOnlyFilter: false,
+      selectedMunicipalities: [], selectedPrograms: [], selectedActivityTypes: [], selectedTopics: [], educatorFilter: "", ezdFilter: "all",
+    };
     const setYearFilter = vi.fn();
-    const setters = { setYearFilter } as unknown as FilterChipSetters;
-    const chips = generateActiveFilterChips({
-      selectedMunicipalities: [], selectedPrograms: [], selectedActivityTypes: [], selectedTopics: [], educatorFilter: "",
-      effectivePeriod: "", ezdFilter: "all", materialsOnlyFilter: false, quickFilterPublications: false, yearFilter: "2026",
-    }, setters);
-    expect(chips).toHaveLength(1);
-    chips[0].onRemove();
-    expect(setYearFilter).toHaveBeenCalledWith("");
+    const setSelectedMonth = vi.fn();
+    const setters = { setYearFilter, setSelectedMonth, setPeriodFilter: vi.fn() } as unknown as FilterChipSetters;
+    expect(generateActiveFilterChips(state, setters, defaults)).toEqual([]);
+
+    const chips = generateActiveFilterChips({ ...state, yearFilter: "", effectivePeriod: "" }, setters, defaults);
+    expect(chips.map((c) => `${c.label}: ${c.value}`)).toEqual(["Rok: Wszystkie lata", "Okres: Wszystkie miesiące"]);
+    chips.forEach((c) => c.onRemove());
+    expect(setYearFilter).toHaveBeenCalledWith("2026");
+    expect(setSelectedMonth).toHaveBeenCalledWith("10");
   });
 
   it("lista dotyczy wybranego roku, a lata są brane z danych", () => {
@@ -53,9 +58,8 @@ describe("Filtr roku w rejestrze działań", () => {
 
     act(() => result.current.setYearFilter(""));
     expect(result.current.filteredActions).toHaveLength(3);
-    act(() => result.current.setYearFilter("2026"));
     act(() => result.current.handleClearFilters());
-    expect(result.current.yearFilter).toBe("");
+    expect(result.current.yearFilter).toBe("2026");
   });
 });
 

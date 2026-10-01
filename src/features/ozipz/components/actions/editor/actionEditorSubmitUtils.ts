@@ -12,6 +12,7 @@ import type {
 } from "./editor.types";
 import { PUBLICATION_DEFAULTS } from "../../../constants";
 import { municipalityName } from "../../../utils/facilityUtils";
+import { extractCleanJrwaSymbol } from "../../../utils/calculators/jrwaClassification";
 
 /**
  * Status EZD nowego działania, gdy użytkownik go nie zmienił: "do EZD" (wymaga wpisu).
@@ -167,14 +168,32 @@ export function getMissingActionFields(
   return missing;
 }
 
-/** Szuka w rejestrze działania o tej samej dacie, tytule, miejscu i formie (typowy skutek podwójnego zapisu lub kopii). */
+/**
+ * Inny program (lub inna klasyfikacja JRWA) to już inne działanie. Gdy klasyfikacji jednego z wpisów
+ * nie da się ustalić (np. brak znaku sprawy), nie rozstrzyga ona o różnicy.
+ */
+function differentClassification(a: Partial<OzipzAction>, b: Partial<OzipzAction>): boolean {
+  const programA = a.programId?.trim();
+  const programB = b.programId?.trim();
+  if (programA && programB) return programA !== programB;
+  const symbolA = extractCleanJrwaSymbol(a);
+  const symbolB = extractCleanJrwaSymbol(b);
+  return Boolean(symbolA && symbolB && symbolA !== symbolB);
+}
+
+/**
+ * Szuka w rejestrze działania o tej samej dacie, tytule, miejscu, formie, programie (lub klasyfikacji) i kampanii
+ * – typowy skutek podwójnego zapisu lub kopii.
+ */
 export function findDuplicateAction(payload: ActionPayload, actions: OzipzAction[]): OzipzAction | undefined {
   const norm = (value?: string | null) => (value || "").trim().toLowerCase();
   return actions.find((a) =>
     a.date === payload.date &&
     norm(a.title) === norm(payload.title) &&
     norm(a.facilityName) === norm(payload.facilityName) &&
-    norm(a.actionType) === norm(payload.actionType)
+    norm(a.actionType) === norm(payload.actionType) &&
+    norm(a.campaignId) === norm(payload.campaignId) &&
+    !differentClassification(a, payload)
   );
 }
 

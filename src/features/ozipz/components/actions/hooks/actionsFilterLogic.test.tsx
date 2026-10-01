@@ -1,7 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
-import { expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 import type { OzipzAction, OzipzProgram } from "../../../types/ozipz.types";
 import { useActionsFiltering } from "./useActionsFiltering";
+import { ACTION_FILTERS_STORAGE_KEY } from "./useActionFilterState";
+
+// Filtry są zapamiętywane – każdy test zaczyna od domyślnych.
+beforeEach(() => localStorage.removeItem(ACTION_FILTERS_STORAGE_KEY));
 
 it("finds legacy actions by a selected program's name and shows that name in the filter chip", () => {
   const actions = [{ id: "legacy", title: "Prelekcja", actionType: "Prelekcja", date: "2026-09-10", programName: "Trzymaj Formę!", status: "wykonane" }] as OzipzAction[];
@@ -20,6 +24,6 @@ it("publication quick filter does not match a talk whose title contains 'post'",
     { id: "post", title: "Wpis o zdrowiu", actionType: "Publikacja media (Facebook)", date: "2026-09-10", participantsCount: 20 },
   ] as OzipzAction[];
   const { result } = renderHook(() => useActionsFiltering({ actions, onDeleteAction: vi.fn(), onUpdateAction: vi.fn() }));
-  act(() => result.current.togglePublicationsQuickFilter());
+  act(() => result.current.setPublicationsMode("tylko"));
   expect(result.current.filteredActions.map((action) => action.id)).toEqual(["post"]);
 });

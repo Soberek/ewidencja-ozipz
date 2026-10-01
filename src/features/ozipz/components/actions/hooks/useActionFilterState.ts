@@ -1,51 +1,88 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 export interface UseActionFilterStateOptions {
   defaultMonth?: string;
   defaultYear?: string;
 }
 
-export function useActionFilterState(options: UseActionFilterStateOptions = {}) {
-  const [search, setSearch] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState<string>(options.defaultMonth ?? "");
-  const [yearFilter, setYearFilter] = useState<string>(options.defaultYear ?? "");
-  const [periodFilter, setPeriodFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<"aktywne" | "wszystkie" | "zakonczone">("aktywne");
-  const [quickFilterEzd, setQuickFilterEzd] = useState(false);
-  const [quickFilterCurrentMonth, setQuickFilterCurrentMonth] = useState(false);
-  const [quickFilterProgramOnly, setQuickFilterProgramOnly] = useState(false);
-  const [quickFilterInProgress, setQuickFilterInProgress] = useState(false);
-  const [materialsOnlyFilter, setMaterialsOnlyFilter] = useState(false);
-  const [quickFilterPublications, setQuickFilterPublications] = useState(false);
-  const [hidePublications, setHidePublications] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem("oz.hidePublications");
-      if (saved !== null) return saved === "true";
-    } catch {
-      // ignore
+export type StatusFilter = "aktywne" | "wszystkie" | "zakonczone";
+/** Publikacje w mediach (FB, X, www): domyślnie schowane, można je pokazać razem z innymi działaniami albo same. */
+export type PublicationsMode = "ukryte" | "widoczne" | "tylko";
+
+export const DEFAULT_STATUS_FILTER: StatusFilter = "aktywne";
+export const DEFAULT_PUBLICATIONS_MODE: PublicationsMode = "ukryte";
+
+/**
+ * Filtry rejestru zapamiętane między wejściami. Bez okresu i roku – rejestr zawsze otwiera się na bieżącym miesiącu,
+ * także po zmianie roku. Bez wyszukiwanego tekstu. Preferencja widoku – brak pamięci nie jest błędem.
+ */
+export const ACTION_FILTERS_STORAGE_KEY = "oz.actionsFilters";
+const LEGACY_HIDE_PUBLICATIONS_KEY = "oz.hidePublications";
+
+interface SavedActionFilters {
+  statusFilter: StatusFilter;
+  publicationsMode: PublicationsMode;
+  quickFilterEzd: boolean;
+  quickFilterProgramOnly: boolean;
+  quickFilterInProgress: boolean;
+  materialsOnlyFilter: boolean;
+  selectedMunicipalities: string[];
+  selectedPrograms: string[];
+  selectedActivityTypes: string[];
+  selectedTopics: string[];
+  educatorFilter: string;
+  ezdFilter: string;
+}
+
+function readSavedFilters(): Partial<SavedActionFilters> {
+  const result: Partial<SavedActionFilters> = {};
+  try {
+    const legacy = localStorage.getItem(LEGACY_HIDE_PUBLICATIONS_KEY);
+    if (legacy !== null) result.publicationsMode = legacy === "true" ? "ukryte" : "widoczne";
+    const raw = JSON.parse(localStorage.getItem(ACTION_FILTERS_STORAGE_KEY) ?? "null") as Record<string, unknown> | null;
+    if (!raw || typeof raw !== "object") return result;
+    for (const key of ["educatorFilter", "ezdFilter"] as const) {
+      if (typeof raw[key] === "string") result[key] = raw[key];
     }
-    return true;
-  });
+    for (const key of ["quickFilterEzd", "quickFilterProgramOnly", "quickFilterInProgress", "materialsOnlyFilter"] as const) {
+      if (typeof raw[key] === "boolean") result[key] = raw[key];
+    }
+    for (const key of ["selectedMunicipalities", "selectedPrograms", "selectedActivityTypes", "selectedTopics"] as const) {
+      const value = raw[key];
+      if (Array.isArray(value)) result[key] = value.filter((item): item is string => typeof item === "string");
+    }
+    if (raw.statusFilter === "aktywne" || raw.statusFilter === "wszystkie" || raw.statusFilter === "zakonczone") {
+      result.statusFilter = raw.statusFilter;
+    }
+    if (raw.publicationsMode === "ukryte" || raw.publicationsMode === "widoczne" || raw.publicationsMode === "tylko") {
+      result.publicationsMode = raw.publicationsMode;
+    }
+  } catch {
+    // Uszkodzony lub niedostępny zapis – zostają filtry domyślne.
+  }
+  return result;
+}
 
-  const toggleHidePublications = useCallback(() => {
-    setHidePublications((prev) => {
-      const next = !prev;
-      try { localStorage.setItem("oz.hidePublications", String(next)); } catch { /* ignore */ }
-      return next;
-    });
-  }, []);
-
-  const togglePublicationsQuickFilter = useCallback(
-    () => setQuickFilterPublications((prev) => !prev),
-    []
-  );
-
-  const [selectedMunicipalities, setSelectedMunicipalities] = useState<string[]>([]);
-  const [selectedPrograms, setSelectedPrograms] = useState<string[]>([]);
-  const [selectedActivityTypes, setSelectedActivityTypes] = useState<string[]>([]);
-  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
-  const [educatorFilter, setEducatorFilter] = useState("");
-  const [ezdFilter, setEzdFilter] = useState("all");
+export function useActionFilterState(options: UseActionFilterStateOptions = {}) {
+  const defaultMonth = options.defaultMonth ?? "";
+  const defaultYear = options.defaultYear ?? "";
+  const [saved] = useState(readSavedFilters);
+  const [search, setSearch] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState<string>(defaultMonth);
+  const [yearFilter, setYearFilter] = useState<string>(defaultYear);
+  const [periodFilter, setPeriodFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(saved.statusFilter ?? DEFAULT_STATUS_FILTER);
+  const [publicationsMode, setPublicationsMode] = useState<PublicationsMode>(saved.publicationsMode ?? DEFAULT_PUBLICATIONS_MODE);
+  const [quickFilterEzd, setQuickFilterEzd] = useState(saved.quickFilterEzd ?? false);
+  const [quickFilterProgramOnly, setQuickFilterProgramOnly] = useState(saved.quickFilterProgramOnly ?? false);
+  const [quickFilterInProgress, setQuickFilterInProgress] = useState(saved.quickFilterInProgress ?? false);
+  const [materialsOnlyFilter, setMaterialsOnlyFilter] = useState(saved.materialsOnlyFilter ?? false);
+  const [selectedMunicipalities, setSelectedMunicipalities] = useState<string[]>(saved.selectedMunicipalities ?? []);
+  const [selectedPrograms, setSelectedPrograms] = useState<string[]>(saved.selectedPrograms ?? []);
+  const [selectedActivityTypes, setSelectedActivityTypes] = useState<string[]>(saved.selectedActivityTypes ?? []);
+  const [selectedTopics, setSelectedTopics] = useState<string[]>(saved.selectedTopics ?? []);
+  const [educatorFilter, setEducatorFilter] = useState(saved.educatorFilter ?? "");
+  const [ezdFilter, setEzdFilter] = useState(saved.ezdFilter ?? "all");
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
   // Backward-compatibility single-value setters
@@ -54,14 +91,28 @@ export function useActionFilterState(options: UseActionFilterStateOptions = {}) 
   const setActivityTypeFilter = useCallback((val: string) => setSelectedActivityTypes(val ? [val] : []), []);
   const setTopicFilter = useCallback((val: string) => setSelectedTopics(val ? [val] : []), []);
 
+  /** Przywraca widok domyślny: bieżący miesiąc i rok, aktywne działania, publikacje schowane. */
   const handleClearFilters = useCallback(() => {
-    setSearch(""); setSelectedMonth(""); setYearFilter(""); setPeriodFilter(""); setStatusFilter("wszystkie");
-    setQuickFilterEzd(false); setQuickFilterCurrentMonth(false); setQuickFilterProgramOnly(false);
-    setQuickFilterInProgress(false); setMaterialsOnlyFilter(false); setQuickFilterPublications(false);
+    setSearch(""); setSelectedMonth(defaultMonth); setYearFilter(defaultYear); setPeriodFilter("");
+    setStatusFilter(DEFAULT_STATUS_FILTER); setPublicationsMode(DEFAULT_PUBLICATIONS_MODE);
+    setQuickFilterEzd(false); setQuickFilterProgramOnly(false); setQuickFilterInProgress(false); setMaterialsOnlyFilter(false);
     setSelectedMunicipalities([]); setSelectedPrograms([]); setSelectedActivityTypes([]); setSelectedTopics([]);
-    setEducatorFilter(""); setEzdFilter("all"); setHidePublications(false);
-    try { localStorage.setItem("oz.hidePublications", "false"); } catch { /* ignore */ }
-  }, []);
+    setEducatorFilter(""); setEzdFilter("all");
+  }, [defaultMonth, defaultYear]);
+
+  useEffect(() => {
+    const filters: SavedActionFilters = {
+      statusFilter, publicationsMode, quickFilterEzd, quickFilterProgramOnly, quickFilterInProgress, materialsOnlyFilter,
+      selectedMunicipalities, selectedPrograms, selectedActivityTypes, selectedTopics, educatorFilter, ezdFilter,
+    };
+    try {
+      localStorage.setItem(ACTION_FILTERS_STORAGE_KEY, JSON.stringify(filters));
+      localStorage.removeItem(LEGACY_HIDE_PUBLICATIONS_KEY);
+    } catch { /* Preferencja widoku nie jest krytyczna. */ }
+  }, [
+    statusFilter, publicationsMode, quickFilterEzd, quickFilterProgramOnly, quickFilterInProgress, materialsOnlyFilter,
+    selectedMunicipalities, selectedPrograms, selectedActivityTypes, selectedTopics, educatorFilter, ezdFilter,
+  ]);
 
   const effectivePeriod = periodFilter || selectedMonth;
 
@@ -71,15 +122,15 @@ export function useActionFilterState(options: UseActionFilterStateOptions = {}) 
     yearFilter, setYearFilter,
     periodFilter, setPeriodFilter,
     effectivePeriod,
+    defaultMonth, defaultYear,
     statusFilter, setStatusFilter,
+    publicationsMode, setPublicationsMode,
+    hidePublications: publicationsMode === "ukryte",
+    quickFilterPublications: publicationsMode === "tylko",
     quickFilterEzd, setQuickFilterEzd,
-    quickFilterCurrentMonth, setQuickFilterCurrentMonth,
     quickFilterProgramOnly, setQuickFilterProgramOnly,
     quickFilterInProgress, setQuickFilterInProgress,
     materialsOnlyFilter, setMaterialsOnlyFilter,
-    quickFilterPublications, setQuickFilterPublications,
-    togglePublicationsQuickFilter,
-    hidePublications, setHidePublications, toggleHidePublications,
     selectedMunicipalities, setSelectedMunicipalities,
     selectedPrograms, setSelectedPrograms,
     selectedActivityTypes, setSelectedActivityTypes,

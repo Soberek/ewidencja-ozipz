@@ -78,7 +78,7 @@ export function ActionRowActionButtons({
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            {locksStatus === "error" ? "Nie można odczytać blokad miesięcy" : locksStatus === "loading" ? "Wczytywanie blokad miesięcy" : isClosed ? "Miesiąc zablokowany" : "Edytuj działanie"}
+            {locksStatus === "error" ? "Nie można odczytać blokad miesięcy" : locksStatus === "loading" ? "Wczytywanie blokad miesięcy" : isClosed ? "Miesiąc zablokowany – kliknij wiersz, aby podejrzeć" : "Edytuj działanie"}
           </TooltipContent>
         </Tooltip>
 

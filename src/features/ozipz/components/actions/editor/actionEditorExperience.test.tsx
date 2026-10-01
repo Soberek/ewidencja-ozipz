@@ -221,10 +221,10 @@ describe("Gmina bez prefiksu „Gmina”", () => {
       facilityName: "A", municipality, topic: "", audienceGroup: "U - 1", participantsCount: 1, leadEducator: "L", ezdStatus: "do_ezd", status: "wykonane",
       indirectRecipientsCount: 0, materialsDistributedCount: 0 });
     const filtered = filterActionsList([action("a", "Myślibórz"), action("b", "Gmina Myślibórz"), action("c", "Dębno")], {
-      search: "", effectivePeriod: "", statusFilter: "wszystkie", quickFilterEzd: false, quickFilterCurrentMonth: false,
+      search: "", effectivePeriod: "", statusFilter: "wszystkie", quickFilterEzd: false,
       quickFilterProgramOnly: false, quickFilterInProgress: false, materialsOnlyFilter: false, quickFilterPublications: false,
       hidePublications: false, selectedMunicipalities: ["Gmina Myślibórz"], selectedPrograms: [], selectedActivityTypes: [],
-      selectedTopics: [], educatorFilter: "", ezdFilter: "all", currentMonthStr: "2026-09",
+      selectedTopics: [], educatorFilter: "", ezdFilter: "all",
     });
     expect(filtered.map((a) => a.id).sort()).toEqual(["a", "b"]);
   });

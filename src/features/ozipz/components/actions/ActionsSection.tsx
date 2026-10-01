@@ -94,18 +94,14 @@ export function ActionsSection(props: ActionsSectionProps) {
     setStatusFilter,
     quickFilterEzd,
     setQuickFilterEzd,
-    quickFilterCurrentMonth,
-    setQuickFilterCurrentMonth,
     quickFilterProgramOnly,
     setQuickFilterProgramOnly,
     quickFilterInProgress,
     setQuickFilterInProgress,
     materialsOnlyFilter,
     setMaterialsOnlyFilter,
-    quickFilterPublications,
-    togglePublicationsQuickFilter,
-    hidePublications,
-    toggleHidePublications,
+    publicationsMode,
+    setPublicationsMode,
     municipalityFilter,
     setMunicipalityFilter,
     programFilter,
@@ -268,25 +264,19 @@ export function ActionsSection(props: ActionsSectionProps) {
           availableYears={availableYears}
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
+          publicationsMode={publicationsMode}
+          onPublicationsModeChange={setPublicationsMode}
           quickFilterEzd={quickFilterEzd}
           onToggleEzd={() => setQuickFilterEzd(!quickFilterEzd)}
-          quickFilterCurrentMonth={quickFilterCurrentMonth}
-          onToggleCurrentMonth={() => setQuickFilterCurrentMonth(!quickFilterCurrentMonth)}
           quickFilterProgramOnly={quickFilterProgramOnly}
           onToggleProgramOnly={() => setQuickFilterProgramOnly(!quickFilterProgramOnly)}
           quickFilterInProgress={quickFilterInProgress}
           onToggleInProgress={() => setQuickFilterInProgress(!quickFilterInProgress)}
           materialsOnlyFilter={materialsOnlyFilter}
           onToggleMaterialsOnly={() => setMaterialsOnlyFilter(!materialsOnlyFilter)}
-          quickFilterPublications={quickFilterPublications}
-          onTogglePublications={togglePublicationsQuickFilter}
-          hidePublications={hidePublications}
-          onToggleHidePublications={toggleHidePublications}
           isAdvancedOpen={isAdvancedOpen}
           onToggleAdvanced={() => setIsAdvancedOpen(!isAdvancedOpen)}
           advancedFiltersCount={advancedFiltersCount}
-          activeFiltersCount={activeFiltersCount}
-          onClearFilters={handleClearFilters}
         />
 
         {/* Rozwijany panel filtrów zaawansowanych */}
@@ -323,8 +313,6 @@ export function ActionsSection(props: ActionsSectionProps) {
         <ActionsFilterChips
           filters={activeFilterChips}
           onClearAll={handleClearFilters}
-          filteredCount={filteredActions.length}
-          totalCount={actions.length}
         />
 
         {/* Pasek operacji masowych */}
@@ -359,6 +347,7 @@ export function ActionsSection(props: ActionsSectionProps) {
           filteredActions={filteredActions}
           columns={columns}
           totalCount={actions.length}
+          hasActiveFilters={activeFiltersCount > 0}
           selectedActionIds={selectedActionIds}
           onOpenEdit={onOpenEdit}
           onClearFilters={handleClearFilters}

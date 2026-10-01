@@ -22,6 +22,8 @@ export interface ActionsTableViewProps {
   filteredActions: OzipzAction[];
   columns: ColumnDef<OzipzAction>[];
   totalCount: number;
+  /** Czy widok odbiega od domyślnego – bez tego pusta lista oznacza po prostu brak działań w bieżącym okresie. */
+  hasActiveFilters?: boolean;
   selectedActionIds: Set<string>;
   onOpenEdit: (action: OzipzAction) => void;
   onClearFilters: () => void;
@@ -33,6 +35,7 @@ export function ActionsTableView({
   filteredActions,
   columns,
   totalCount,
+  hasActiveFilters = true,
   selectedActionIds,
   onOpenEdit,
   onClearFilters,
@@ -50,13 +53,24 @@ export function ActionsTableView({
     try { localStorage.setItem("oz.actionsTableFontSize", String(value)); } catch { /* Rozmiar nadal działa w bieżącym widoku. */ }
   };
   if (filteredActions.length === 0) {
+    if (totalCount && hasActiveFilters) {
+      return (
+        <EmptyState
+          icon={Activity}
+          title="Brak działań edukacyjnych spełniających kryteria"
+          description="Zmień filtry wyszukiwania albo wróć do widoku domyślnego."
+          actionLabel="Wyczyść filtry"
+          onAction={onClearFilters}
+        />
+      );
+    }
     return (
       <EmptyState
         icon={Activity}
-        title={totalCount ? "Brak działań edukacyjnych spełniających kryteria" : "Brak zarejestrowanych działań"}
-        description={totalCount ? "Zmień filtry wyszukiwania, aby zobaczyć działania." : "Dodaj pierwsze działanie edukacyjne."}
-        actionLabel={totalCount ? "Wyczyść wszystkie filtry" : "Dodaj działanie"}
-        onAction={totalCount ? onClearFilters : onOpenAdd}
+        title={totalCount ? "Brak działań w bieżącym miesiącu" : "Brak zarejestrowanych działań"}
+        description={totalCount ? "Wybierz inny okres lub rok, albo dodaj nowe działanie." : "Dodaj pierwsze działanie edukacyjne."}
+        actionLabel="Dodaj działanie"
+        onAction={onOpenAdd}
       />
     );
   }

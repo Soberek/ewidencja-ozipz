@@ -1,6 +1,7 @@
 import type { OzipzAction, OzipzProgram } from "../../../types/ozipz.types";
 import { getActionEzdState } from "../actionEzdStatus";
 import type { ActiveFilterItem } from "../list/ActionsFilterChips";
+import { DEFAULT_PUBLICATIONS_MODE, DEFAULT_STATUS_FILTER, type PublicationsMode, type StatusFilter } from "./useActionFilterState";
 import { isPublicationActionType, normalizeActionType } from "../editor/editorUtils";
 import { municipalityName } from "../../../utils/facilityUtils";
 
@@ -9,13 +10,13 @@ export interface ActionsFilterCriteria {
   search: string; effectivePeriod: string;
   /** Rok działania ("2026"); pusty = wszystkie lata. */
   yearFilter?: string;
-  statusFilter: "aktywne" | "wszystkie" | "zakonczone";
-  quickFilterEzd: boolean; quickFilterCurrentMonth: boolean;
+  statusFilter: StatusFilter;
+  quickFilterEzd: boolean;
   quickFilterProgramOnly: boolean; quickFilterInProgress: boolean;
   materialsOnlyFilter: boolean; quickFilterPublications: boolean; hidePublications: boolean;
   selectedMunicipalities: string[]; selectedPrograms: string[];
   selectedActivityTypes: string[]; selectedTopics: string[];
-  educatorFilter: string; ezdFilter: string; currentMonthStr: string;
+  educatorFilter: string; ezdFilter: string;
 }
 
 // Tekst przeszukiwany dla danego działania; obiekty w store są niemutowalne, więc cache po referencji jest bezpieczny.
@@ -42,7 +43,6 @@ export function filterActionsList(actions: OzipzAction[], c: ActionsFilterCriter
       if (c.statusFilter === "aktywne" && a.status === "odroczone") return false;
       if (c.statusFilter === "zakonczone" && a.status !== "wykonane") return false;
       if (c.quickFilterEzd && getActionEzdState(a) !== "pending") return false;
-      if (c.quickFilterCurrentMonth && !a.date.startsWith(c.currentMonthStr)) return false;
       if (c.quickFilterProgramOnly && !a.programId && !a.programName) return false;
       if (c.quickFilterInProgress && a.status !== "w_toku" && a.status !== "planowane") return false;
       if (c.materialsOnlyFilter && (Number(a.materialsDistributedCount) || 0) <= 0) return false;
@@ -96,31 +96,31 @@ export function filterActionsList(actions: OzipzAction[], c: ActionsFilterCriter
     .sort((a, b) => ((b.date || "") < (a.date || "") ? -1 : (b.date || "") > (a.date || "") ? 1 : 0));
 }
 
-export function computeActiveFiltersCount(c: {
-  search: string; effectivePeriod: string; yearFilter?: string; quickFilterEzd: boolean; quickFilterCurrentMonth: boolean;
-  quickFilterProgramOnly: boolean; quickFilterInProgress: boolean; materialsOnlyFilter: boolean;
-  quickFilterPublications: boolean; hidePublications: boolean; statusFilter: string; selectedMunicipalities: string[];
-  selectedPrograms: string[]; selectedActivityTypes: string[]; selectedTopics: string[];
+export interface FilterChipState {
+  search: string; effectivePeriod: string; yearFilter: string;
+  statusFilter: StatusFilter; publicationsMode: PublicationsMode;
+  quickFilterEzd: boolean; quickFilterProgramOnly: boolean; quickFilterInProgress: boolean; materialsOnlyFilter: boolean;
+  selectedMunicipalities: string[]; selectedPrograms: string[]; selectedActivityTypes: string[]; selectedTopics: string[];
   educatorFilter: string; ezdFilter: string;
-}): number {
-  return (
-    (c.search.trim() ? 1 : 0) + (c.effectivePeriod ? 1 : 0) + (c.yearFilter ? 1 : 0) + (c.quickFilterEzd ? 1 : 0) +
-    (c.quickFilterCurrentMonth ? 1 : 0) + (c.quickFilterProgramOnly ? 1 : 0) + (c.quickFilterInProgress ? 1 : 0) +
-    (c.materialsOnlyFilter ? 1 : 0) + (c.quickFilterPublications ? 1 : 0) + (c.hidePublications ? 1 : 0) + (c.statusFilter !== "wszystkie" ? 1 : 0) +
-    c.selectedMunicipalities.length + c.selectedPrograms.length + c.selectedActivityTypes.length +
-    c.selectedTopics.length + (c.educatorFilter ? 1 : 0) + (c.ezdFilter !== "all" ? 1 : 0)
-  );
 }
 
 export interface FilterChipSetters {
+  setSearch: (val: string) => void;
+  setSelectedMonth: (val: string) => void; setPeriodFilter: (val: string) => void; setYearFilter: (val: string) => void;
+  setStatusFilter: (val: StatusFilter) => void; setPublicationsMode: (val: PublicationsMode) => void;
+  setQuickFilterEzd: (val: boolean) => void; setQuickFilterProgramOnly: (val: boolean) => void;
+  setQuickFilterInProgress: (val: boolean) => void; setMaterialsOnlyFilter: (val: boolean) => void;
   setSelectedMunicipalities: React.Dispatch<React.SetStateAction<string[]>>;
   setSelectedPrograms: React.Dispatch<React.SetStateAction<string[]>>;
   setSelectedActivityTypes: React.Dispatch<React.SetStateAction<string[]>>;
   setSelectedTopics: React.Dispatch<React.SetStateAction<string[]>>;
-  setEducatorFilter: (val: string) => void; setSelectedMonth: (val: string) => void;
-  setYearFilter?: (val: string) => void;
-  setPeriodFilter: (val: string) => void; setEzdFilter: (val: string) => void;
-  setMaterialsOnlyFilter: (val: boolean) => void; setQuickFilterPublications: (val: boolean) => void;
+  setEducatorFilter: (val: string) => void; setEzdFilter: (val: string) => void;
+}
+
+/** Widok, w którym rejestr się otwiera; etykieta pojawia się tylko dla filtrów, które od niego odbiegają. */
+export interface FilterDefaults {
+  period: string;
+  year: string;
 }
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -130,26 +130,47 @@ const PERIOD_LABELS: Record<string, string> = {
   "07": "Lipiec", "08": "Sierpień", "09": "Wrzesień", "10": "Październik", "11": "Listopad", "12": "Grudzień",
 };
 const EZD_LABELS: Record<string, string> = { do_ezd: "Wymaga EZD", w_ezd: "Wprowadzone w EZD", nie_dotyczy: "Nie dotyczy" };
+const STATUS_LABELS: Record<StatusFilter, string> = { aktywne: "Aktywne", wszystkie: "Wszystkie", zakonczone: "Zakończone" };
+const PUBLICATIONS_LABELS: Record<PublicationsMode, string> = { ukryte: "Schowane", widoczne: "Widoczne", tylko: "Tylko publikacje" };
 
+/**
+ * Etykiety filtrów odbiegających od widoku domyślnego. Usunięcie etykiety przywraca wartość domyślną,
+ * a ich liczba jest liczbą aktywnych filtrów.
+ */
 export function generateActiveFilterChips(
-  f: {
-    selectedMunicipalities: string[]; selectedPrograms: string[]; selectedActivityTypes: string[];
-    selectedTopics: string[]; educatorFilter: string; effectivePeriod: string; ezdFilter: string;
-    materialsOnlyFilter: boolean; quickFilterPublications: boolean; yearFilter?: string;
-  },
+  f: FilterChipState,
   s: FilterChipSetters,
+  defaults: FilterDefaults,
   programs: OzipzProgram[] = []
 ): ActiveFilterItem[] {
   const chips: ActiveFilterItem[] = [];
-  if (f.yearFilter) chips.push({ id: "year", label: "Rok", value: f.yearFilter, onRemove: () => s.setYearFilter?.("") });
+  const search = f.search.trim();
+  if (search) chips.push({ id: "search", label: "Szukaj", value: `„${search}”`, onRemove: () => s.setSearch("") });
+  if (f.yearFilter !== defaults.year) {
+    chips.push({ id: "year", label: "Rok", value: f.yearFilter || "Wszystkie lata", onRemove: () => s.setYearFilter(defaults.year) });
+  }
+  if (f.effectivePeriod !== defaults.period) {
+    chips.push({
+      id: "period", label: "Okres",
+      value: f.effectivePeriod ? PERIOD_LABELS[f.effectivePeriod] || f.effectivePeriod : f.yearFilter ? "Cały rok" : "Wszystkie miesiące",
+      onRemove: () => { s.setPeriodFilter(""); s.setSelectedMonth(defaults.period); },
+    });
+  }
+  if (f.statusFilter !== DEFAULT_STATUS_FILTER) {
+    chips.push({ id: "status", label: "Status", value: STATUS_LABELS[f.statusFilter], onRemove: () => s.setStatusFilter(DEFAULT_STATUS_FILTER) });
+  }
+  if (f.publicationsMode !== DEFAULT_PUBLICATIONS_MODE) {
+    chips.push({ id: "publications", label: "Publikacje", value: PUBLICATIONS_LABELS[f.publicationsMode], onRemove: () => s.setPublicationsMode(DEFAULT_PUBLICATIONS_MODE) });
+  }
+  if (f.quickFilterEzd) chips.push({ id: "quick-ezd", label: "EZD", value: "Wymaga wpisu", onRemove: () => s.setQuickFilterEzd(false) });
+  if (f.quickFilterProgramOnly) chips.push({ id: "quick-program", label: "Działania", value: "Tylko programowe", onRemove: () => s.setQuickFilterProgramOnly(false) });
+  if (f.quickFilterInProgress) chips.push({ id: "quick-in-progress", label: "Status", value: "W toku / planowane", onRemove: () => s.setQuickFilterInProgress(false) });
+  if (f.materialsOnlyFilter) chips.push({ id: "materials", label: "Materiały", value: "MAT > 0", onRemove: () => s.setMaterialsOnlyFilter(false) });
   f.selectedMunicipalities.forEach((m) => chips.push({ id: `muni-${m}`, label: "Gmina", value: m, onRemove: () => s.setSelectedMunicipalities((p) => p.filter((x) => x !== m)) }));
   f.selectedPrograms.forEach((p) => chips.push({ id: `prog-${p}`, label: "Program", value: p === "none" ? "Nieprogramowe (własne)" : programs.find((program) => program.id === p)?.name || p, onRemove: () => s.setSelectedPrograms((x) => x.filter((i) => i !== p)) }));
   f.selectedActivityTypes.forEach((a) => chips.push({ id: `act-${a}`, label: "Forma", value: a, onRemove: () => s.setSelectedActivityTypes((p) => p.filter((x) => x !== a)) }));
   f.selectedTopics.forEach((t) => chips.push({ id: `top-${t}`, label: "Tematyka", value: t, onRemove: () => s.setSelectedTopics((p) => p.filter((x) => x !== t)) }));
   if (f.educatorFilter) chips.push({ id: "edu", label: "Edukator", value: f.educatorFilter, onRemove: () => s.setEducatorFilter("") });
-  if (f.effectivePeriod) chips.push({ id: "period", label: "Okres", value: PERIOD_LABELS[f.effectivePeriod] || f.effectivePeriod, onRemove: () => { s.setSelectedMonth(""); s.setPeriodFilter(""); } });
   if (f.ezdFilter !== "all") chips.push({ id: "ezd", label: "Status EZD", value: EZD_LABELS[f.ezdFilter] || f.ezdFilter, onRemove: () => s.setEzdFilter("all") });
-  if (f.materialsOnlyFilter) chips.push({ id: "materials", label: "Materiały", value: "MAT > 0", onRemove: () => s.setMaterialsOnlyFilter(false) });
-  if (f.quickFilterPublications) chips.push({ id: "quick-publications", label: "Działania", value: "Publikacje media (FB, X, www)", onRemove: () => s.setQuickFilterPublications(false) });
   return chips;
 }

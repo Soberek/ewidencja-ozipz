@@ -86,7 +86,7 @@ export function ActionQuickForm({ state: s, data }: {
     s.linkedDistribution && "materiały w powiązanej dystrybucji",
     Number(s.indirectRecipientsCount) > 0 && `zasięg: ${s.indirectRecipientsCount}`].filter(Boolean).join(" · ");
   const campaign = findCampaign(s.campaignDict, s.campaignId);
-  const descriptionSummary = [campaign?.label || s.campaignId, s.activitiesDescription.trim() && "opis", s.additionalNotes.trim() && "uwagi"].filter(Boolean).join(" · ");
+  const descriptionSummary = [s.activitiesDescription.trim() && "opis", s.additionalNotes.trim() && "uwagi"].filter(Boolean).join(" · ");
   const selectFacility = (f: OzipzFacility) => {
     s.setValue("facilityName", f.name); s.setValue("facilityId", f.id);
     s.setValue("municipality", f.municipality || "");
@@ -102,11 +102,18 @@ export function ActionQuickForm({ state: s, data }: {
     <section className="space-y-3" aria-label="Działanie">
       <h2 className="font-semibold">Działanie</h2>
       <div className="grid gap-3 sm:grid-cols-2">
-        {field("actionType", <Select label="Forma działania *" value={s.actionType}
-          options={s.activityTypeDict.map((d) => ({ value: d.label, label: d.label }))}
-          onChange={(v) => s.setValue("actionType", v)} placeholder="Wybierz formę działania" autoFocus />)}
-        <Select label="Program lub klasyfikacja" value={s.programId ? `prog:${s.programId}` : s.selectedJrwaSymbol ? `jrwa:${s.selectedJrwaSymbol}` : ""}
-          options={programOptions} onChange={s.handleProgramOrJrwaSelect} clearable placeholder="Wybierz, jeśli dotyczy" />
+        <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2 lg:grid-cols-3">
+          {field("actionType", <Select label="Forma działania *" value={s.actionType}
+            options={s.activityTypeDict.map((d) => ({ value: d.label, label: d.label }))}
+            onChange={(v) => s.setValue("actionType", v)} placeholder="Wybierz formę działania" autoFocus />)}
+          <Select label="Program lub klasyfikacja" value={s.programId ? `prog:${s.programId}` : s.selectedJrwaSymbol ? `jrwa:${s.selectedJrwaSymbol}` : ""}
+            options={programOptions} onChange={s.handleProgramOrJrwaSelect} clearable placeholder="Wybierz, jeśli dotyczy" />
+          <div className="sm:col-span-2 lg:col-span-1">
+            <Select label="Kampania / akcja" value={campaign?.code || s.campaignId}
+              options={s.campaignDict.map((c) => ({ value: c.code, label: c.label }))}
+              onChange={(v) => s.setValue("campaignId", v)} clearable placeholder="Wybierz, jeśli dotyczy" />
+          </div>
+        </div>
         <div className="sm:col-span-2">
           {field("title", <><label htmlFor="action-title" className={FIELD_LABEL}>Tytuł działania *</label>
             <Input id="action-title" className={FIELD_INPUT} value={s.title} placeholder="Czego dotyczyło działanie?" onChange={(e) => {
@@ -164,11 +171,8 @@ export function ActionQuickForm({ state: s, data }: {
           {errors.materialId && <p role="alert" className="text-sm text-destructive">{errors.materialId.message}</p>}
         </div>
       </Disclosure>
-      <Disclosure title="Opis i dodatkowe informacje" summary={descriptionSummary} reveal={Boolean(s.activitiesDescription || s.additionalNotes || s.campaignId)}>
+      <Disclosure title="Opis i dodatkowe informacje" summary={descriptionSummary} reveal={Boolean(s.activitiesDescription || s.additionalNotes)}>
         <div className="space-y-3">
-          <Select label="Kampania / akcja" value={campaign?.code || s.campaignId}
-            options={s.campaignDict.map((c) => ({ value: c.code, label: c.label }))}
-            onChange={(v) => s.setValue("campaignId", v)} clearable placeholder="Wybierz, jeśli dotyczy" />
           <div><label htmlFor="action-description" className={FIELD_LABEL}>Opis czynności</label>
             <Textarea id="action-description" rows={3} value={s.activitiesDescription} onChange={(e) => s.setActivitiesDescription(e.target.value)} /></div>
           <div><label htmlFor="action-notes" className={FIELD_LABEL}>Uwagi i wnioski</label>

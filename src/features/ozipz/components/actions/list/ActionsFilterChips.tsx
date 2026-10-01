@@ -11,16 +11,13 @@ export interface ActiveFilterItem {
 
 interface ActionsFilterChipsProps {
   filters: ActiveFilterItem[];
+  /** Przywraca widok domyślny (bieżący miesiąc, aktywne działania, publikacje schowane). */
   onClearAll: () => void;
-  filteredCount: number;
-  totalCount: number;
 }
 
 export function ActionsFilterChips({
   filters,
   onClearAll,
-  filteredCount,
-  totalCount,
 }: ActionsFilterChipsProps) {
   if (filters.length === 0) return null;
 
@@ -56,12 +53,8 @@ export function ActionsFilterChips({
         onClick={onClearAll}
         className="h-6 px-2 text-[11px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 font-semibold cursor-pointer"
       >
-        Wyczyść wszystkie ({filters.length})
+        Wyczyść filtry ({filters.length})
       </Button>
-
-      <span className="ml-auto text-[11px] text-muted-foreground font-medium">
-        Wyniki: <strong className="text-foreground">{filteredCount}</strong> z {totalCount}
-      </span>
     </div>
   );
 }

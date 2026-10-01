@@ -1,10 +1,11 @@
-import { SlidersHorizontal, Globe, Eye, EyeOff } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip, ChipGroup } from "@/components/ui/chip";
-import { ClearFiltersButton, FilterBar } from "@/components/ui/filter-bar";
+import { FilterBar } from "@/components/ui/filter-bar";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import type { PublicationsMode, StatusFilter } from "../hooks/useActionFilterState";
 
 const PERIOD_OPTIONS = [
   { value: "q1", label: "I Kwartał (I - III)", badge: "Q1" },
@@ -33,6 +34,12 @@ const STATUS_OPTIONS = [
   { value: "zakonczone", label: "Status: Zakończone", badge: "Koniec", badgeVariant: "secondary" as const },
 ];
 
+const PUBLICATIONS_OPTIONS = [
+  { value: "ukryte", label: "Publikacje: schowane" },
+  { value: "widoczne", label: "Publikacje: widoczne" },
+  { value: "tylko", label: "Tylko publikacje" },
+];
+
 export interface ActionsFilterBarProps {
   search: string;
   onSearchChange: (value: string) => void;
@@ -42,27 +49,22 @@ export interface ActionsFilterBarProps {
   selectedYear?: string;
   onYearChange?: (year: string) => void;
   availableYears?: string[];
-  statusFilter: "aktywne" | "wszystkie" | "zakonczone";
-  onStatusFilterChange: (status: "aktywne" | "wszystkie" | "zakonczone") => void;
+  statusFilter: StatusFilter;
+  onStatusFilterChange: (status: StatusFilter) => void;
+  /** Publikacje w mediach (FB, X, www): schowane, widoczne razem z innymi działaniami albo same. */
+  publicationsMode: PublicationsMode;
+  onPublicationsModeChange: (mode: PublicationsMode) => void;
   quickFilterEzd: boolean;
   onToggleEzd: () => void;
-  quickFilterCurrentMonth: boolean;
-  onToggleCurrentMonth: () => void;
   quickFilterProgramOnly: boolean;
   onToggleProgramOnly: () => void;
   quickFilterInProgress: boolean;
   onToggleInProgress: () => void;
   materialsOnlyFilter?: boolean;
   onToggleMaterialsOnly?: () => void;
-  quickFilterPublications?: boolean;
-  onTogglePublications?: () => void;
-  hidePublications?: boolean;
-  onToggleHidePublications?: () => void;
   isAdvancedOpen?: boolean;
   onToggleAdvanced?: () => void;
   advancedFiltersCount?: number;
-  activeFiltersCount: number;
-  onClearFilters: () => void;
 }
 
 export function ActionsFilterBar({
@@ -75,25 +77,19 @@ export function ActionsFilterBar({
   availableYears = [],
   statusFilter,
   onStatusFilterChange,
+  publicationsMode,
+  onPublicationsModeChange,
   quickFilterEzd,
   onToggleEzd,
-  quickFilterCurrentMonth,
-  onToggleCurrentMonth,
   quickFilterProgramOnly,
   onToggleProgramOnly,
   quickFilterInProgress,
   onToggleInProgress,
   materialsOnlyFilter = false,
   onToggleMaterialsOnly,
-  quickFilterPublications = false,
-  onTogglePublications,
-  hidePublications = true,
-  onToggleHidePublications,
   isAdvancedOpen = false,
   onToggleAdvanced,
   advancedFiltersCount = 0,
-  activeFiltersCount,
-  onClearFilters,
 }: ActionsFilterBarProps) {
   return (
     <FilterBar
@@ -101,9 +97,6 @@ export function ActionsFilterBar({
         <ChipGroup label="Szybkie filtry">
           <Chip tone="destructive" active={quickFilterEzd} onClick={onToggleEzd}>
             ! Wymaga EZD
-          </Chip>
-          <Chip active={quickFilterCurrentMonth} onClick={onToggleCurrentMonth}>
-            Bieżący miesiąc
           </Chip>
           <Chip active={quickFilterProgramOnly} onClick={onToggleProgramOnly}>
             Tylko programowe
@@ -114,30 +107,6 @@ export function ActionsFilterBar({
           {onToggleMaterialsOnly && (
             <Chip active={materialsOnlyFilter} onClick={onToggleMaterialsOnly}>
               Materiały (MAT &gt; 0)
-            </Chip>
-          )}
-          {onToggleHidePublications && (
-            <Chip
-              active={hidePublications}
-              onClick={onToggleHidePublications}
-              icon={hidePublications ? <EyeOff /> : <Eye />}
-              title={
-                hidePublications
-                  ? "Filtr aktywny: publikacje (FB, X, www) są schowane w działaniach. Kliknij, aby je pokazać."
-                  : "Filtr odkliknięty: publikacje są widoczne w działaniach. Kliknij, aby je schować."
-              }
-            >
-              {hidePublications ? "Schowaj publikacje" : "Publikacje widoczne"}
-            </Chip>
-          )}
-          {onTogglePublications && (
-            <Chip
-              active={quickFilterPublications}
-              onClick={onTogglePublications}
-              icon={<Globe />}
-              title="Pokaż wyłącznie publikacje (Portal X, Facebook, Strona www)"
-            >
-              Publikacje (X, FB, www)
             </Chip>
           )}
         </ChipGroup>
@@ -174,8 +143,18 @@ export function ActionsFilterBar({
       <div className="w-44">
         <Select
           value={statusFilter}
-          onChange={(val) => onStatusFilterChange((val || "aktywne") as "aktywne" | "wszystkie" | "zakonczone")}
+          onChange={(val) => onStatusFilterChange((val || "aktywne") as StatusFilter)}
           options={STATUS_OPTIONS}
+          searchable={false}
+        />
+      </div>
+
+      <div className="w-48">
+        <Select
+          name="publikacje"
+          value={publicationsMode}
+          onChange={(val) => onPublicationsModeChange((val || "ukryte") as PublicationsMode)}
+          options={PUBLICATIONS_OPTIONS}
           searchable={false}
         />
       </div>
@@ -196,8 +175,6 @@ export function ActionsFilterBar({
           )}
         </Button>
       )}
-
-      {activeFiltersCount > 0 && <ClearFiltersButton onClick={onClearFilters} count={activeFiltersCount} />}
     </FilterBar>
   );
 }

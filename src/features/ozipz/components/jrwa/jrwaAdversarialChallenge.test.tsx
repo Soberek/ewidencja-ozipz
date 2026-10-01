@@ -439,23 +439,17 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
           onStatusFilterChange={vi.fn()}
           quickFilterEzd={true}
           onToggleEzd={vi.fn()}
-          quickFilterCurrentMonth={false}
-          onToggleCurrentMonth={vi.fn()}
           quickFilterProgramOnly={false}
           onToggleProgramOnly={vi.fn()}
           quickFilterInProgress={false}
           onToggleInProgress={vi.fn()}
           materialsOnlyFilter={false}
           onToggleMaterialsOnly={vi.fn()}
-          quickFilterPublications={false}
-          onTogglePublications={vi.fn()}
-          hidePublications={false}
-          onToggleHidePublications={vi.fn()}
+          publicationsMode="ukryte"
+          onPublicationsModeChange={vi.fn()}
           isAdvancedOpen={false}
           onToggleAdvanced={vi.fn()}
           advancedFiltersCount={0}
-          activeFiltersCount={1}
-          onClearFilters={vi.fn()}
         />
       );
 
@@ -466,9 +460,9 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
       expect(ezdBtn.className).toContain("border-destructive");
 
       // Verify standard inactive filter uses muted styling
-      const monthBtn = screen.getByRole("button", { name: "Bieżący miesiąc" });
-      expect(monthBtn.className).toContain("bg-muted/40");
-      expect(monthBtn.className).toContain("text-muted-foreground");
+      const programBtn = screen.getByRole("button", { name: "Tylko programowe" });
+      expect(programBtn.className).toContain("bg-muted/40");
+      expect(programBtn.className).toContain("text-muted-foreground");
 
       // Now rerender with standard filter active
       rerender(
@@ -481,30 +475,24 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
           onStatusFilterChange={vi.fn()}
           quickFilterEzd={false}
           onToggleEzd={vi.fn()}
-          quickFilterCurrentMonth={true}
-          onToggleCurrentMonth={vi.fn()}
-          quickFilterProgramOnly={false}
+          quickFilterProgramOnly={true}
           onToggleProgramOnly={vi.fn()}
           quickFilterInProgress={false}
           onToggleInProgress={vi.fn()}
           materialsOnlyFilter={false}
           onToggleMaterialsOnly={vi.fn()}
-          quickFilterPublications={false}
-          onTogglePublications={vi.fn()}
-          hidePublications={false}
-          onToggleHidePublications={vi.fn()}
+          publicationsMode="ukryte"
+          onPublicationsModeChange={vi.fn()}
           isAdvancedOpen={false}
           onToggleAdvanced={vi.fn()}
           advancedFiltersCount={0}
-          activeFiltersCount={1}
-          onClearFilters={vi.fn()}
         />
       );
 
-      // Now monthBtn should use primary tokens
-      expect(monthBtn.className).toContain("bg-primary");
-      expect(monthBtn.className).toContain("text-primary-foreground");
-      expect(monthBtn.className).toContain("border-primary");
+      // Now programBtn should use primary tokens
+      expect(programBtn.className).toContain("bg-primary");
+      expect(programBtn.className).toContain("text-primary-foreground");
+      expect(programBtn.className).toContain("border-primary");
 
       // And ezdBtn should be muted
       expect(ezdBtn.className).toContain("bg-muted/40");

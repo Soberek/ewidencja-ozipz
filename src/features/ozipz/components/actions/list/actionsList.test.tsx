@@ -19,7 +19,6 @@ describe("Actions List Components", () => {
     const handleSearch = vi.fn();
     const handleToggleEzd = vi.fn();
     const handleToggleMaterials = vi.fn();
-    const handleTogglePublications = vi.fn();
     const handleToggleAdvanced = vi.fn();
 
     render(
@@ -32,36 +31,28 @@ describe("Actions List Components", () => {
         onStatusFilterChange={vi.fn()}
         quickFilterEzd={false}
         onToggleEzd={handleToggleEzd}
-        quickFilterCurrentMonth={false}
-        onToggleCurrentMonth={vi.fn()}
         quickFilterProgramOnly={false}
         onToggleProgramOnly={vi.fn()}
         quickFilterInProgress={false}
         onToggleInProgress={vi.fn()}
         materialsOnlyFilter={false}
         onToggleMaterialsOnly={handleToggleMaterials}
-        quickFilterPublications={false}
-        onTogglePublications={handleTogglePublications}
-        hidePublications={true}
-        onToggleHidePublications={vi.fn()}
+        publicationsMode="ukryte"
+        onPublicationsModeChange={vi.fn()}
         isAdvancedOpen={false}
         onToggleAdvanced={handleToggleAdvanced}
         advancedFiltersCount={2}
-        activeFiltersCount={3}
-        onClearFilters={vi.fn()}
       />
     );
 
-    const hidePubBtn = screen.getByText("Schowaj publikacje");
-    expect(hidePubBtn).toBeDefined();
+    expect(screen.getByText("Publikacje: schowane")).toBeDefined();
+    expect(screen.queryByText("Bieżący miesiąc")).toBeNull();
+    // Czyszczenie jest w wierszu etykiet aktywnych filtrów, nie w pasku.
+    expect(screen.queryByRole("button", { name: /Wyczyść filtry|Wyczyść \(/ })).toBeNull();
 
     const ezdBtn = screen.getByText("! Wymaga EZD");
     fireEvent.click(ezdBtn);
     expect(handleToggleEzd).toHaveBeenCalled();
-
-    const pubBtn = screen.getByText("Publikacje (X, FB, www)");
-    fireEvent.click(pubBtn);
-    expect(handleTogglePublications).toHaveBeenCalled();
 
     const matBtn = screen.getByText(/Materiały \(MAT > 0\)/i);
     fireEvent.click(matBtn);
@@ -166,8 +157,6 @@ describe("Actions List Components", () => {
           { id: "prog", label: "Program", value: "Trzymaj Formę!", onRemove: vi.fn() },
         ]}
         onClearAll={handleClearAll}
-        filteredCount={5}
-        totalCount={32}
       />
     );
 
@@ -175,13 +164,12 @@ describe("Actions List Components", () => {
     expect(screen.getByText(/Barlinek/)).toBeDefined();
     expect(screen.getByText(/Program:/)).toBeDefined();
     expect(screen.getByText(/Trzymaj Formę!/)).toBeDefined();
-    expect(screen.getByText("5")).toBeDefined();
 
     const removeBtn = screen.getByLabelText("Usuń filtr Gmina");
     fireEvent.click(removeBtn);
     expect(handleRemoveMuni).toHaveBeenCalledTimes(1);
 
-    const clearAllBtn = screen.getByText("Wyczyść wszystkie (2)");
+    const clearAllBtn = screen.getByText("Wyczyść filtry (2)");
     fireEvent.click(clearAllBtn);
     expect(handleClearAll).toHaveBeenCalledTimes(1);
   });
