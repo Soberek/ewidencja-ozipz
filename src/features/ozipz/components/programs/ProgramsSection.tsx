@@ -1,13 +1,14 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import type { OzipzProgram, OzipzSchoolParticipation } from "../../types/ozipz.types";
-import { useContacts, usePrograms } from "../../store/useOzipzDbStore";
+import { useActions, useContacts, useFacilities, usePrograms } from "../../store/useOzipzDbStore";
 import { useModalStore } from "../../store/useModalStore";
 import { participationCoordinators } from "../../utils/participationUtils";
 import { ProgramsStatsHeader } from "./components/ProgramsStatsHeader";
-import { ProgramsViewSwitcher } from "./components/ProgramsViewSwitcher";
+import { ProgramsViewSwitcher, type ProgramsView } from "./components/ProgramsViewSwitcher";
 import { SchoolParticipationsTab } from "./components/SchoolParticipationsTab";
 import { ProgramsCatalogTab } from "./components/ProgramsCatalogTab";
+import { ProgramsStatisticsTab } from "./components/ProgramsStatisticsTab";
 import { useKpiVisibility } from "@/hooks/usePersistentToggle";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -26,6 +27,8 @@ export interface ProgramsSectionProps {
 export function ProgramsSection(props: ProgramsSectionProps) {
   const programsStore = usePrograms();
   const { contacts } = useContacts();
+  const { actions } = useActions();
+  const { facilities } = useFacilities();
   const [pendingDelete, setPendingDelete] = useState<OzipzSchoolParticipation | null>(null);
   const openModal = useModalStore((s) => s.openModal);
 
@@ -62,7 +65,7 @@ export function ProgramsSection(props: ProgramsSectionProps) {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<"schools" | "programs">(
+  const [activeTab, setActiveTab] = useState<ProgramsView>(
     props.defaultView === "schools" ? "schools" : "programs"
   );
 
@@ -86,7 +89,7 @@ export function ProgramsSection(props: ProgramsSectionProps) {
   return (
     <div className="space-y-4">
       {/* KPI Stats Header */}
-      {showKpiSummary && (
+      {showKpiSummary && activeTab !== "stats" && (
         <ProgramsStatsHeader
           programsCount={stats.programsCount}
           participationsCount={stats.participationsCount}
@@ -108,7 +111,9 @@ export function ProgramsSection(props: ProgramsSectionProps) {
       />
 
       {/* Aktywna zakładka */}
-      {activeTab === "schools" ? (
+      {activeTab === "stats" ? (
+        <ProgramsStatisticsTab participations={participations} programs={programs} actions={actions} facilities={facilities} />
+      ) : activeTab === "schools" ? (
         <SchoolParticipationsTab
           participations={participations}
           programs={programs}

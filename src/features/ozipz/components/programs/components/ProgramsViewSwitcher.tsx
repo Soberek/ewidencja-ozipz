@@ -1,11 +1,13 @@
-import { GraduationCap, BookOpen, Plus } from "lucide-react";
+import { GraduationCap, BookOpen, BarChart3, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { KpiToggleButton } from "@/components/ui/filter-bar";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 
+export type ProgramsView = "schools" | "programs" | "stats";
+
 export interface ProgramsViewSwitcherProps {
-  activeTab: "schools" | "programs";
-  onTabChange: (tab: "schools" | "programs") => void;
+  activeTab: ProgramsView;
+  onTabChange: (tab: ProgramsView) => void;
   participationsCount: number;
   programsCount: number;
   onOpenAddParticipation: () => void;
@@ -33,20 +35,21 @@ export function ProgramsViewSwitcher({
         options={[
           { value: "schools", label: "Zgłoszenia Szkół", icon: GraduationCap, count: participationsCount },
           { value: "programs", label: "Katalog Programów", icon: BookOpen, count: programsCount },
+          { value: "stats", label: "Statystyki", icon: BarChart3 },
         ]}
       />
 
       <div className="flex items-center gap-1.5">
-        {onToggleKpi && <KpiToggleButton visible={isKpiVisible} onToggle={onToggleKpi} />}
-        {activeTab === "schools" ? (
-          <Button onClick={onOpenAddParticipation}>
-            <Plus className="size-3.5" />
-            <span>Dodaj Zgłoszenie</span>
-          </Button>
-        ) : (
+        {onToggleKpi && activeTab !== "stats" && <KpiToggleButton visible={isKpiVisible} onToggle={onToggleKpi} />}
+        {activeTab === "programs" ? (
           <Button onClick={onOpenAddProgram}>
             <Plus className="size-3.5" />
             <span>Nowy Program</span>
+          </Button>
+        ) : (
+          <Button onClick={onOpenAddParticipation}>
+            <Plus className="size-3.5" />
+            <span>Dodaj Zgłoszenie</span>
           </Button>
         )}
       </div>
