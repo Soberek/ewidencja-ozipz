@@ -5,6 +5,7 @@ import { DataTable, type ColumnDef, type TableDensity } from "@/components/ui/da
 import { EmptyState } from "@/components/ui/empty-state";
 import { Activity, RotateCcw } from "lucide-react";
 import type { OzipzAction } from "../../../types/ozipz.types";
+import { INSTITUTION_FILE_PREFIX } from "../../../constants";
 import { cn } from "@/lib/utils";
 
 // Stała referencja (stan zaznaczenia przychodzi z DataTable), żeby wiersze mogły pomijać zbędne rendery.
@@ -74,7 +75,7 @@ export function ActionsTableView({
       enablePagination={true}
       defaultPageSize={25}
       enableExport={true}
-      exportFileName="rejestr_dzialan_edukacyjnych.csv"
+      exportFileName={`${INSTITUTION_FILE_PREFIX}_rejestr_dzialan_edukacyjnych.csv`}
       selectedIds={selectedActionIds}
       rowClassName={actionRowClassName}
       onRowClick={onOpenEdit}

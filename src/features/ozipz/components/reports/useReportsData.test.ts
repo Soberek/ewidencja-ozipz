@@ -214,8 +214,31 @@ describe("useReportsData Hook", () => {
 
     const reopened = renderHook(() => useReportsData({ allActions: mockActions, year: 2026, months: [5] }));
     await waitFor(() => expect(reopened.result.current.metricPlan).toEqual(newPlan));
-    const otherYear = renderHook(() => useReportsData({ allActions: mockActions, year: 2027, months: [5] }));
-    await waitFor(() => expect(otherYear.result.current.metricPlan).toEqual(emptyMetricPlan));
+    expect(reopened.result.current.metricPlanSource).toEqual({ kind: "saved" });
+    // Rok bez planu podpowiada ostatni zapisany plan, ale nie zapisuje go sam.
+    const nextYear = renderHook(() => useReportsData({ allActions: mockActions, year: 2027, months: [5] }));
+    await waitFor(() => expect(nextYear.result.current.metricPlanSource).toEqual({ kind: "inherited", fromYear: 2026 }));
+    expect(nextYear.result.current.metricPlan).toEqual(newPlan);
+    expect(await OzipzDbService.getMetricPlan(2027)).toBeNull();
+    // Bez wcześniejszych planów – zera zamiast zgadywanych wartości.
+    const oldYear = renderHook(() => useReportsData({ allActions: mockActions, year: 2010, months: [5] }));
+    await waitFor(() => expect(oldYear.result.current.metricPlanSource).toEqual({ kind: "empty" }));
+    expect(oldYear.result.current.metricPlan).toEqual(emptyMetricPlan);
+  });
+
+  it("zapisuje zmiany planu w bazie automatycznie", async () => {
+    const { result } = renderHook(() => useReportsData({ allActions: mockActions, year: 2031, months: [5] }));
+    await waitFor(() => expect(result.current.metricPlanSource.kind).not.toBe("saved"));
+    act(() => {
+      result.current.setMetricPlan((prev) => ({ ...prev, razemDzialania: 250, razemUczestnicy: 7500 }));
+    });
+    act(() => {
+      result.current.setMetricPlan((prev) => ({ ...prev, programyDzialania: 150, programyUczestnicy: 2500 }));
+    });
+    await waitFor(async () =>
+      expect(await OzipzDbService.getMetricPlan(2031)).toEqual({ razemDzialania: 250, razemUczestnicy: 7500, programyDzialania: 150, programyUczestnicy: 2500 })
+    );
+    await waitFor(() => expect(result.current.metricPlanSource).toEqual({ kind: "saved" }));
   });
 
   it("handles XLSX export call and sets success message", async () => {

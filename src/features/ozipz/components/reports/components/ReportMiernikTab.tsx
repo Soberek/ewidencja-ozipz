@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { MetricPlanState } from "./reportConstants";
+import type { MetricPlanSource } from "../useReportsData";
 import {
   aggregateActionsToProgramsData,
   exportToTemplate,
@@ -43,7 +44,8 @@ interface ReportMiernikTabProps {
   metricPlan: MetricPlanState;
   metricSummary: MetricSummaryState;
   onMetricPlanChange: (updater: (prev: MetricPlanState) => MetricPlanState) => void;
-  onPersistMetricPlan: () => void;
+  onPersistMetricPlan: () => Promise<boolean>;
+  metricPlanSource: MetricPlanSource;
   showKpiSummary?: boolean;
 }
 
@@ -53,6 +55,7 @@ export function ReportMiernikTab({
   preparedBy = "",
   onPreparedByChange,
   onPersistMetricPlan,
+  metricPlanSource,
   year,
   months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   metricPlan,
@@ -197,8 +200,24 @@ export function ReportMiernikTab({
           onMetricPlanChange={onMetricPlanChange}
         />
 
-        <div className="flex justify-end">
-          <Button variant="outline" onClick={() => { try { onPersistMetricPlan(); toast.success("Zapisano plan roczny"); } catch { toast.error("Nie udało się zapisać planu"); } }}>Zapisz plan roczny</Button>
+        <div className="flex items-center justify-end gap-3">
+          <p className="text-xs text-muted-foreground">
+            {metricPlanSource.kind === "saved"
+              ? `Plan na ${year} r. jest zapisany w bazie – zmiany w tabeli zapisują się automatycznie.`
+              : metricPlanSource.kind === "inherited"
+                ? `Brak planu na ${year} r. – podpowiedziano plan z ${metricPlanSource.fromYear} r. Zatwierdź go albo wpisz nowe wartości.`
+                : `Brak planu na ${year} r. – wpisz wartości planowane w tabeli.`}
+          </p>
+          {metricPlanSource.kind !== "saved" && (
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (await onPersistMetricPlan()) toast.success(`Zapisano plan miernika na ${year} r.`);
+              }}
+            >
+              Zapisz plan roczny
+            </Button>
+          )}
         </div>
         <Dialog open={exportOpen} onOpenChange={onExportOpenChange}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">

@@ -64,11 +64,12 @@ export function parseMetricPlan(value: unknown): MetricPlanState | null {
   };
 }
 
+/** Brak planu w bazie – zera, więc realizacja w procentach się nie liczy, dopóki plan nie zostanie wpisany. */
 export const emptyMetricPlan: MetricPlanState = {
-  razemDzialania: 300,
-  razemUczestnicy: 8000,
-  programyDzialania: 90,
-  programyUczestnicy: 2000,
+  razemDzialania: 0,
+  razemUczestnicy: 0,
+  programyDzialania: 0,
+  programyUczestnicy: 0,
 };
 
 export function recipientCount(action: OzipzAction): number {

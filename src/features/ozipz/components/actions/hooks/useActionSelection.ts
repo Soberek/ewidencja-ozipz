@@ -4,6 +4,7 @@ import type { OzipzAction } from "../../../types/ozipz.types";
 import { getActionEzdState } from "../actionEzdStatus";
 import { buildHealthPromotionReportCsv } from "../../../utils/reportExport";
 import { downloadBlob } from "../../../utils/downloadHelper";
+import { INSTITUTION_FILE_PREFIX } from "../../../constants";
 
 export interface UseActionSelectionParams {
   actions: OzipzAction[];
@@ -109,7 +110,7 @@ export function useActionSelection({
     const selected = actions.filter((a) => selectedActionIds.has(a.id));
     if (!selected.length) return;
     const csv = buildHealthPromotionReportCsv(selected);
-    downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), `wybrane-dzialania-${selected.length}.csv`);
+    downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), `${INSTITUTION_FILE_PREFIX}_wybrane-dzialania-${selected.length}.csv`);
     toast.success(`Wyeksportowano ${selected.length} wybranych działań do pliku CSV`);
   }, [actions, selectedActionIds]);
 

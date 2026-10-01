@@ -72,7 +72,7 @@ export function MiernikBudgetPlanTable({
               Plan roczny i wykonanie
             </h3>
             <p className="text-sm text-muted-foreground">
-              Edytuj wartości planowane, a następnie wybierz „Zapisz plan roczny”. Wykonanie dotyczy wybranego okresu.
+              Wartości planowane zapisują się w bazie dla wybranego roku. Wykonanie dotyczy wybranego okresu.
             </p>
           </div>
           <Badge variant="outline" className="rounded-[2px] font-mono text-[10px]">

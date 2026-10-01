@@ -101,6 +101,9 @@ export const DICTIONARY_CATEGORIES_CONFIG: Record<string, DictionaryCategoryDef>
   },
 };
 
+/** Początek nazw plików pobieranych z rejestru działań (bez polskich znaków – bezpieczny w EZD i poczcie). */
+export const INSTITUTION_FILE_PREFIX = "PSSE_Mysliborz";
+
 /** Miejsce i odbiorcy wpisywani automatycznie dla publikacji w mediach, które nie mają placówki. */
 export const PUBLICATION_DEFAULTS = {
   facilityName: "PSSE Myślibórz (media / publikacja internetowa)",

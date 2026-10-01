@@ -69,6 +69,7 @@ export function ReportsSection(props: ReportsSectionProps) {
 
   const {
     metricPlan,
+    metricPlanSource,
     setMetricPlan,
     handlePersistMetricPlan,
     exportError,
@@ -169,7 +170,8 @@ export function ReportsSection(props: ReportsSectionProps) {
           metricPlan={metricPlan}
           metricSummary={metricSummary}
           onMetricPlanChange={setMetricPlan}
-          onPersistMetricPlan={handlePersistMetricPlan}
+          onPersistMetricPlan={() => handlePersistMetricPlan()}
+          metricPlanSource={metricPlanSource}
           showKpiSummary={showKpiSummary}
         />
       )}
