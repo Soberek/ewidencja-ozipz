@@ -2,11 +2,14 @@ import { beforeEach, describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useActionsFiltering } from "./useActionsFiltering";
 import type { OzipzAction } from "../../../types/ozipz.types";
-import { ACTION_FILTERS_STORAGE_KEY } from "./useActionFilterState";
+import { ACTION_FILTERS_SESSION_KEY, ACTION_FILTERS_STORAGE_KEY } from "./useActionFilterState";
 
 describe("useActionsFiltering Hook - Smart Filtering Logic", () => {
   // Filtry są zapamiętywane – każdy test zaczyna od domyślnych.
-  beforeEach(() => localStorage.removeItem(ACTION_FILTERS_STORAGE_KEY));
+  beforeEach(() => {
+    localStorage.removeItem(ACTION_FILTERS_STORAGE_KEY);
+    sessionStorage.removeItem(ACTION_FILTERS_SESSION_KEY);
+  });
 
   const mockActions: OzipzAction[] = [
     {

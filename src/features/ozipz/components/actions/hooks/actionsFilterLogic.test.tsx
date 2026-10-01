@@ -2,10 +2,13 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import type { OzipzAction, OzipzProgram } from "../../../types/ozipz.types";
 import { useActionsFiltering } from "./useActionsFiltering";
-import { ACTION_FILTERS_STORAGE_KEY } from "./useActionFilterState";
+import { ACTION_FILTERS_SESSION_KEY, ACTION_FILTERS_STORAGE_KEY } from "./useActionFilterState";
 
 // Filtry są zapamiętywane – każdy test zaczyna od domyślnych.
-beforeEach(() => localStorage.removeItem(ACTION_FILTERS_STORAGE_KEY));
+beforeEach(() => {
+  localStorage.removeItem(ACTION_FILTERS_STORAGE_KEY);
+  sessionStorage.removeItem(ACTION_FILTERS_SESSION_KEY);
+});
 
 it("finds legacy actions by a selected program's name and shows that name in the filter chip", () => {
   const actions = [{ id: "legacy", title: "Prelekcja", actionType: "Prelekcja", date: "2026-09-10", programName: "Trzymaj Formę!", status: "wykonane" }] as OzipzAction[];

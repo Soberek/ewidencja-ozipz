@@ -3,9 +3,26 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { ACTION_FILTERS_STORAGE_KEY, useActionFilterState } from "./useActionFilterState";
 
 describe("zapamiętywanie filtrów rejestru działań", () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
 
-  it("przywraca wybrane filtry po ponownym wejściu, ale nie wyszukiwany tekst", () => {
+  it("po przełączeniu karty i powrocie zachowuje wszystkie filtry, także okres, rok i wyszukiwanie", () => {
+    const first = renderHook(() => useActionFilterState({ defaultMonth: "10", defaultYear: "2026" }));
+    act(() => {
+      first.result.current.setSelectedMonth("q1");
+      first.result.current.setYearFilter("2025");
+      first.result.current.setSearch("prelekcja");
+      first.result.current.setSelectedPrograms(["prog-a"]);
+    });
+    first.unmount();
+
+    const { result } = renderHook(() => useActionFilterState({ defaultMonth: "10", defaultYear: "2026" }));
+    expect(result.current.selectedMonth).toBe("q1");
+    expect(result.current.yearFilter).toBe("2025");
+    expect(result.current.search).toBe("prelekcja");
+    expect(result.current.selectedPrograms).toEqual(["prog-a"]);
+  });
+
+  it("po ponownym uruchomieniu aplikacji przywraca wybrane filtry, ale nie wyszukiwany tekst", () => {
     const first = renderHook(() => useActionFilterState({ defaultMonth: "10", defaultYear: "2026" }));
     act(() => {
       first.result.current.setStatusFilter("wszystkie");
@@ -15,6 +32,7 @@ describe("zapamiętywanie filtrów rejestru działań", () => {
       first.result.current.setSearch("prelekcja");
     });
     first.unmount();
+    sessionStorage.clear(); // zamknięcie aplikacji
 
     const { result } = renderHook(() => useActionFilterState({ defaultMonth: "10", defaultYear: "2026" }));
     expect(result.current.statusFilter).toBe("wszystkie");
@@ -24,7 +42,7 @@ describe("zapamiętywanie filtrów rejestru działań", () => {
     expect(result.current.search).toBe("");
   });
 
-  it("zawsze otwiera się na bieżącym miesiącu i roku – okres nie jest zapamiętywany", () => {
+  it("po ponownym uruchomieniu lub zmianie miesiąca otwiera się na bieżącym miesiącu i roku", () => {
     const october = renderHook(() => useActionFilterState({ defaultMonth: "10", defaultYear: "2026" }));
     act(() => {
       october.result.current.setSelectedMonth("03");
@@ -32,7 +50,7 @@ describe("zapamiętywanie filtrów rejestru działań", () => {
     });
     october.unmount();
 
-    // Kolejne wejście po zmianie roku: rejestr pokazuje styczeń 2027, a nie zapamiętany okres.
+    // Ta sama sesja, ale już po zmianie roku: rejestr pokazuje styczeń 2027, a nie zapamiętany okres.
     const { result } = renderHook(() => useActionFilterState({ defaultMonth: "01", defaultYear: "2027" }));
     expect(result.current.selectedMonth).toBe("01");
     expect(result.current.yearFilter).toBe("2027");

@@ -13,11 +13,40 @@ export const DEFAULT_STATUS_FILTER: StatusFilter = "aktywne";
 export const DEFAULT_PUBLICATIONS_MODE: PublicationsMode = "ukryte";
 
 /**
- * Filtry rejestru zapamiętane między wejściami. Bez okresu i roku – rejestr zawsze otwiera się na bieżącym miesiącu,
- * także po zmianie roku. Bez wyszukiwanego tekstu. Preferencja widoku – brak pamięci nie jest błędem.
+ * Filtry rejestru zapamiętane między uruchomieniami. Bez okresu, roku i wyszukiwania – po ponownym uruchomieniu
+ * rejestr otwiera się na bieżącym miesiącu, także po zmianie roku. Preferencja widoku – brak pamięci nie jest błędem.
  */
 export const ACTION_FILTERS_STORAGE_KEY = "oz.actionsFilters";
 const LEGACY_HIDE_PUBLICATIONS_KEY = "oz.hidePublications";
+/**
+ * Okres, rok i wyszukiwanie pamiętane tylko do zamknięcia aplikacji – przetrwają przełączanie kart,
+ * a po ponownym uruchomieniu rejestr znów startuje od bieżącego miesiąca.
+ */
+export const ACTION_FILTERS_SESSION_KEY = "oz.actionsFilters.session";
+
+interface SessionActionFilters {
+  search: string;
+  selectedMonth: string;
+  yearFilter: string;
+  periodFilter: string;
+  /** Widok domyślny z chwili zapisu; po zmianie miesiąca w trakcie sesji zapamiętany okres jest pomijany. */
+  defaultMonth: string;
+  defaultYear: string;
+}
+
+function readSessionFilters(defaultMonth: string, defaultYear: string): Partial<SessionActionFilters> {
+  try {
+    const raw = JSON.parse(sessionStorage.getItem(ACTION_FILTERS_SESSION_KEY) ?? "null") as Record<string, unknown> | null;
+    if (!raw || typeof raw !== "object" || raw.defaultMonth !== defaultMonth || raw.defaultYear !== defaultYear) return {};
+    const result: Partial<SessionActionFilters> = {};
+    for (const key of ["search", "selectedMonth", "yearFilter", "periodFilter"] as const) {
+      if (typeof raw[key] === "string") result[key] = raw[key];
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
 
 interface SavedActionFilters {
   statusFilter: StatusFilter;
@@ -67,10 +96,11 @@ export function useActionFilterState(options: UseActionFilterStateOptions = {}) 
   const defaultMonth = options.defaultMonth ?? "";
   const defaultYear = options.defaultYear ?? "";
   const [saved] = useState(readSavedFilters);
-  const [search, setSearch] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState<string>(defaultMonth);
-  const [yearFilter, setYearFilter] = useState<string>(defaultYear);
-  const [periodFilter, setPeriodFilter] = useState<string>("");
+  const [session] = useState(() => readSessionFilters(defaultMonth, defaultYear));
+  const [search, setSearch] = useState(session.search ?? "");
+  const [selectedMonth, setSelectedMonth] = useState<string>(session.selectedMonth ?? defaultMonth);
+  const [yearFilter, setYearFilter] = useState<string>(session.yearFilter ?? defaultYear);
+  const [periodFilter, setPeriodFilter] = useState<string>(session.periodFilter ?? "");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(saved.statusFilter ?? DEFAULT_STATUS_FILTER);
   const [publicationsMode, setPublicationsMode] = useState<PublicationsMode>(saved.publicationsMode ?? DEFAULT_PUBLICATIONS_MODE);
   const [quickFilterEzd, setQuickFilterEzd] = useState(saved.quickFilterEzd ?? false);
@@ -113,6 +143,11 @@ export function useActionFilterState(options: UseActionFilterStateOptions = {}) 
     statusFilter, publicationsMode, quickFilterEzd, quickFilterProgramOnly, quickFilterInProgress, materialsOnlyFilter,
     selectedMunicipalities, selectedPrograms, selectedActivityTypes, selectedTopics, educatorFilter, ezdFilter,
   ]);
+
+  useEffect(() => {
+    const filters: SessionActionFilters = { search, selectedMonth, yearFilter, periodFilter, defaultMonth, defaultYear };
+    try { sessionStorage.setItem(ACTION_FILTERS_SESSION_KEY, JSON.stringify(filters)); } catch { /* Preferencja widoku nie jest krytyczna. */ }
+  }, [search, selectedMonth, yearFilter, periodFilter, defaultMonth, defaultYear]);
 
   const effectivePeriod = periodFilter || selectedMonth;
 
