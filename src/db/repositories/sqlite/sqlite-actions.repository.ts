@@ -12,6 +12,7 @@ import type {
   CompanionDistributionPayload,
 } from "../../types";
 import { Mappers } from "../../mappers";
+import { isActionCancelled } from "../../../features/ozipz/utils/calculators/actionMetrics";
 import type {
   IActionsRepository,
   IJrwaRepository,
@@ -122,7 +123,7 @@ export class SqliteActionsRepository implements IActionsRepository {
   ): Promise<void> {
     const schedule = this.scheduleRepo ?? new SqliteScheduleRepository(this.db);
     const materials = this.materialsRepo ?? new SqliteMaterialsRepository(this.db);
-    const isCancelled = ["odwolane", "cancelled", "anulowane"].includes(updates.status || "");
+    const isCancelled = isActionCancelled(updates.status);
     const nextScheduleId = isCancelled ? undefined : updates.scheduleEventId;
 
     await this.db.execute("BEGIN TRANSACTION;");
@@ -254,7 +255,7 @@ export class SqliteActionsRepository implements IActionsRepository {
     const jrwa = this.jrwaRepo ?? new SqliteJrwaRepository(this.db);
     const schedule = this.scheduleRepo ?? new SqliteScheduleRepository(this.db);
     const materials = this.materialsRepo ?? new SqliteMaterialsRepository(this.db);
-    const scheduleEventId = ["odwolane", "cancelled", "anulowane"].includes(params.action.status || "")
+    const scheduleEventId = isActionCancelled(params.action.status)
       ? undefined : params.action.scheduleEventId;
 
     await this.db.execute("BEGIN TRANSACTION;");

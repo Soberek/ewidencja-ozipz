@@ -29,6 +29,17 @@ describe("Filtr roku w rejestrze działań", () => {
     expect(filterActionsList(actions, { ...baseCriteria, yearFilter: "2025" }).map((a) => a.id)).toEqual(["a1"]);
   });
 
+  it("status „Aktywne” pomija działania odwołane i odroczone", () => {
+    const withStatuses = [
+      ...actions,
+      { ...action("c1", "2026-03-03"), status: "odwolane" },
+      { ...action("c2", "2026-03-04"), status: "odwołane" },
+      { ...action("p1", "2026-03-05"), status: "odroczone" },
+    ];
+    const ids = filterActionsList(withStatuses, { ...baseCriteria, statusFilter: "aktywne" }).map((a) => a.id);
+    expect(ids.sort()).toEqual(["a1", "a2", "a3"]);
+  });
+
   it("rok i okres mają etykietę tylko, gdy odbiegają od widoku domyślnego; usunięcie ją przywraca", () => {
     const defaults = { period: "10", year: "2026" };
     const state: FilterChipState = {

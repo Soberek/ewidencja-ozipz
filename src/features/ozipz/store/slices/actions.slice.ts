@@ -1,5 +1,6 @@
 import { OzipzDbService } from "../../../../db/client";
 import type { ActionsSlice, SliceCreator } from "./types";
+import { isActionCancelled } from "../../utils/calculators/actionMetrics";
 
 export const createActionsSlice: SliceCreator<ActionsSlice> = (set, get) => ({
   actions: [],
@@ -24,7 +25,7 @@ export const createActionsSlice: SliceCreator<ActionsSlice> = (set, get) => ({
       : [];
     const linkedById = new Map(linkedActions.map((a) => [a.id, a]));
 
-    const isCancelled = updates.status === "odwolane" || updates.status === "cancelled" || updates.status === "anulowane";
+    const isCancelled = isActionCancelled(updates.status);
     const nextScheduleId = isCancelled ? undefined : updates.scheduleEventId;
     const nextUpdates = isCancelled ? { ...updates, scheduleEventId: undefined } : updates;
     set((state) => ({

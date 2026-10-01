@@ -213,6 +213,33 @@ describe("calculateGisReports", () => {
     ]);
   });
 
+  it("działania nieprogramowe z obszarem GIS liczą się razem z odbiorcami, także dystrybucja, wizytacja i sprawozdanie", () => {
+    const sign = (n: number) => `OZiPZ.966.11.${n}.2026`;
+    const result = calculateGisReports([
+      action({ jrwaSign: sign(10), actionType: "Dystrybucja", participantsCount: 1, facilityName: "Apteka" }),
+      action({ jrwaSign: sign(11), actionType: "Wizytacja", participantsCount: 1 }),
+      action({ jrwaSign: sign(12), actionType: "Sprawozdanie (z programu, miernik, tytoń)", participantsCount: 1 }),
+      action({ jrwaSign: sign(13), actionType: "Prelekcja (warsztat)", participantsCount: 20 }),
+    ], { gisCategoryMap });
+    const report = result.reports.szczepienia.nieprogramowe;
+    expect(report.liczbaDzialan).toBe(4);
+    expect(report.liczbaOdbiorcow).toBe(23);
+    expect(report.liczbaWizytacji).toBe(1);
+    expect(result.stats.categorizedRecipients).toBe(23);
+  });
+
+  it("liczy miejsca dystrybucji, a nie wpisy", () => {
+    const sign = "OZiPZ.966.11.20.2026";
+    const report = calculateGisReports([
+      action({ jrwaSign: sign, actionType: "Dystrybucja", facilityName: "Apteka w Dębnie" }),
+      action({ jrwaSign: sign, actionType: "Dystrybucja", facilityName: "Apteka w Dębnie" }),
+      action({ jrwaSign: sign, actionType: "Dystrybucja", facilityName: "Przychodnia" }),
+      action({ jrwaSign: sign, actionType: "Dystrybucja", facilityName: "" }),
+    ], { gisCategoryMap }).reports.szczepienia.nieprogramowe;
+    expect(report.liczbaMiejscDystrybucjiMateria).toBe(3);
+    expect(report.zidentyfikowaneMiejscaDystrybucji).toEqual(["Apteka w Dębnie", "Przychodnia"]);
+  });
+
   it("marks actions whose symbol has no GIS category", () => {
     const partialMap = new Map(gisCategoryMap);
     partialMap.delete("966.11");

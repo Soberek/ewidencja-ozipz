@@ -60,54 +60,6 @@ export const ACTION_TYPE_COLOR_CONFIG: Record<string, string> = {
     "bg-emerald-200 text-emerald-950 border-emerald-400 dark:bg-emerald-900/80 dark:text-emerald-100 dark:border-emerald-600",
 };
 
-const FALLBACK_PALETTE = [
-  "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/70 dark:text-blue-200 dark:border-blue-800",
-  "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-200 dark:border-emerald-800",
-  "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/70 dark:text-amber-200 dark:border-amber-800",
-  "bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-950/70 dark:text-purple-200 dark:border-purple-800",
-  "bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/70 dark:text-rose-200 dark:border-rose-800",
-  "bg-teal-100 text-teal-900 border-teal-300 dark:bg-teal-950/70 dark:text-teal-200 dark:border-teal-800",
-  "bg-indigo-100 text-indigo-900 border-indigo-300 dark:bg-indigo-950/70 dark:text-indigo-200 dark:border-indigo-800",
-  "bg-orange-100 text-orange-900 border-orange-300 dark:bg-orange-950/70 dark:text-orange-200 dark:border-orange-800",
-  "bg-cyan-100 text-cyan-900 border-cyan-300 dark:bg-cyan-950/70 dark:text-cyan-200 dark:border-cyan-800",
-  "bg-pink-100 text-pink-900 border-pink-300 dark:bg-pink-950/70 dark:text-pink-200 dark:border-pink-800",
-  "bg-lime-100 text-lime-950 border-lime-300 dark:bg-lime-950/70 dark:text-lime-200 dark:border-lime-800",
-  "bg-violet-100 text-violet-900 border-violet-300 dark:bg-violet-950/70 dark:text-violet-200 dark:border-violet-800",
-];
-
-export function getActionTypeBadgeClass(actionType?: string | null): string {
-  if (!actionType) {
-    return "bg-muted text-muted-foreground border-border/60";
-  }
-  const clean = actionType.trim().toLowerCase();
-  if (ACTION_TYPE_COLOR_CONFIG[clean]) {
-    return ACTION_TYPE_COLOR_CONFIG[clean];
-  }
-  for (const [code, label] of Object.entries(ACTION_TYPE_CODE_TO_LABEL)) {
-    if (clean === label.toLowerCase() || clean.includes(code) || label.toLowerCase().includes(clean)) {
-      if (ACTION_TYPE_COLOR_CONFIG[code]) {
-        return ACTION_TYPE_COLOR_CONFIG[code];
-      }
-    }
-  }
-  let hash = 0;
-  for (let i = 0; i < clean.length; i++) {
-    hash = (hash << 5) - hash + clean.charCodeAt(i);
-    hash |= 0;
-  }
-  const index = Math.abs(hash) % FALLBACK_PALETTE.length;
-  return FALLBACK_PALETTE[index];
-}
-
-export function formatEducatorName(name: string, isCompact: boolean): string {
-  if (!isCompact || !name) return name;
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) {
-    return `${parts[0].charAt(0)}. ${parts.slice(1).join(" ")}`;
-  }
-  return name;
-}
-
 export function EzdBadge({ state }: { state: ReturnType<typeof getActionEzdState> }) {
   if (state === "publication") {
     return (

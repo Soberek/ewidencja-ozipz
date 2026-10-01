@@ -27,8 +27,6 @@ export function calculateTotalRecipients(actions?: OzipzAction[]): TotalRecipien
   };
 }
 
-export const calculateRecipients = calculateTotalRecipients;
-
 export interface SyntheticActionMetrics {
   tasksCount: number;
   dzCount: number;
@@ -46,6 +44,16 @@ export interface SyntheticActionMetrics {
 export function isActionCancelled(status?: string | null): boolean {
   const s = (status || "").toLowerCase().trim();
   return s === "odwolane" || s === "odwołane" || s === "anulowane" || s === "cancelled";
+}
+
+export function isActionPostponed(status?: string | null): boolean {
+  const s = (status || "").toLowerCase().trim();
+  return s === "odroczone" || s === "postponed";
+}
+
+/** Działanie liczone w sprawozdaniach (miernik, GIS, statystyki): nie odwołane i nie odroczone. */
+export function isActionCountedInReports(action: Pick<OzipzAction, "status">): boolean {
+  return !isActionCancelled(action.status) && !isActionPostponed(action.status);
 }
 
 export function isActionExecuted(status?: string | null): boolean {

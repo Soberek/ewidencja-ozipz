@@ -1,5 +1,6 @@
 import type { OzipzAction } from "../../types/ozipz.types";
 import { isProgramAction } from "./jrwaClassification";
+import { isActionCancelled } from "./actionMetrics";
 
 export interface MonthlyBreakdownRow {
   monthKey: string;
@@ -51,7 +52,7 @@ export function calculateMonthlySummary(
   ];
 
   const yearActions = actions.filter((a) => {
-    if (a.status === "odwolane" || a.status === "cancelled" || a.status === "anulowane") return false;
+    if (isActionCancelled(a.status)) return false;
     if (a.date && yearFilter !== "all" && !a.date.startsWith(yearFilter)) return false;
     if (categoryFilter === "program") return isProgramAction(a);
     if (categoryFilter === "non_program") return !isProgramAction(a);

@@ -50,6 +50,12 @@ describe("statystyki programów", () => {
     expect(stats.rows.find((r) => r.programId === "prog-a")!.actions).toBe(4);
   });
 
+  it("pomija działania odwołane i odroczone – tak jak miernik i sprawozdanie GIS", () => {
+    const withCancelled = [...actions, action({ status: "odwolane" }), action({ status: "odroczone" }), action({ status: "anulowane" })];
+    const a = computeProgramStatistics(participations, programs, withCancelled, facilities, "2026/2027").rows.find((r) => r.programId === "prog-a")!;
+    expect(a).toMatchObject({ actions: 3, actionRecipients: 65 });
+  });
+
   it("zamienia rok szkolny na zakres dat", () => {
     expect(schoolYearDateRange("2026/2027")).toEqual({ from: "2026-09-01", to: "2027-08-31" });
     expect(schoolYearDateRange("2026")).toBeNull();

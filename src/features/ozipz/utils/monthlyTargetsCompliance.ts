@@ -1,6 +1,6 @@
 import type { OzipzAction } from "../types/ozipz.types";
 import { isProgramAction } from "./ozipzCalculations";
-import { isActionCancelled, isActionExecuted } from "./calculators/actionMetrics";
+import { isActionCountedInReports, isActionExecuted } from "./calculators/actionMetrics";
 import { safeParseDate } from "./dateUtils";
 import {
   MONTH_NAMES_PL,
@@ -12,8 +12,6 @@ import {
   type OzipzReportMetrics,
   type OzipzReportComparison,
 } from "./monthlyTargetsTypes";
-
-const POSTPONED_STATUSES = new Set(["odroczone", "postponed"]);
 
 /**
  * Bezpieczne pobranie odbiorców z działania
@@ -92,7 +90,7 @@ export function calculateMonthlyComplianceMatrix(params: {
   const openPerMonth: number[] = new Array(13).fill(0);
 
   for (const a of actions) {
-    if (!a.date || isActionCancelled(a.status) || POSTPONED_STATUSES.has(a.status ?? "")) continue;
+    if (!a.date || !isActionCountedInReports(a)) continue;
 
     const parsed = safeParseDate(a.date);
     if (!parsed || parsed.getFullYear() !== year) continue;

@@ -1,21 +1,5 @@
 import type { ActionCardPreset } from "./editor.types";
 
-export const RECIPIENT_SUGGESTIONS = [
-  "Uczniowie kl. 7",
-  "Uczniowie kl. 8",
-  "Uczniowie kl. 1-3",
-  "Uczniowie kl. 4-6",
-  "Uczniowie szkół ponadpodstawowych",
-  "Opiekunowie / Nauczyciele",
-  "Przedszkolaki",
-  "Wychowawcy przedszkolni",
-  "Rodzice / Opiekunowie prawni",
-  "Koordynatorzy szkolni programów",
-  "Seniorzy",
-  "Mieszkańcy / Dorośli",
-  "Kadra medyczna / Pielęgniarki",
-];
-
 export const ACTION_CARD_PRESETS: ActionCardPreset[] = [
   {
     id: "preset-sp-1grp",

@@ -241,6 +241,23 @@ describe("useReportsData Hook", () => {
     await waitFor(() => expect(result.current.metricPlanSource).toEqual({ kind: "saved" }));
   });
 
+  it("nie nadpisuje planu wpisanego, zanim baza zdążyła go wczytać", async () => {
+    const stored = { razemDzialania: 1, razemUczestnicy: 1, programyDzialania: 1, programyUczestnicy: 1 };
+    let resolveLoad: (plan: typeof stored) => void = () => undefined;
+    const load = vi.spyOn(OzipzDbService, "getMetricPlan").mockImplementationOnce(
+      () => new Promise((resolve) => { resolveLoad = resolve; })
+    );
+    const { result } = renderHook(() => useReportsData({ allActions: mockActions, year: 2032, months: [5] }));
+    act(() => {
+      result.current.setMetricPlan((prev) => ({ ...prev, razemDzialania: 400 }));
+    });
+    await act(async () => {
+      resolveLoad(stored);
+    });
+    expect(result.current.metricPlan.razemDzialania).toBe(400);
+    load.mockRestore();
+  });
+
   it("handles XLSX export call and sets success message", async () => {
     const { result } = renderHook(() =>
       useReportsData({

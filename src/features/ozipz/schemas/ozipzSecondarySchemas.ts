@@ -6,7 +6,6 @@ import {
 
 // 11. Rejestry Urzędowe OZiPZ
 export const OfficialRegisterKeySchema = z.enum(["informacje", "publikacje", "wizytacje"]);
-export const RegisterTabKeySchema = z.enum(["informacje", "publikacje", "wizytacje", "konfiguracja"]);
 
 export const RegisterMappingSchema = z.object({
   id: z.string(),

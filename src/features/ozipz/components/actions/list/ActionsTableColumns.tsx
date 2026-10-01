@@ -3,6 +3,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { ColumnDef, TableDensity } from "@/components/ui/data-table";
 import type { OzipzAction } from "../../../types/ozipz.types";
 import { formatDatePl, isMonthClosed } from "../../../utils/dateUtils";
+import { isActionCancelled } from "../../../utils/calculators/actionMetrics";
 import { isPublicationActionType, normalizeActionType } from "../editor/editorUtils";
 import { ActionRowActionButtons } from "./ActionRowActionButtons";
 import { ActionTypeCell, FacilityCell, JrwaSignCell, ParticipantsCell } from "./ActionTableCells";
@@ -242,7 +243,7 @@ export function createActionColumns(options: CreateActionColumnsOptions): Column
       cell: ({ row }) => {
         const isClosed = isMonthClosed(row.date, closedMonths);
         const isPub = isPublicationActionType(row.actionType);
-        const isCancelled = row.status === "odwolane" || row.status === "cancelled";
+        const isCancelled = isActionCancelled(row.status);
         const canGenerateIzrz = !isPub && !isCancelled;
 
         return (

@@ -18,6 +18,7 @@ import { DashboardActivityTypeCard } from "./dashboard/DashboardActivityTypeCard
 import { DashboardCurrentMonthPlanCard } from "./dashboard/DashboardCurrentMonthPlanCard";
 import { DashboardDeadlinesCard } from "./dashboard/DashboardDeadlinesCard";
 import { collectDeadlines } from "../utils/deadlineUtils";
+import { classifyScheduleEvent, linkedScheduleEventIds } from "../utils/scheduleEventStatus";
 
 export interface DashboardSectionProps {
   actions?: OzipzAction[];
@@ -93,8 +94,12 @@ export function DashboardSection(props: DashboardSectionProps) {
   }, [actions]);
 
   const plannedTasksCount = useMemo(() => {
-    return scheduleEvents.filter((ev) => ev.status !== "wykonane" && ev.status !== "odwolane").length;
-  }, [scheduleEvents]);
+    const linkedIds = linkedScheduleEventIds(actions);
+    return scheduleEvents.filter((ev) => {
+      const progress = classifyScheduleEvent(ev, linkedIds);
+      return progress === "planned" || progress === "in_progress";
+    }).length;
+  }, [scheduleEvents, actions]);
 
   const typeStats = useMemo(() => {
     const map: Record<string, { count: number; participants: number }> = {};

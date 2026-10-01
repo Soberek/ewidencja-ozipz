@@ -5,6 +5,7 @@ import type {
   OzipzActionType,
 } from "../../types/ozipz.types";
 import { safeParseDate } from "../dateUtils";
+import { isActionCancelled } from "./actionMetrics";
 import { resolveActivityFormLabel } from "../actionFormUtils";
 
 export interface AudienceGroupStatItem {
@@ -56,7 +57,7 @@ export function calculateAudienceGroupBreakdown(actions: OzipzAction[]): Audienc
   const map = new Map<string, { actionsCount: number; directRecipients: number }>();
 
   for (const a of actions) {
-    if (a.status === "odwolane" || a.status === "cancelled" || a.status === "anulowane") continue;
+    if (isActionCancelled(a.status)) continue;
     const totalRecipients = Number(a.participantsCount) || 0;
     const entries = parseAudienceEntryTokens(a.audienceGroup || "", totalRecipients);
 
@@ -89,7 +90,7 @@ export function calculateFormBreakdown(actions: OzipzAction[]): FormBreakdownIte
   const map = new Map<string, FormBreakdownItem>();
 
   for (const a of actions) {
-    if (a.status === "odwolane" || a.status === "cancelled" || a.status === "anulowane") continue;
+    if (isActionCancelled(a.status)) continue;
     const form = resolveActivityFormLabel(a);
     const existing = map.get(form) || {
       form,

@@ -50,6 +50,8 @@ export function useReportsData({
   const [metricPlanSource, setMetricPlanSource] = useState<MetricPlanSource>({ kind: "empty" });
   /** Plan zmieniony przez użytkownika i czekający na zapis w bazie. */
   const pendingPlan = useRef<{ year: number; plan: MetricPlanState } | null>(null);
+  /** Licznik zmian planu wprowadzonych przez użytkownika. */
+  const planEdits = useRef(0);
   const [preparedPersonId, setPreparedPersonId] = useState<string>("");
 
 
@@ -69,10 +71,13 @@ export function useReportsData({
   // podpowiada ostatni zapisany plan z wcześniejszych lat – zapisze się dopiero po zatwierdzeniu lub zmianie.
   useEffect(() => {
     let cancelled = false;
+    // Plan wpisany przed zakończeniem wczytywania ma pierwszeństwo – zapisze go autozapis, ekran go nie gubi.
+    const editsAtStart = planEdits.current;
+    const editedMeanwhile = () => planEdits.current !== editsAtStart;
     (async () => {
       for (let candidate = year; candidate >= year - METRIC_PLAN_LOOKBACK_YEARS; candidate--) {
         const plan = await OzipzDbService.getMetricPlan(candidate);
-        if (cancelled) return;
+        if (cancelled || editedMeanwhile()) return;
         if (plan) {
           setMetricPlanState(plan);
           setMetricPlanSource(candidate === year ? { kind: "saved" } : { kind: "inherited", fromYear: candidate });
@@ -82,7 +87,7 @@ export function useReportsData({
       setMetricPlanState(emptyMetricPlan);
       setMetricPlanSource({ kind: "empty" });
     })().catch(() => {
-      if (cancelled) return;
+      if (cancelled || editedMeanwhile()) return;
       setMetricPlanState(emptyMetricPlan);
       setMetricPlanSource({ kind: "empty" });
     });
@@ -110,6 +115,7 @@ export function useReportsData({
     setMetricPlanState((prev) => {
       const next = typeof update === "function" ? update(prev) : update;
       pendingPlan.current = { year, plan: next };
+      planEdits.current += 1;
       return next;
     });
   }, [year]);

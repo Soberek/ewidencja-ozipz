@@ -1,5 +1,6 @@
 import type { OzipzAction, OzipzDistribution, OzipzMaterial } from "../types/ozipz.types";
 import { resolveActivityFormLabel } from "./actionFormUtils";
+import { isActionCountedInReports } from "./calculators/actionMetrics";
 import { formatDatePl, safeParseDate } from "./dateUtils";
 import { POLISH_MONTHS, formatPeriodForHeader } from "./annex/annexConstants";
 
@@ -75,14 +76,13 @@ export interface ActionBreakdown {
   entries: ActionBreakdownEntry[];
 }
 
-const CANCELLED_STATUSES = new Set(["odwolane", "cancelled", "odroczone"]);
 const COMPLETED_STATUSES = new Set(["wykonane", "done", ""]);
 const UNKNOWN_MATERIAL = "Materiały bez wskazanego tytułu";
 
 const clean = (value: string | null | undefined) => String(value ?? "").trim();
 
 export function isCancelledAction(action: OzipzAction): boolean {
-  return CANCELLED_STATUSES.has(clean(action.status));
+  return !isActionCountedInReports(action);
 }
 
 function programKey(action: OzipzAction): string {

@@ -8,6 +8,7 @@ import { FallbackScheduleRepository } from "./fallback-schedule.repository";
 import { FallbackMaterialsRepository } from "./fallback-materials.repository";
 import { getTodayIsoDate, getStoredClosedMonths, isMonthClosed } from "../../../features/ozipz/utils/dateUtils";
 import { matchActionDistributions } from "../action-distribution-match";
+import { isActionCancelled } from "../../../features/ozipz/utils/calculators/actionMetrics";
 import { linkedDistributionUpdates } from "../../../features/ozipz/utils/linkedDistribution";
 import { actionDistributionData, type ActionDistributionItem } from "../action-distribution-data";
 
@@ -89,7 +90,7 @@ export class FallbackActionsRepository implements IActionsRepository {
     return withActionStorageRollback(async () => {
       const schedule = this.scheduleRepo ?? new FallbackScheduleRepository();
       const materials = this.materialsRepo ?? new FallbackMaterialsRepository();
-      const isCancelled = ["odwolane", "cancelled", "anulowane"].includes(updates.status || "");
+      const isCancelled = isActionCancelled(updates.status);
       const nextScheduleId = isCancelled ? undefined : updates.scheduleEventId;
       const previous = (await this.getActions()).find((action) => action.id === id);
       if (!previous) throw new Error("Nie znaleziono działania.");
@@ -199,7 +200,7 @@ export class FallbackActionsRepository implements IActionsRepository {
       const jrwa = this.jrwaRepo ?? new FallbackJrwaRepository();
       const schedule = this.scheduleRepo ?? new FallbackScheduleRepository();
       const materials = this.materialsRepo ?? new FallbackMaterialsRepository();
-      const scheduleEventId = ["odwolane", "cancelled", "anulowane"].includes(params.action.status || "")
+      const scheduleEventId = isActionCancelled(params.action.status)
         ? undefined : params.action.scheduleEventId;
 
       if (scheduleEventId && (await schedule.getScheduleEvents()).some((event) => event.id === scheduleEventId && event.actionId)) {

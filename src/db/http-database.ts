@@ -22,10 +22,6 @@ export function setHttpToken(token: string): void {
   httpToken = token;
 }
 
-export function getHttpToken(): string {
-  return httpToken;
-}
-
 let lanKey: string | undefined;
 
 /** Klucz parowania LAN: z adresu (?klucz=…) zapamiętywany w przeglądarce, a z paska adresu usuwany. */

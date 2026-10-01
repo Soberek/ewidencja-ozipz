@@ -5,6 +5,7 @@
  */
 import type { OzipzAction, OzipzScheduleEvent, OzipzProgram } from "../types/ozipz.types";
 import { getYearNumber, safeParseDate } from "./dateUtils";
+import { isActionCountedInReports } from "./calculators/actionMetrics";
 
 export interface EnrichedScheduleEvent extends OzipzScheduleEvent {
   matchedActions: OzipzAction[];
@@ -128,10 +129,7 @@ export function getMatchingActionsForScheduleEvent(
   return actions.filter((a) => {
     // Działania odroczone, anulowane, odwołane oraz planowane nie zaliczają wykonania
     if (
-      a.status === "odroczone" ||
-      a.status === "anulowane" ||
-      a.status === "odwolane" ||
-      a.status === "cancelled" ||
+      !isActionCountedInReports(a) ||
       a.status === "planowane" ||
       a.status === "planned"
     ) {

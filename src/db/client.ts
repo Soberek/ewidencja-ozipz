@@ -1,7 +1,7 @@
 import { serializeDatabaseService } from "./serialized-service";
 import Database from "@tauri-apps/plugin-sql";
 import { invoke } from "@tauri-apps/api/core";
-import type { IOzipzDatabaseService, ISqlDatabase } from "./types";
+import type { IOzipzDatabaseService } from "./types";
 import { SqliteDatabaseService, initTables } from "./sqlite-service";
 import { restoreEmbeddedStorage } from "./backup-storage";
 import { HttpSqlDatabase, httpHeaders, setHttpToken } from "./http-database";
@@ -161,19 +161,6 @@ export function retryDatabaseConnection(): void {
 export async function getDb(): Promise<Database | null> {
   await getDatabaseService();
   return desktopDatabase;
-}
-
-/**
- * Provides the active SQLite connection for small, self-contained local features.
- * It works both in the Tauri desktop shell and through Vite's local SQLite bridge.
- */
-export async function getActiveSqlDatabase(): Promise<ISqlDatabase> {
-  await getDatabaseService();
-
-  if (desktopDatabase) return desktopDatabase;
-  if (activeDatabaseInfo?.mode === "http-sqlite") return new HttpSqlDatabase();
-
-  throw new Error("SQLite nie jest dostępne w tym środowisku.");
 }
 
 async function resolveService(): Promise<IOzipzDatabaseService> {

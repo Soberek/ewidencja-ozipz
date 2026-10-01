@@ -4,6 +4,7 @@ import type { ActiveFilterItem } from "../list/ActionsFilterChips";
 import { DEFAULT_PUBLICATIONS_MODE, DEFAULT_STATUS_FILTER, type PublicationsMode, type StatusFilter } from "./useActionFilterState";
 import { isPublicationActionType, normalizeActionType } from "../editor/editorUtils";
 import { municipalityName } from "../../../utils/facilityUtils";
+import { isActionCountedInReports } from "../../../utils/calculators/actionMetrics";
 
 export interface ActionsFilterCriteria {
   programs?: OzipzProgram[];
@@ -40,7 +41,8 @@ export function filterActionsList(actions: OzipzAction[], c: ActionsFilterCriter
 
   return actions
     .filter((a) => {
-      if (c.statusFilter === "aktywne" && a.status === "odroczone") return false;
+      // Aktywne = bez odwołanych i odroczonych.
+      if (c.statusFilter === "aktywne" && !isActionCountedInReports(a)) return false;
       if (c.statusFilter === "zakonczone" && a.status !== "wykonane") return false;
       if (c.quickFilterEzd && getActionEzdState(a) !== "pending") return false;
       if (c.quickFilterProgramOnly && !a.programId && !a.programName) return false;
@@ -61,12 +63,11 @@ export function filterActionsList(actions: OzipzAction[], c: ActionsFilterCriter
       if (municipalities.size > 0 && !municipalities.has(municipalityName(a.municipality).toLowerCase())) return false;
 
       if (c.selectedPrograms.length > 0) {
+        // Po identyfikatorze; po nazwie tylko działania z inną edycją programu lub sprzed powiązania z bazą programów.
         const matchProg = c.selectedPrograms.some((prog) =>
           prog === "none" ? !a.programId && !a.programName :
-          a.programId === prog || Boolean(a.programName && (
-            a.programName.toLowerCase().includes(prog.toLowerCase()) ||
-            c.programs?.some((p) => p.id === prog && p.name.toLowerCase() === a.programName?.toLowerCase())
-          ))
+          a.programId === prog || Boolean(a.programName &&
+            c.programs?.some((p) => p.id === prog && p.name.toLowerCase() === a.programName?.toLowerCase()))
         );
         if (!matchProg) return false;
       }

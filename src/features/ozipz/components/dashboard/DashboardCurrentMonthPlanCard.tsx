@@ -11,6 +11,7 @@ import { getJrwaDetails } from "../../utils/programJrwaUtils";
 import type { HealthPromotionTab, OzipzScheduleEvent, OzipzAction } from "../../types/ozipz.types";
 import { useModalStore } from "../../store/useModalStore";
 import { useOzipzDb } from "../../hooks/useOzipzDb";
+import { classifyScheduleEvent, linkedScheduleEventIds } from "../../utils/scheduleEventStatus";
 
 const MONTH_NAMES_PL = [
   "Styczeń",
@@ -85,6 +86,11 @@ export function DashboardCurrentMonthPlanCard({
       .sort((a, b) => a.eventDate.localeCompare(b.eventDate));
   }, [scheduleEvents, selectedMonth, selectedYear]);
 
+  const eventProgress = useMemo(() => {
+    const linkedIds = linkedScheduleEventIds(actions);
+    return new Map(monthEvents.map((ev) => [ev.id, classifyScheduleEvent(ev, linkedIds)]));
+  }, [monthEvents, actions]);
+
   // Statystyki realizacji dla wybranego miesiąca
   const stats = useMemo(() => {
     const total = monthEvents.length;
@@ -94,33 +100,16 @@ export function DashboardCurrentMonthPlanCard({
     let postponed = 0;
 
     for (const ev of monthEvents) {
-      const isEvCompleted =
-        ev.status === "wykonane" ||
-        ev.status === "done" ||
-        ev.status === "zrealizowane" ||
-        Boolean(ev.actionId) ||
-        actions.some((a) => a.scheduleEventId === ev.id);
-
-      const isEvPostponed =
-        ev.status === "odroczone" ||
-        ev.status === "odwolane" ||
-        ev.status === "postponed" ||
-        ev.status === "cancelled";
-
-      if (isEvCompleted) {
-        completed++;
-      } else if (ev.status === "w_toku" || ev.status === "in_progress") {
-        inProgress++;
-      } else if (isEvPostponed) {
-        postponed++;
-      } else {
-        planned++;
-      }
+      const progress = eventProgress.get(ev.id);
+      if (progress === "completed") completed++;
+      else if (progress === "in_progress") inProgress++;
+      else if (progress === "postponed") postponed++;
+      else planned++;
     }
 
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { total, completed, inProgress, planned, postponed, percentage };
-  }, [monthEvents, actions]);
+  }, [monthEvents, eventProgress]);
 
   const handlePrevMonth = () => {
     if (selectedMonth === 1) {
@@ -261,18 +250,9 @@ export function DashboardCurrentMonthPlanCard({
           </div>
         ) : (
           monthEvents.map((ev) => {
-            const isCompleted =
-              ev.status === "wykonane" ||
-              ev.status === "done" ||
-              ev.status === "zrealizowane" ||
-              Boolean(ev.actionId) ||
-              actions.some((a) => a.scheduleEventId === ev.id);
-
-            const isPostponed =
-              ev.status === "odroczone" ||
-              ev.status === "odwolane" ||
-              ev.status === "postponed" ||
-              ev.status === "cancelled";
+            const progress = eventProgress.get(ev.id);
+            const isCompleted = progress === "completed";
+            const isPostponed = progress === "postponed";
 
             const jrwaInfo = getEventJrwaInfo(ev);
 

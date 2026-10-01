@@ -1,4 +1,5 @@
 import type { OzipzAction, OzipzFacility, OzipzProgram, OzipzSchoolParticipation } from "../types/ozipz.types";
+import { isActionCountedInReports } from "./calculators/actionMetrics";
 
 /** „all” – wszystkie lata szkolne. */
 export type StatisticsYear = string | "all";
@@ -25,7 +26,7 @@ export interface ProgramStatisticsRow {
   finalReports: number;
   files: number;
   withoutCoordinator: number;
-  /** Działania z ewidencji przypisane do programu w tym okresie (suma „liczby działań”). */
+  /** Działania z ewidencji przypisane do programu w tym okresie (suma „liczby działań”), bez odwołanych i odroczonych. */
   actions: number;
   actionRecipients: number;
   schoolList: ProgramSchoolEntry[];
@@ -61,6 +62,12 @@ export interface ProgramStatistics {
 const facilityKey = (p: Pick<OzipzSchoolParticipation, "facilityId" | "facilityName" | "municipality">) =>
   p.facilityId?.trim() || `${p.facilityName.trim().toLocaleLowerCase("pl")}|${p.municipality.trim().toLocaleLowerCase("pl")}`;
 
+function pushTo<T>(map: Map<string, T[]>, key: string, item: T) {
+  const list = map.get(key);
+  if (list) list.push(item);
+  else map.set(key, [item]);
+}
+
 /** Rok szkolny „2026/2027” → zakres dat 2026-09-01 … 2027-08-31. */
 export function schoolYearDateRange(schoolYear: string): { from: string; to: string } | null {
   const match = /^(\d{4})\/(\d{4})$/.exec(schoolYear.trim());
@@ -78,15 +85,15 @@ export function computeProgramStatistics(
   const inYear = year === "all" ? participations : participations.filter((p) => p.schoolYear.trim() === year);
   const range = year === "all" ? null : schoolYearDateRange(year);
   const programActions = actions.filter(
-    (a) => a.programId && (!range || (a.date.slice(0, 10) >= range.from && a.date.slice(0, 10) <= range.to)),
+    (a) => a.programId && isActionCountedInReports(a) && (!range || (a.date.slice(0, 10) >= range.from && a.date.slice(0, 10) <= range.to)),
   );
   const facilityById = new Map(facilities.map((f) => [f.id, f]));
   const programName = new Map(programs.map((p) => [p.id, p.name]));
 
   const byProgram = new Map<string, OzipzSchoolParticipation[]>();
-  for (const p of inYear) byProgram.set(p.programId, [...(byProgram.get(p.programId) ?? []), p]);
+  for (const p of inYear) pushTo(byProgram, p.programId, p);
   const actionsByProgram = new Map<string, OzipzAction[]>();
-  for (const a of programActions) actionsByProgram.set(a.programId!, [...(actionsByProgram.get(a.programId!) ?? []), a]);
+  for (const a of programActions) pushTo(actionsByProgram, a.programId!, a);
 
   const programIds = new Set([...byProgram.keys(), ...actionsByProgram.keys()]);
   const rows: ProgramStatisticsRow[] = [...programIds].map((programId) => {
@@ -129,7 +136,7 @@ export function computeProgramStatistics(
   const byMunicipality = new Map<string, OzipzSchoolParticipation[]>();
   for (const p of inYear) {
     const name = p.municipality.trim() || "Bez gminy";
-    byMunicipality.set(name, [...(byMunicipality.get(name) ?? []), p]);
+    pushTo(byMunicipality, name, p);
   }
   const municipalities: MunicipalityStatisticsRow[] = [...byMunicipality].map(([municipality, entries]) => ({
     municipality,

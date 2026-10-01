@@ -1,4 +1,5 @@
 import type { OzipzAction } from "../../types/ozipz.types";
+import { isActionCountedInReports } from "../calculators/actionMetrics";
 import {
   isProgramAction,
   extractCleanJrwaSymbol,
@@ -254,7 +255,7 @@ export function aggregateActionsToProgramsData(
   const interventionNames = getActiveJrwaNamesMap(customInterventionNames);
 
   const filtered = actions.filter((a) => {
-    if (a.status === "odwolane" || a.status === "cancelled" || a.status === "odroczone" || a.status === "anulowane") return false;
+    if (!isActionCountedInReports(a)) return false;
     if (selectedMonths && selectedMonths.length > 0) {
       const dateStr = a.date || "";
       const m = parseInt(dateStr.slice(5, 7), 10);

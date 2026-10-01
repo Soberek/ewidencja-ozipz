@@ -1,5 +1,6 @@
 import type { GisCategory, OzipzAction, OzipzFacility } from "../../types/ozipz.types";
 import { isProgramAction } from "../calculators/jrwaClassification";
+import { isActionCountedInReports } from "../calculators/actionMetrics";
 import { getNormalizedActionType } from "../annex/annexAggregation";
 import { GIS_REPORT_CATEGORIES, resolveActionGisCategory } from "./gisCategories";
 import { classifyGisForm, mapToStandardGroups } from "./gisClassification";
@@ -11,10 +12,8 @@ import type {
   GisUnclassifiedAction,
 } from "./gisReportTypes";
 
-const EXCLUDED_STATUSES = new Set(["odwolane", "cancelled", "odroczone", "anulowane"]);
-
 export function isCountedInGisReport(action: OzipzAction): boolean {
-  return !EXCLUDED_STATUSES.has(action.status ?? "");
+  return isActionCountedInReports(action);
 }
 
 export function gisActionsCount(action: OzipzAction): number {
@@ -71,6 +70,8 @@ export function calculateGisReportData(
   const audiences: string[] = [];
   const entities = new Set<string>();
   const distributionPlaces = new Set<string>();
+  // Dystrybucje bez wskazanego miejsca – każda liczy się jako osobne miejsce.
+  let unnamedDistributions = 0;
   const counties: string[] = [];
 
   for (const action of actions) {
@@ -116,8 +117,8 @@ export function calculateGisReportData(
         result.liczbaObserwatorowSocialMedia += recipients;
         break;
       case "dystrybucja":
-        result.liczbaMiejscDystrybucjiMateria += count;
         if (facilityName) distributionPlaces.add(facilityName);
+        else unnamedDistributions += count;
         break;
     }
   }
@@ -128,6 +129,8 @@ export function calculateGisReportData(
   result.zidentyfikowanePodmioty = sortPl(entities);
   result.liczbaPodmiotow = entities.size;
   result.zidentyfikowaneMiejscaDystrybucji = sortPl(distributionPlaces);
+  // Miejsca, nie wpisy: kilka dystrybucji w tej samej placówce to jedno miejsce.
+  result.liczbaMiejscDystrybucjiMateria = distributionPlaces.size + unnamedDistributions;
   return result;
 }
 
