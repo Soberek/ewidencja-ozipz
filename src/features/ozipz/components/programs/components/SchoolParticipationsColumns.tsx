@@ -1,4 +1,4 @@
-import { AlertTriangle, Building2, CheckCircle2, Edit, Link2Off, Trash2 } from "lucide-react";
+import { AlertTriangle, Building2, CheckCircle2, Edit, Link2Off, Paperclip, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { ColumnDef } from "@/components/ui/data-table";
 import type { OzipzContact, OzipzSchoolParticipation, OzipzProgram } from "../../../types/ozipz.types";
@@ -11,6 +11,8 @@ export interface SchoolParticipationsColumnsProps {
   contactsById?: Map<string, OzipzContact>;
   onEdit: (item: OzipzSchoolParticipation) => void;
   onDelete: (id: string) => void;
+  /** Podgląd pliku zgłoszenia – przycisk widoczny tylko przy zgłoszeniach z plikiem. */
+  onPreviewFile?: (item: OzipzSchoolParticipation) => void;
 }
 
 export function createSchoolParticipationsColumns({
@@ -18,6 +20,7 @@ export function createSchoolParticipationsColumns({
   contactsById = new Map(),
   onEdit,
   onDelete,
+  onPreviewFile,
 }: SchoolParticipationsColumnsProps): ColumnDef<OzipzSchoolParticipation>[] {
   return [
     {
@@ -153,6 +156,15 @@ export function createSchoolParticipationsColumns({
       header: "Akcje",
       cell: ({ row }) => (
         <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+          {row.applicationFile && onPreviewFile && (
+            <RowActionButton
+              label="Podgląd pliku zgłoszenia"
+              icon={Paperclip}
+              tone="primary"
+              onClick={() => onPreviewFile(row)}
+            />
+          )}
+
           <RowActionButton
             label="Edytuj zgłoszenie"
             icon={Edit}

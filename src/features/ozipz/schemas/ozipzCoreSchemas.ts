@@ -106,6 +106,8 @@ export const SchoolParticipationSchema = z.object({
   hasFinalReport: z.boolean().default(false),
   evaluationGrade: z.string().optional().default(""),
   notes: z.string().optional().default(""),
+  // Skan / plik zgłoszenia: ścieżka względem folderu bazy (aplikacja desktopowa)
+  applicationFile: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

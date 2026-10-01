@@ -26,6 +26,14 @@ import { ParticipationMetricsStatusFields } from "./components/ParticipationMetr
 import type { NewContactData } from "./components/CoordinatorQuickAddPanel";
 import { getProgramJrwaSymbol } from "../../utils/programJrwaUtils";
 import { isContactOfFacility, isContactWithoutFacility, suggestCoordinator } from "./participationCoordinator";
+import { ParticipationApplicationFileField } from "./components/ParticipationApplicationFileField";
+import { ParticipationFilePreviewDialog } from "./components/ParticipationFilePreviewDialog";
+import {
+  discardParticipationFile,
+  importParticipationFile,
+  participationFileBaseName,
+  supportsParticipationFiles,
+} from "@/db/participation-files";
 
 type NewProgramData = Omit<OzipzProgram, "id" | "createdAt" | "updatedAt">;
 
@@ -97,6 +105,9 @@ export function ParticipationDialog({
   const [assignToFacility, setAssignToFacility] = useState(true);
   const [assignSecondToFacility, setAssignSecondToFacility] = useState(true);
   const [showSecond, setShowSecond] = useState(false);
+  const [storedFile, setStoredFile] = useState<string | undefined>(undefined);
+  const [pendingFile, setPendingFile] = useState<string | null>(null);
+  const [previewFile, setPreviewFile] = useState<string | null>(null);
 
   const {
     register,
@@ -141,6 +152,8 @@ export function ParticipationDialog({
     setAssignToFacility(true);
     setAssignSecondToFacility(true);
     setShowSecond(Boolean(editingParticipation?.secondCoordinatorName?.trim()));
+    setStoredFile(editingParticipation?.applicationFile);
+    setPendingFile(null);
     if (editingParticipation) {
       const linkedId = editingParticipation.schoolCoordinatorContactId;
       const secondId = editingParticipation.secondCoordinatorContactId;
@@ -330,16 +343,29 @@ export function ParticipationDialog({
       hasFinalReport: Boolean(data.hasFinalReport),
       evaluationGrade: data.evaluationGrade || "",
       notes: data.notes?.trim() || "",
+      applicationFile: storedFile,
     };
 
     if (findDuplicateParticipation(participations, payload, editingParticipation?.id)) {
       setError("facilityName", { message: "Ta placówka ma już zgłoszenie do tego programu w wybranym roku z tym samym koordynatorem. Edytuj istniejące zgłoszenie." });
       return;
     }
+    // Plik kopiujemy dopiero przy zapisie; nieudany zapis usuwa świeżą kopię z folderu zgłoszeń.
+    let importedFile: string | undefined;
+    if (pendingFile) {
+      try {
+        importedFile = await importParticipationFile(pendingFile, payload.schoolYear, participationFileBaseName(payload.programName, payload.facilityName));
+      } catch (error) {
+        setError("root", { message: `Nie udało się dołączyć pliku zgłoszenia. ${error instanceof Error ? error.message : String(error)}` });
+        return;
+      }
+      payload.applicationFile = importedFile;
+    }
     try {
       if (editingParticipation) await onUpdate(editingParticipation.id, payload);
       else await onSave(payload);
     } catch (error) {
+      if (importedFile) await discardParticipationFile(importedFile).catch(() => undefined);
       setError("root", { message: error instanceof Error ? error.message : "Nie udało się zapisać zgłoszenia." });
       return;
     }
@@ -445,7 +471,17 @@ export function ParticipationDialog({
         )}
 
         <ParticipationMetricsStatusFields register={register} errors={errors} />
+
+        <ParticipationApplicationFileField
+          storedPath={storedFile}
+          pendingSource={pendingFile}
+          supported={supportsParticipationFiles()}
+          onPendingChange={setPendingFile}
+          onRemoveStored={() => setStoredFile(undefined)}
+          onPreview={setPreviewFile}
+        />
       </div>
+      <ParticipationFilePreviewDialog filePath={previewFile} onClose={() => setPreviewFile(null)} />
     </ModalDialog>
   );
 }

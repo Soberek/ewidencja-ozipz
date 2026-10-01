@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { School } from "lucide-react";
+import { FolderOpen, School } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -10,6 +10,8 @@ import {
 } from "./SchoolParticipationsFilterBar";
 import { createSchoolParticipationsColumns } from "./SchoolParticipationsColumns";
 import { normalizeText } from "../../contacts/contactUtils";
+import { ParticipationFilePreviewDialog } from "./ParticipationFilePreviewDialog";
+import { openParticipationFilesFolder, supportsParticipationFiles } from "@/db/participation-files";
 
 export interface SchoolParticipationsTabProps {
   participations: OzipzSchoolParticipation[];
@@ -33,6 +35,7 @@ export function SchoolParticipationsTab({
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<ParticipationReportStatusFilter>("all");
+  const [previewItem, setPreviewItem] = useState<OzipzSchoolParticipation | null>(null);
 
   const programMap = useMemo(() => {
     const map = new Map<string, OzipzProgram>();
@@ -106,7 +109,7 @@ export function SchoolParticipationsTab({
   const contactsById = useMemo(() => new Map(contacts.map((c) => [c.id, c])), [contacts]);
 
   const columns = useMemo(
-    () => createSchoolParticipationsColumns({ programMap, contactsById, onEdit, onDelete }),
+    () => createSchoolParticipationsColumns({ programMap, contactsById, onEdit, onDelete, onPreviewFile: setPreviewItem }),
     [programMap, contactsById, onEdit, onDelete]
   );
 
@@ -142,14 +145,26 @@ export function SchoolParticipationsTab({
       />
 
       {filteredParticipations.length > 0 && (
-        <p className="text-[11px] text-muted-foreground">
-          Zgłoszenia: <strong className="text-foreground">{filteredParticipations.length}</strong> · placówki:{" "}
-          <strong className="text-foreground">{totals.facilities}</strong> · uczniowie ogółem:{" "}
-          <strong className="text-foreground">{totals.pupils.toLocaleString("pl-PL")}</strong>
-          {totals.withoutCoordinator > 0 && (
-            <span className="text-amber-700 dark:text-amber-400"> · bez koordynatora: {totals.withoutCoordinator}</span>
+        <div className="flex items-center gap-3">
+          <p className="text-[11px] text-muted-foreground">
+            Zgłoszenia: <strong className="text-foreground">{filteredParticipations.length}</strong> · placówki:{" "}
+            <strong className="text-foreground">{totals.facilities}</strong> · uczniowie ogółem:{" "}
+            <strong className="text-foreground">{totals.pupils.toLocaleString("pl-PL")}</strong>
+            {totals.withoutCoordinator > 0 && (
+              <span className="text-amber-700 dark:text-amber-400"> · bez koordynatora: {totals.withoutCoordinator}</span>
+            )}
+          </p>
+          {supportsParticipationFiles() && (
+            <button
+              type="button"
+              onClick={() => openParticipationFilesFolder().catch((error) => console.error(error))}
+              className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+            >
+              <FolderOpen className="size-3" />
+              Folder plików zgłoszeń
+            </button>
           )}
-        </p>
+        </div>
       )}
 
       {/* Tabela zgłoszeń */}
@@ -194,6 +209,12 @@ export function SchoolParticipationsTab({
           />
         </TooltipProvider>
       )}
+
+      <ParticipationFilePreviewDialog
+        filePath={previewItem?.applicationFile ?? null}
+        title={previewItem ? `Zgłoszenie: ${previewItem.facilityName}` : undefined}
+        onClose={() => setPreviewItem(null)}
+      />
     </div>
   );
 }

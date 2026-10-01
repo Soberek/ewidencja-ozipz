@@ -1,11 +1,12 @@
 # Schemat Relacyjnej Bazy Danych SQLite (Ewidencja OZiPZ)
 
-Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VERSION = 12`). Zarówno aplikacja, jak i skrypt inicjalizacji używają tej samej migracji. Poniższy opis encji należy czytać wraz z ograniczeniami opisanymi niżej.
+Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VERSION = 13`). Zarówno aplikacja, jak i skrypt inicjalizacji używają tej samej migracji. Poniższy opis encji należy czytać wraz z ograniczeniami opisanymi niżej.
 
 ## Aktualizacja i integralność (2026-09-09)
 
 - `PRAGMA user_version` identyfikuje wersję schematu. Przed aktualizacją istniejącego pliku powstaje spójna kopia SQLite `*.before-migration-1-<czas>.db`, uwzględniająca dziennik WAL.
 - v12 (2026-09-30): zgłoszenie szkoły nie zawiera już liczby oddziałów ani rodziców (`classes_count`, `parents_count` usunięte; wartości zostają tylko w kopii sprzed migracji). Dochodzi opcjonalny drugi koordynator (`second_coordinator_*`), powiązany ze Spisem Kontaktów na tych samych zasadach co pierwszy.
+- v13 (2026-10-01): zgłoszenie szkoły może mieć plik zgłoszenia (`application_file`) – ścieżkę względną do kopii w folderze `Zgłoszenia/<rok szkolny>/` obok pliku bazy. Same pliki nie są częścią bazy ani jej kopii zapasowych.
 - v5 (2026-09-27): placówki mają własne `email`/`phone` sekretariatu. Przy aktualizacji kontakt zapisany w polach koordynatora bez nazwiska przechodzi do tych kolumn, prefiks „Gmina” znika z nazwy gminy (zmiana spływa do powiązanych działań i zgłoszeń), a z `notes` usuwane są wyłącznie wpisy importu dublujące inne pola.
 - Migracja przebudowuje stare tabele w jednej transakcji, zachowuje rekordy i sprawdza klucze obce przed zatwierdzeniem. Duplikaty, błędne relacje lub nieznane kolumny przerywają migrację; rekordy nie są automatycznie usuwane ani scalane.
 - Obowiązuje 25 kluczy obcych. Udział placówki jest unikalny dla `(program_id, facility_id, school_year)`. Placówki ani programu z udziałami nie można usunąć (`RESTRICT`); usunięcie zgłoszenia jest osobną, jawną operacją.
@@ -193,6 +194,7 @@ Silnik SQLite działa z aktywnym `PRAGMA foreign_keys = ON;` w trybie `WAL` (`PR
 | `has_final_report` | `INTEGER` | `DEFAULT 0` | Flaga złożenia sprawozdania końcowego (0/1) | `hasFinalReport: boolean` |
 | `evaluation_grade` | `TEXT` | | Ocena realizacji programu | `evaluationGrade?: string` |
 | `notes` | `TEXT` | | Uwagi | `notes?: string` |
+| `application_file` | `TEXT` | niepusty | Plik zgłoszenia: ścieżka względem folderu bazy, np. `Zgłoszenia/2026-2027/<program> – <placówka>.pdf` | `applicationFile?: string` |
 | `created_at` | `TEXT` | `NOT NULL` | Timestamp ISO 8601 | `createdAt: string` |
 | `updated_at` | `TEXT` | `NOT NULL` | Timestamp ISO 8601 | `updatedAt: string` |
 

@@ -72,3 +72,6 @@ desktop.ini
 *.backup-pending
 
 *.verified-backup-*.db
+
+# Pliki zgłoszeń z lokalnej bazy deweloperskiej
+/Zgłoszenia/

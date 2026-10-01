@@ -117,6 +117,7 @@ export const Mappers = {
       hasFinalReport: Boolean(row.has_final_report),
       evaluationGrade: row.evaluation_grade || undefined,
       notes: row.notes || undefined,
+      applicationFile: row.application_file || undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

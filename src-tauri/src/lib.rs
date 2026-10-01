@@ -1,5 +1,6 @@
 mod auto_backup;
 mod db_lock;
+mod participation_files;
 mod publication_fetch;
 mod storage_kind;
 use sqlx::{Connection, SqliteConnection, sqlite::SqliteConnectOptions};
@@ -309,7 +310,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![publication_fetch::fetch_publication_source, open_local_database, get_database_path, set_database_location, reveal_database_file, backup_database, queue_database_restore, has_restored_database, acknowledge_database_restore,
             auto_backup::get_auto_backups, auto_backup::create_auto_backup_now, auto_backup::open_auto_backup_folder,
             db_lock::acquire_database_lock, db_lock::database_lock_status, db_lock::get_session_actor,
-            storage_kind::get_database_storage_kind])
+            storage_kind::get_database_storage_kind,
+            participation_files::import_participation_file, participation_files::read_participation_file, participation_files::open_participation_file,
+            participation_files::reveal_participation_file, participation_files::open_participation_files_folder, participation_files::discard_participation_file])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
         .run(|_, event| {

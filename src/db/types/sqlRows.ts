@@ -75,6 +75,8 @@ export interface ParticipationSqlRow {
   has_final_report: number;
   evaluation_grade: string | null;
   notes: string | null;
+  /** Ścieżka względem folderu bazy, np. „Zgłoszenia/2026-2027/…pdf”. Brak w bazach sprzed v13. */
+  application_file?: string | null;
   created_at: string;
   updated_at: string;
 }
