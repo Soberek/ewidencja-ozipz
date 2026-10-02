@@ -52,8 +52,8 @@ interface ContactDialogProps {
   municipalities?: string[];
   /** Istniejące kontakty – do ostrzegania o możliwych duplikatach. */
   existingContacts?: OzipzContact[];
-  onSave: (data: Omit<OzipzContact, "id" | "createdAt" | "updatedAt">) => void;
-  onUpdate: (id: string, data: Partial<OzipzContact>) => void;
+  onSave: (data: Omit<OzipzContact, "id" | "createdAt" | "updatedAt">) => unknown | Promise<unknown>;
+  onUpdate: (id: string, data: Partial<OzipzContact>) => unknown | Promise<unknown>;
 }
 
 export function ContactDialog({
@@ -75,7 +75,8 @@ export function ContactDialog({
     setValue,
     watch,
     reset,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<ContactFormInput, undefined, ContactFormOutput>({
     resolver: zodResolver(ContactFormSchema),
     defaultValues: {
@@ -166,7 +167,7 @@ export function ContactDialog({
     }
   };
 
-  const onSubmit = (data: ContactFormOutput) => {
+  const onSubmit = async (data: ContactFormOutput) => {
     const payload: Omit<OzipzContact, "id" | "createdAt" | "updatedAt"> = {
       name: data.name.trim(),
       position: data.position.trim(),
@@ -178,12 +179,13 @@ export function ContactDialog({
       notes: data.notes?.trim() || undefined,
     };
 
-    if (editingContact) {
-      onUpdate(editingContact.id, payload);
-    } else {
-      onSave(payload);
+    try {
+      if (editingContact) await onUpdate(editingContact.id, payload);
+      else await onSave(payload);
+      onClose();
+    } catch (error) {
+      setError("root", { message: error instanceof Error ? error.message : "Nie udało się zapisać kontaktu." });
     }
-    onClose();
   };
 
   const errorMessage = Object.values(errors)
@@ -202,15 +204,17 @@ export function ContactDialog({
       description="Kartoteka koordynatora programu profilaktycznego lub pedagoga szkolnego"
       error={errorMessage || null}
       onSubmit={handleSubmit(onSubmit)}
+      isSubmitting={isSubmitting}
       submitText={editingContact ? "Zapisz Zmiany" : "Dodaj Kontakt"}
     >
       <div className="space-y-3.5 text-xs">
         <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+          <label htmlFor="contact-name" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
             <User className="size-3.5 text-primary" />
             <span>Imię i Nazwisko <span className="text-destructive">*</span></span>
           </label>
           <Input
+            id="contact-name"
             type="text"
             placeholder="np. mgr Anna Kowalska"
             {...register("name")}
@@ -221,11 +225,12 @@ export function ContactDialog({
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+          <label htmlFor="contact-position" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
             <Briefcase className="size-3.5 text-primary" />
             <span>Stanowisko / Rola <span className="text-destructive">*</span></span>
           </label>
           <Autocomplete
+            id="contact-position"
             options={dynamicPositions}
             value={watch("position") || ""}
             onChange={(pos) => setValue("position", pos, { shouldValidate: true })}
@@ -237,11 +242,12 @@ export function ContactDialog({
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+          <label htmlFor="contact-facility" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
             <Building2 className="size-3.5 text-primary" />
             <span>Przypisana Placówka / Instytucja <span className="text-destructive">*</span></span>
           </label>
           <Autocomplete
+            id="contact-facility"
             options={facilityAutocompleteOptions}
             value={watch("facilityName") || ""}
             onChange={(name) => {
@@ -276,11 +282,12 @@ export function ContactDialog({
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+          <label htmlFor="contact-municipality" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
             <MapPin className="size-3.5 text-primary" />
             <span>Gmina</span>
           </label>
           <Select
+            id="contact-municipality"
             value={watch("municipality") || ""}
             onChange={(muni) => setValue("municipality", muni, { shouldValidate: true })}
             options={municipalityOptions}
@@ -293,11 +300,12 @@ export function ContactDialog({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <label htmlFor="contact-phone" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
               <Phone className="size-3.5 text-primary" />
               <span>Telefon</span>
             </label>
             <Input
+              id="contact-phone"
               type="text"
               placeholder="np. 95 747 22 33 / 600 000 000"
               {...register("phone", {
@@ -308,11 +316,12 @@ export function ContactDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <label htmlFor="contact-email" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
               <Mail className="size-3.5 text-primary" />
               <span>Adres E-mail</span>
             </label>
             <Input
+              id="contact-email"
               type="email"
               placeholder="np. a.kowalska@sp2.mysliborz.pl"
               {...register("email")}
@@ -344,11 +353,12 @@ export function ContactDialog({
         )}
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+          <label htmlFor="contact-notes" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
             <FileText className="size-3.5 text-muted-foreground" />
             <span>Notatki / Informacje dodatkowe</span>
           </label>
           <textarea
+            id="contact-notes"
             placeholder="Dni i godziny kontaktu, preferowana forma kontaktu, koordynowane programy..."
             {...register("notes")}
             rows={2}

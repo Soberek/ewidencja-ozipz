@@ -1,5 +1,9 @@
 import { z } from "zod";
 import { JRWA_DEFAULT_SECTION } from "../constants";
+import { isValidOzipzDate } from "../utils/dateUtils";
+
+export const requiredDate = (message: string) => z.string().min(1, message).refine(isValidOzipzDate, "Nieprawidłowa data");
+export const optionalDate = () => z.string().refine((value) => !value || isValidOzipzDate(value), "Nieprawidłowa data").optional();
 
 // Enum & Union Schemas
 export const HealthPromotionTabSchema = z.enum([
@@ -38,7 +42,7 @@ export const ActionSchema = z.object({
   id: z.string(),
   title: z.string().min(2, "Tytuł działania musi mieć co najmniej 2 znaki"),
   actionType: OzipzActionTypeSchema,
-  date: z.string().min(1, "Data działania jest wymagana"),
+  date: requiredDate("Data działania jest wymagana"),
   facilityId: z.string().optional(),
   facilityName: z.string().min(1, "Nazwa placówki jest wymagana"),
   municipality: z.string().min(1, "Gmina jest wymagana"),
@@ -137,7 +141,7 @@ export const DistributionSchema = z.object({
   actionId: z.string().optional(),
   actionTitle: z.string().optional(),
   quantity: z.number().int().min(1, "Ilość musi wynosić co najmniej 1 sztukę"),
-  distributionDate: z.string().min(1, "Data przekazania jest wymagana"),
+  distributionDate: requiredDate("Data przekazania jest wymagana"),
   assignedEducator: z.string().optional().default(""),
   purpose: z.string().optional().default(""),
   notes: z.string().optional(),
@@ -151,8 +155,8 @@ export const ScheduleEventSchema = z.object({
   title: z.string().min(1, "Tytuł zadania harmonogramu jest wymagany"),
   activityTypeCode: z.string().optional(),
   activityTypeName: z.string().optional(),
-  eventDate: z.string().min(1, "Data realizacji jest wymagana"),
-  endDate: z.string().optional(),
+  eventDate: requiredDate("Data realizacji jest wymagana"),
+  endDate: optionalDate(),
   category: z.string().optional(),
   topic: OzipzHealthTopicSchema.optional(),
   programId: z.string().optional(),
@@ -196,8 +200,8 @@ export const JrwaCaseSchema = z.object({
   programName: z.string().optional(),
   actionId: z.string().optional(),
   archivalCategory: z.string().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
+  startDate: optionalDate(),
+  endDate: optionalDate(),
   initiatingDocument: z.string().optional(),
   status: z.string().default("w_toku"),
   assignedEducator: z.string().optional().default(""),

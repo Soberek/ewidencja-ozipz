@@ -36,6 +36,10 @@ describe("dateUtils (date-fns helper functions)", () => {
     expect(safeParseDate(null)).toBeNull();
     expect(safeParseDate(undefined)).toBeNull();
     expect(safeParseDate("")).toBeNull();
+    expect(safeParseDate("2026-02-31")).toBeNull();
+    expect(safeParseDate("31.02.2026")).toBeNull();
+    expect(safeParseDate("2026-13-01")).toBeNull();
+    expect(safeParseDate("2026-02-15T10:30:00Z")).not.toBeNull();
   });
 
   it("getMonthKey returns standard YYYY-MM format across varied inputs", () => {
@@ -45,6 +49,8 @@ describe("dateUtils (date-fns helper functions)", () => {
     expect(getMonthKey(new Date(2026, 11, 24))).toBe("2026-12");
     expect(getMonthKey("")).toBe("");
     expect(getMonthKey(null)).toBe("");
+    expect(getMonthKey("2026-02-31")).toBe("");
+    expect(getMonthKey("2026-13-01")).toBe("");
   });
 
   it("getYearKey and getYearNumber return accurate 4-digit years", () => {
@@ -52,6 +58,7 @@ describe("dateUtils (date-fns helper functions)", () => {
     expect(getYearKey("15.03.2025")).toBe("2025");
     expect(getYearNumber("2026-08-30")).toBe(2026);
     expect(getYearNumber("invalid", 2026)).toBe(2026);
+    expect(getYearKey("2026-02-31")).toBe("");
   });
 
   it("isMonthClosed checks closed months set reliably", () => {

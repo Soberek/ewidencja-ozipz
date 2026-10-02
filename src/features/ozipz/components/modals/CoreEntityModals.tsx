@@ -237,7 +237,8 @@ export function CoreEntityModals({
             () => db.addContact(data),
             "Kontakt / koordynator został pomyślnie dodany.",
             "Błąd dodawania kontaktu",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
         onUpdate={(id, data) =>
@@ -245,7 +246,8 @@ export function CoreEntityModals({
             () => db.updateContact(id, data),
             "Dane kontaktu zostały zaktualizowane.",
             "Błąd aktualizacji kontaktu",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
       />

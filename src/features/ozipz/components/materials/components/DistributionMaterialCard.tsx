@@ -48,13 +48,14 @@ export function DistributionMaterialCard({
   return (
     <div className="p-3 bg-muted/20 border border-border/70 rounded-[3px] space-y-3">
       <div className="space-y-1.5">
-        <label className="font-bold text-foreground flex items-center gap-1.5 text-xs">
+        <label htmlFor="distribution-material" className="font-bold text-foreground flex items-center gap-1.5 text-xs">
           <Package className="size-3.5 text-emerald-600" />
           <span>
             Wybierz Materiał z Katalogu <span className="text-destructive">*</span>
           </span>
         </label>
         <SearchableSelect
+          id="distribution-material"
           value={selectedMaterialId}
           onChange={onMaterialChange}
           options={materialOptions}
@@ -68,8 +69,9 @@ export function DistributionMaterialCard({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         <div className="space-y-1">
-          <label className="font-semibold text-foreground text-xs">Nazwa / Tytuł (jeśli własna)</label>
+          <label htmlFor="distribution-material-title" className="font-semibold text-foreground text-xs">Nazwa / Tytuł (jeśli własna)</label>
           <Input
+            id="distribution-material-title"
             type="text"
             placeholder="np. Tytuł materiału lub pakietu..."
             {...register("materialTitle")}
@@ -78,8 +80,9 @@ export function DistributionMaterialCard({
         </div>
 
         <div className="space-y-1">
-          <label className="font-semibold text-foreground text-xs">Typ Materiału (ze słownika)</label>
+          <label htmlFor="distribution-material-type" className="font-semibold text-foreground text-xs">Typ Materiału (ze słownika)</label>
           <Select
+            id="distribution-material-type"
             value={currentMaterialType}
             onChange={(val) => onMaterialTypeChange?.(val)}
             options={typeOptions}

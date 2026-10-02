@@ -84,7 +84,7 @@ export function RozdzielnikBlankietDialog({
                 {distribution.materialTitle || material?.title || "—"}
               </span>
               <span className="block text-[11px] text-muted-foreground">
-                Typ: {material?.materialType || "Broszura / ulotka"}
+                Typ: {distribution.materialType || material?.materialType || "—"}
               </span>
             </div>
             <div>
@@ -105,7 +105,7 @@ export function RozdzielnikBlankietDialog({
                 {distribution.recipientName || facility?.name || "—"}
               </div>
               <div className="text-muted-foreground">
-                {facility?.address ? `${facility.address}, ${facility.city}` : "Powiat Myśliborski"}
+                {facility?.address ? `${facility.address}, ${facility.city}` : distribution.municipality || "—"}
               </div>
               {distribution.assignedEducator && (
                 <div className="text-foreground pt-1">

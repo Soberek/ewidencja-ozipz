@@ -60,13 +60,14 @@ export function DistributionRecipientCard({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
       <div className="space-y-1 sm:col-span-2">
-        <label className="font-semibold text-foreground flex items-center gap-1.5 text-xs">
+        <label htmlFor="distribution-recipient" className="font-semibold text-foreground flex items-center gap-1.5 text-xs">
           <Building2 className="size-3.5 text-primary" />
           <span>
             Wybierz Placówkę (lub wpisz własnego odbiorcę) <span className="text-destructive">*</span>
           </span>
         </label>
         <Autocomplete
+          id="distribution-recipient"
           value={currentRecipientName}
           onChange={(name) => onRecipientNameChange?.(name)}
           onSelectOption={(opt) => {
@@ -85,11 +86,12 @@ export function DistributionRecipientCard({
       </div>
 
       <div className="space-y-1">
-        <label className="font-semibold text-foreground flex items-center gap-1.5 text-xs">
+        <label htmlFor="distribution-municipality" className="font-semibold text-foreground flex items-center gap-1.5 text-xs">
           <MapPin className="size-3.5 text-primary" />
           <span>Gmina</span>
         </label>
         <Select
+          id="distribution-municipality"
           value={currentMunicipality}
           onChange={(muni) => onMunicipalityChange?.(muni)}
           options={municipalityOptions}

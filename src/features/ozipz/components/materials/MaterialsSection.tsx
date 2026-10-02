@@ -7,7 +7,7 @@ import type {
   OzipzAction,
   OzipzProgram,
 } from "../../types/ozipz.types";
-import { useMaterials } from "../../store/useOzipzDbStore";
+import { useMaterials, useOzipzDbStore } from "../../store/useOzipzDbStore";
 import { useModalStore } from "../../store/useModalStore";
 import { RozdzielnikBlankietDialog } from "./RozdzielnikBlankietDialog";
 import { MaterialsStatsHeader } from "./components/MaterialsStatsHeader";
@@ -34,6 +34,7 @@ export interface MaterialsSectionProps {
 
 export function MaterialsSection(props: MaterialsSectionProps) {
   const materialsStore = useMaterials();
+  const facilities = useOzipzDbStore((s) => s.facilities);
   const openModal = useModalStore((s) => s.openModal);
 
   const materials = props.materials ?? materialsStore.materials;
@@ -146,6 +147,8 @@ export function MaterialsSection(props: MaterialsSectionProps) {
           open={!!selectedBlankiet}
           onOpenChange={(open) => !open && setSelectedBlankiet(null)}
           distribution={selectedBlankiet}
+          material={materials.find((item) => item.id === selectedBlankiet.materialId)}
+          facility={facilities.find((item) => item.id === selectedBlankiet.facilityId)}
         />
       )}
     </div>

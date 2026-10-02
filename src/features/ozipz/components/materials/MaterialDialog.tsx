@@ -39,8 +39,8 @@ interface MaterialDialogProps {
   materialTypes: OzipzDictionaryItem[];
   programs?: OzipzProgram[];
   jrwaSymbols?: OzipzDictionaryItem[];
-  onSave: (data: Omit<OzipzMaterial, "id" | "createdAt" | "updatedAt">) => void;
-  onUpdate: (id: string, data: Partial<OzipzMaterial>) => void;
+  onSave: (data: Omit<OzipzMaterial, "id" | "createdAt" | "updatedAt">) => unknown | Promise<unknown>;
+  onUpdate: (id: string, data: Partial<OzipzMaterial>) => unknown | Promise<unknown>;
 }
 
 export function MaterialDialog({
@@ -103,7 +103,8 @@ export function MaterialDialog({
     setValue,
     watch,
     reset,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<MaterialFormInput, undefined, MaterialFormOutput>({
     resolver: zodResolver(MaterialFormSchema),
     defaultValues: {
@@ -141,7 +142,7 @@ export function MaterialDialog({
     }
   }, [editingMaterial, isOpen, reset]);
 
-  const onSubmit = (data: MaterialFormOutput) => {
+  const onSubmit = async (data: MaterialFormOutput) => {
     const payload: Omit<OzipzMaterial, "id" | "createdAt" | "updatedAt"> = {
       title: data.title.trim(),
       materialType: data.materialType.trim(),
@@ -151,12 +152,13 @@ export function MaterialDialog({
       notes: data.notes?.trim() || undefined,
     };
 
-    if (editingMaterial) {
-      onUpdate(editingMaterial.id, payload);
-    } else {
-      onSave(payload);
+    try {
+      if (editingMaterial) await onUpdate(editingMaterial.id, payload);
+      else await onSave(payload);
+      onClose();
+    } catch (error) {
+      setError("root", { message: error instanceof Error ? error.message : "Nie udało się zapisać materiału." });
     }
-    onClose();
   };
 
   const errorMessage = Object.values(errors)
@@ -175,16 +177,18 @@ export function MaterialDialog({
       description="Katalog materiałów oświatowych bazujący na programach profilaktycznych i symbolach JRWA"
       error={errorMessage || null}
       onSubmit={handleSubmit(onSubmit)}
+      isSubmitting={isSubmitting}
       submitText={editingMaterial ? "Zapisz Zmiany" : "Dodaj Materiał do Katalogu"}
     >
       <div className="space-y-4">
         {/* Tytuł */}
         <div className="space-y-1.5">
-          <label className="font-bold text-foreground flex items-center gap-1.5">
+          <label htmlFor="material-title" className="font-bold text-foreground flex items-center gap-1.5">
             <BookOpen className="size-3.5 text-primary" />
             <span>Tytuł Materiału / Wydawnictwa <span className="text-destructive">*</span></span>
           </label>
           <Input
+            id="material-title"
             type="text"
             placeholder="np. Ulotka o szczepieniach ochronnych"
             {...register("title")}
@@ -197,11 +201,12 @@ export function MaterialDialog({
         {/* Typ materiału ze słownika & Program / JRWA */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="font-semibold text-foreground flex items-center gap-1.5">
+            <label htmlFor="material-type" className="font-semibold text-foreground flex items-center gap-1.5">
               <Package className="size-3.5 text-emerald-600" />
               <span>Typ / Nośnik Materiału <span className="text-destructive">*</span></span>
             </label>
             <Select
+              id="material-type"
               value={selectedMaterialType || ""}
               onChange={(val) => setValue("materialType", val, { shouldValidate: true })}
               options={materialTypeOptions}
@@ -213,11 +218,12 @@ export function MaterialDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label className="font-semibold text-foreground flex items-center gap-1.5">
+            <label htmlFor="material-topic" className="font-semibold text-foreground flex items-center gap-1.5">
               <Bookmark className="size-3.5 text-primary" />
               <span>Program Profilaktyczny / JRWA</span>
             </label>
             <SearchableSelect
+              id="material-topic"
               value={selectedTopic || ""}
               onChange={(val) => setValue("topic", val, { shouldValidate: true })}
               options={topicOptions}
@@ -232,11 +238,12 @@ export function MaterialDialog({
 
         {/* Wydawca / Źródło */}
         <div className="space-y-1.5">
-          <label className="font-semibold text-foreground flex items-center gap-1.5">
+          <label htmlFor="material-publisher" className="font-semibold text-foreground flex items-center gap-1.5">
             <Building2 className="size-3.5 text-primary" />
             <span>Wydawca / Źródło Pochodzenia</span>
           </label>
           <Input
+            id="material-publisher"
             type="text"
             placeholder="np. Główny Inspektorat Sanitarny / WSSE Szczecin"
             {...register("publisher")}
@@ -246,11 +253,12 @@ export function MaterialDialog({
 
         {/* Grupa Docelowa */}
         <div className="space-y-1.5">
-          <label className="font-semibold text-foreground flex items-center gap-1.5">
+          <label htmlFor="material-audience" className="font-semibold text-foreground flex items-center gap-1.5">
             <Users className="size-3.5 text-indigo-600" />
             <span>Grupa Docelowa (Odbiorcy)</span>
           </label>
           <Input
+            id="material-audience"
             type="text"
             placeholder="np. Młodzież szkolna (klasy VII-VIII), dorośli, seniorzy"
             {...register("targetAudience")}
@@ -260,11 +268,12 @@ export function MaterialDialog({
 
         {/* Notatki / Uwagi */}
         <div className="space-y-1.5">
-          <label className="font-semibold text-muted-foreground flex items-center gap-1.5">
+          <label htmlFor="material-notes" className="font-semibold text-muted-foreground flex items-center gap-1.5">
             <FileText className="size-3.5 text-muted-foreground" />
             <span>Uwagi / Informacje o nakładzie i dystrybucji</span>
           </label>
           <textarea
+            id="material-notes"
             placeholder="np. Pakiety po 50 szt., materiały na akcję letnią Bezpieczne Wakacje..."
             {...register("notes")}
             rows={2}

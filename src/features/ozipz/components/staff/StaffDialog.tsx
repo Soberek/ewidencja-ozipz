@@ -29,8 +29,8 @@ interface StaffDialogProps {
   onClose: () => void;
   editingStaff: OzipzStaff | null;
   staffRoles?: (string | OzipzDictionaryItem)[];
-  onSave: (data: Omit<OzipzStaff, "id" | "createdAt" | "updatedAt">) => void;
-  onUpdate: (id: string, data: Partial<OzipzStaff>) => void;
+  onSave: (data: Omit<OzipzStaff, "id" | "createdAt" | "updatedAt">) => unknown | Promise<unknown>;
+  onUpdate: (id: string, data: Partial<OzipzStaff>) => unknown | Promise<unknown>;
 }
 
 export function StaffDialog({
@@ -51,7 +51,8 @@ export function StaffDialog({
     setValue,
     watch,
     reset,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<StaffFormInput, any, StaffFormOutput>({
     resolver: zodResolver(StaffFormSchema),
     defaultValues: {
@@ -86,7 +87,7 @@ export function StaffDialog({
     }
   }, [editingStaff, isOpen, reset]);
 
-  const onSubmit = (data: StaffFormOutput) => {
+  const onSubmit = async (data: StaffFormOutput) => {
     const payload: Omit<OzipzStaff, "id" | "createdAt" | "updatedAt"> = {
       fullName: data.fullName.trim(),
       role: data.role.trim(),
@@ -96,12 +97,13 @@ export function StaffDialog({
       specialization: data.specialization?.trim() || undefined,
     };
 
-    if (editingStaff) {
-      onUpdate(editingStaff.id, payload);
-    } else {
-      onSave(payload);
+    try {
+      if (editingStaff) await onUpdate(editingStaff.id, payload);
+      else await onSave(payload);
+      onClose();
+    } catch (error) {
+      setError("root", { message: error instanceof Error ? error.message : "Nie udało się zapisać pracownika." });
     }
-    onClose();
   };
 
   const errorMessage = Object.values(errors)
@@ -120,16 +122,18 @@ export function StaffDialog({
       description="Ewidencja kadry pracowniczej, uprawnień referenckich i specjalizacji"
       error={errorMessage || null}
       onSubmit={handleSubmit(onSubmit)}
+      isSubmitting={isSubmitting}
       submitText={editingStaff ? "Zapisz Zmiany" : "Dodaj Pracownika"}
     >
       <div className="space-y-4">
         {/* Imię i Nazwisko */}
         <div className="space-y-1">
-          <label className="font-bold text-foreground flex items-center gap-1 text-xs">
+          <label htmlFor="staff-name" className="font-bold text-foreground flex items-center gap-1 text-xs">
             <User className="size-3.5 text-primary" />
             <span>Imię i Nazwisko Pracownika <span className="text-destructive">*</span></span>
           </label>
           <Input
+            id="staff-name"
             type="text"
             placeholder="np. Jan Kowalski"
             {...register("fullName")}
@@ -141,10 +145,11 @@ export function StaffDialog({
 
         {/* Stanowisko / Rola */}
         <div className="space-y-1">
-          <label className="font-semibold text-foreground flex items-center gap-1 text-xs">
+          <label htmlFor="staff-role" className="font-semibold text-foreground flex items-center gap-1 text-xs">
             <Briefcase className="size-3.5 text-primary" /> Stanowisko / Funkcja <span className="text-destructive">*</span>
           </label>
           <Autocomplete
+            id="staff-role"
             value={watch("role") || ""}
             onChange={(r) => setValue("role", r, { shouldValidate: true })}
             options={dynamicRoles}
@@ -158,10 +163,11 @@ export function StaffDialog({
         {/* Kontakt: E-mail i Telefon */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <div className="space-y-1">
-            <label className="font-semibold text-foreground flex items-center gap-1">
+            <label htmlFor="staff-email" className="font-semibold text-foreground flex items-center gap-1">
               <Mail className="size-3 text-primary" /> Adres E-mail
             </label>
             <Input
+              id="staff-email"
               type="email"
               placeholder="np. ozipz@psse.gov.pl"
               {...register("email")}
@@ -170,10 +176,11 @@ export function StaffDialog({
           </div>
 
           <div className="space-y-1">
-            <label className="font-semibold text-foreground flex items-center gap-1">
+            <label htmlFor="staff-phone" className="font-semibold text-foreground flex items-center gap-1">
               <Phone className="size-3 text-primary" /> Telefon Kontaktowy
             </label>
             <Input
+              id="staff-phone"
               type="text"
               placeholder="np. 95 747 24 31"
               {...register("phone")}
@@ -184,10 +191,11 @@ export function StaffDialog({
 
         {/* Specjalizacja */}
         <div className="space-y-1">
-          <label className="font-semibold text-foreground flex items-center gap-1">
+          <label htmlFor="staff-specialization" className="font-semibold text-foreground flex items-center gap-1">
             <Award className="size-3.5 text-amber-600" /> Główny Obszar / Specjalizacja
           </label>
           <Input
+            id="staff-specialization"
             type="text"
             placeholder="np. Profilaktyka antytytoniowa, choroby odkleszczowe, BHP..."
             {...register("specialization")}

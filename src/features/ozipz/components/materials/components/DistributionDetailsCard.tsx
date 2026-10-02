@@ -40,10 +40,11 @@ export function DistributionDetailsCard({
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="font-semibold text-foreground text-xs">
+          <label htmlFor="distribution-quantity" className="font-semibold text-foreground text-xs">
             Liczba Wydanych Sztuk <span className="text-destructive">*</span>
           </label>
           <Input
+            id="distribution-quantity"
             type="number"
             min={1}
             placeholder="np. 50"
@@ -58,13 +59,14 @@ export function DistributionDetailsCard({
         </div>
 
         <div className="space-y-1">
-          <label className="font-semibold text-foreground flex items-center gap-1.5 text-xs">
+          <label htmlFor="distribution-date" className="font-semibold text-foreground flex items-center gap-1.5 text-xs">
             <Calendar className="size-3.5 text-primary" />
             <span>
               Data Wydania / Rozdzielnika <span className="text-destructive">*</span>
             </span>
           </label>
           <DatePicker
+            id="distribution-date"
             value={distributionDate}
             onChange={(d) => onDistributionDateChange?.(d)}
             placeholder="Wybierz datę wydania..."
@@ -81,11 +83,12 @@ export function DistributionDetailsCard({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="font-semibold text-foreground flex items-center gap-1.5 text-xs">
+          <label htmlFor="distribution-educator" className="font-semibold text-foreground flex items-center gap-1.5 text-xs">
             <User className="size-3.5 text-primary" />
             <span>Wydający Pracownik (Kadra OZiPZ)</span>
           </label>
           <Select
+            id="distribution-educator"
             value={currentAssignedEducator}
             onChange={(val) => onAssignedEducatorChange?.(val)}
             options={staffOptions}
@@ -97,8 +100,9 @@ export function DistributionDetailsCard({
         </div>
 
         <div className="space-y-1.5">
-          <label className="font-semibold text-foreground">Cel Dystrybucji / Przeznaczenie</label>
+          <label htmlFor="distribution-purpose" className="font-semibold text-foreground">Cel Dystrybucji / Przeznaczenie</label>
           <Input
+            id="distribution-purpose"
             type="text"
             placeholder="np. Realizacja programu Czyste Powietrze, warsztaty..."
             {...register("purpose")}
@@ -108,11 +112,12 @@ export function DistributionDetailsCard({
       </div>
 
       <div className="space-y-1.5">
-        <label className="font-semibold text-foreground flex items-center gap-1.5">
+        <label htmlFor="distribution-notes" className="font-semibold text-foreground flex items-center gap-1.5">
           <FileText className="size-3.5 text-muted-foreground" />
           <span>Uwagi i Adnotacje</span>
         </label>
         <Textarea
+          id="distribution-notes"
           rows={2}
           placeholder="np. informacja o odbiorcy osobistym, potwierdzenie odbioru..."
           {...register("notes")}

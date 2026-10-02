@@ -79,7 +79,8 @@ export function RegistryAdminModals({
             () => db.addRegister(data),
             "Wpis został zarejestrowany w ewidencji.",
             "Błąd zapisu wpisu",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
         onUpdate={(id, data) =>
@@ -87,7 +88,8 @@ export function RegistryAdminModals({
             () => db.updateRegister(id, data),
             "Wpis w ewidencji został zaktualizowany.",
             "Błąd aktualizacji wpisu",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
       />
@@ -104,7 +106,8 @@ export function RegistryAdminModals({
             () => db.addMaterial(data),
             "Materiał oświatowy został dodany do magazynu.",
             "Błąd dodawania materiału",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
         onUpdate={(id, data) =>
@@ -112,7 +115,8 @@ export function RegistryAdminModals({
             () => db.updateMaterial(id, data),
             "Dane materiału zostały zaktualizowane.",
             "Błąd aktualizacji materiału",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
       />
@@ -133,7 +137,8 @@ export function RegistryAdminModals({
             () => db.addDistribution(data),
             "Rozdzielnik materiałów został zarejestrowany.",
             "Błąd rejestracji rozdzielnika",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
         onUpdate={(id, data) =>
@@ -141,7 +146,8 @@ export function RegistryAdminModals({
             () => db.updateDistribution(id, data),
             "Rozdzielnik materiałów został zaktualizowany.",
             "Błąd aktualizacji rozdzielnika",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
       />
@@ -160,7 +166,8 @@ export function RegistryAdminModals({
             () => db.addJrwaCase(data),
             "Sprawa JRWA została zarejestrowana w wykazie.",
             "Błąd rejestracji sprawy JRWA",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
         onUpdate={(id, data) =>
@@ -168,7 +175,8 @@ export function RegistryAdminModals({
             () => db.updateJrwaCase(id, data),
             "Sprawa JRWA została zaktualizowana.",
             "Błąd aktualizacji sprawy JRWA",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
       />
@@ -187,7 +195,8 @@ export function RegistryAdminModals({
             () => db.addLetter(data),
             "Pismo zostało zarejestrowane w dzienniku korespondencji.",
             "Błąd rejestracji pisma",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
         onUpdate={(id, data) =>
@@ -195,7 +204,8 @@ export function RegistryAdminModals({
             () => db.updateLetter(id, data),
             "Pismo zostało zaktualizowane.",
             "Błąd aktualizacji pisma",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
       />
@@ -211,7 +221,8 @@ export function RegistryAdminModals({
             () => db.addScan(data),
             "Skan dokumentu został dołączony do archiwum.",
             "Błąd dodawania skanu",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
       />
@@ -253,7 +264,8 @@ export function RegistryAdminModals({
             () => db.addStaff(data),
             "Pracownik został dodany do kadry OZiPZ.",
             "Błąd dodawania pracownika",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
         onUpdate={(id, data) =>
@@ -261,7 +273,8 @@ export function RegistryAdminModals({
             () => db.updateStaff(id, data),
             "Dane pracownika zostały zaktualizowane.",
             "Błąd aktualizacji pracownika",
-            closeModal
+            undefined,
+            { rethrow: true }
           )
         }
       />

@@ -35,8 +35,8 @@ interface LetterDialogProps {
   programs: OzipzProgram[];
   jrwaCases: OzipzJrwaCase[];
   staff: OzipzStaff[];
-  onSave: (data: Omit<OzipzLetter, "id" | "createdAt" | "updatedAt">) => void;
-  onUpdate: (id: string, data: Partial<OzipzLetter>) => void;
+  onSave: (data: Omit<OzipzLetter, "id" | "createdAt" | "updatedAt">) => unknown | Promise<unknown>;
+  onUpdate: (id: string, data: Partial<OzipzLetter>) => unknown | Promise<unknown>;
 }
 
 export function LetterDialog({
@@ -57,7 +57,8 @@ export function LetterDialog({
     setValue,
     watch,
     reset,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<LetterFormInput, undefined, LetterFormOutput>({
     resolver: zodResolver(LetterFormSchema),
     defaultValues: {
@@ -138,7 +139,7 @@ export function LetterDialog({
     }
   };
 
-  const onSubmit = (data: LetterFormOutput) => {
+  const onSubmit = async (data: LetterFormOutput) => {
     const payload: Omit<OzipzLetter, "id" | "createdAt" | "updatedAt"> = {
       direction: data.direction,
       letterNumber: data.letterNumber.trim(),
@@ -154,12 +155,13 @@ export function LetterDialog({
       responseDueDate: data.responseDueDate || undefined,
     };
 
-    if (editingLetter) {
-      onUpdate(editingLetter.id, payload);
-    } else {
-      onSave(payload);
+    try {
+      if (editingLetter) await onUpdate(editingLetter.id, payload);
+      else await onSave(payload);
+      onClose();
+    } catch (error) {
+      setError("root", { message: error instanceof Error ? error.message : "Nie udało się zapisać pisma." });
     }
-    onClose();
   };
 
   const errorMessage = Object.values(errors)
@@ -178,6 +180,7 @@ export function LetterDialog({
       description="Dziennik korespondencji przychodzącej i wychodzącej sekcji OZiPZ"
       error={errorMessage || null}
       onSubmit={handleSubmit(onSubmit)}
+      isSubmitting={isSubmitting}
       submitText={editingLetter ? "Zapisz Zmiany" : "Zarejestruj Pismo"}
     >
       <div className="space-y-4">

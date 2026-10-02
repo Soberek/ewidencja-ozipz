@@ -2,6 +2,8 @@ import { z } from "zod";
 import {
   OzipzActionTypeSchema,
   OzipzHealthTopicSchema,
+  requiredDate,
+  optionalDate,
 } from "./ozipzCoreSchemas";
 
 // 11. Rejestry Urzędowe OZiPZ
@@ -19,7 +21,7 @@ export const RegisterItemSchema = z.object({
   id: z.string(),
   registerType: z.string().min(1, "Typ rejestru jest wymagany"),
   registerNumber: z.string().optional(),
-  date: z.string().min(1, "Data wpisu jest wymagana"),
+  date: requiredDate("Data wpisu jest wymagana"),
   title: z.string().min(1, "Tytuł / przedmiot rejestru jest wymagany"),
   organizer: z.string().optional().default(""),
   location: z.string().optional().default(""),
@@ -76,7 +78,7 @@ export const PublicationSchema = z.object({
   id: z.string(),
   title: z.string().min(1, "Tytuł publikacji jest wymagany"),
   channel: z.string().min(1, "Kanał publikacji jest wymagany"),
-  publicationDate: z.string().min(1, "Data publikacji jest wymagana"),
+  publicationDate: requiredDate("Data publikacji jest wymagana"),
   topic: OzipzHealthTopicSchema,
   link: z.string().optional(),
   reachCount: z.number().int().min(0).optional(),
@@ -92,7 +94,7 @@ export const LetterSchema = z.object({
   id: z.string(),
   direction: z.enum(["wychodzace", "przychodzace"]),
   letterNumber: z.string().min(1, "Numer pisma jest wymagany"),
-  letterDate: z.string().min(1, "Data pisma jest wymagana"),
+  letterDate: requiredDate("Data pisma jest wymagana"),
   caseSign: z.string().optional(),
   senderRecipient: z.string().optional().default(""),
   facilityId: z.string().optional(),
@@ -102,7 +104,7 @@ export const LetterSchema = z.object({
   status: z.string().default("nowe"),
   notes: z.string().optional(),
   /** Termin odpowiedzi lub załatwienia sprawy (RRRR-MM-DD) — źródło przypomnień na pulpicie. */
-  responseDueDate: z.string().optional(),
+  responseDueDate: optionalDate(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -116,7 +118,7 @@ export const ScanSchema = z.object({
   facilityName: z.string().optional().default(""),
   programId: z.string().optional(),
   programName: z.string().optional(),
-  scanDate: z.string().min(1, "Data skanu jest wymagana"),
+  scanDate: requiredDate("Data skanu jest wymagana"),
   fileSizeKb: z.number().min(0).optional(),
   fileName: z.string().optional().default(""),
   filePath: z.string().optional(),
@@ -132,7 +134,7 @@ export const FacilityActivitySummarySchema = z.object({
   actionsCount: z.number().int().min(0),
   totalPupilsReached: z.number().int().min(0),
   totalMaterialsReceived: z.number().int().min(0),
-  lastActionDate: z.string().optional(),
+  lastActionDate: optionalDate(),
 });
 
 // 17. Miesięczne Cele i Plan Wykonania Miernika (Zgodność Pracy)

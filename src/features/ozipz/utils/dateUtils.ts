@@ -24,10 +24,10 @@ export function safeParseDate(input: string | Date | null | undefined): Date | n
   const trimmed = input.trim();
   if (!trimmed) return null;
 
-  // Próba parsowania ISO
-  const isoParsed = parseISO(trimmed);
-  if (isValid(isoParsed)) {
-    return isoParsed;
+  // Akceptujemy wyłącznie pełną datę ISO (opcjonalnie z godziną) lub starsze zapisy polskie.
+  if (/^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/.test(trimmed)) {
+    const isoParsed = parseISO(trimmed);
+    return isValid(isoParsed) ? isoParsed : null;
   }
 
   // Próba parsowania DD.MM.YYYY
@@ -46,9 +46,11 @@ export function safeParseDate(input: string | Date | null | undefined): Date | n
     }
   }
 
-  // Ostateczny fallback na natywny konstruktor
-  const nativeDate = new Date(trimmed);
-  return isValid(nativeDate) ? nativeDate : null;
+  return null;
+}
+
+export function isValidOzipzDate(value: string): boolean {
+  return safeParseDate(value) !== null;
 }
 
 /**
@@ -57,12 +59,7 @@ export function safeParseDate(input: string | Date | null | undefined): Date | n
  */
 export function getMonthKey(input: string | Date | null | undefined): string {
   const date = safeParseDate(input);
-  if (!date) {
-    if (typeof input === "string" && /^\d{4}-\d{2}/.test(input)) {
-      return input.slice(0, 7);
-    }
-    return "";
-  }
+  if (!date) return "";
   return format(date, "yyyy-MM");
 }
 
@@ -71,12 +68,7 @@ export function getMonthKey(input: string | Date | null | undefined): string {
  */
 export function getYearKey(input: string | Date | null | undefined): string {
   const date = safeParseDate(input);
-  if (!date) {
-    if (typeof input === "string" && /^\d{4}/.test(input)) {
-      return input.slice(0, 4);
-    }
-    return "";
-  }
+  if (!date) return "";
   return format(date, "yyyy");
 }
 

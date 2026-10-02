@@ -55,6 +55,17 @@ describe("Ewidencja OZiPZ - Walidacja Globalnych Schematów Zod", () => {
     expect(parsed.success).toBe(false);
   });
 
+  it("odrzuca niemożliwe daty i przyjmuje poprawny starszy zapis polski", () => {
+    const action = {
+      id: "act-date", title: "Prelekcja", actionType: "prelekcja", date: "2026-02-15",
+      facilityName: "SP 1", municipality: "Myślibórz", audienceGroup: "uczniowie",
+      participantsCount: 1, leadEducator: "Jan", createdAt: "2026-02-15T10:00:00Z", updatedAt: "2026-02-15T10:00:00Z",
+    };
+    expect(ActionSchema.safeParse({ ...action, date: "2026-02-31" }).success).toBe(false);
+    expect(ActionSchema.safeParse({ ...action, date: "31.02.2026" }).success).toBe(false);
+    expect(ActionSchema.safeParse({ ...action, date: "15.02.2026" }).success).toBe(true);
+  });
+
   it("poprawnie waliduje Znak Sprawy JRWA (JrwaCaseSchema)", () => {
     const validJrwa = {
       id: "jrwa-1",

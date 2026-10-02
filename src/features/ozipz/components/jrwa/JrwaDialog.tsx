@@ -74,6 +74,7 @@ export function JrwaDialog({
     setValue,
     watch,
     reset,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<JrwaFormInput, unknown, JrwaFormOutput>({
     resolver: zodResolver(JrwaFormSchema),
@@ -146,12 +147,13 @@ export function JrwaDialog({
   };
 
   const onSubmit = async (data: JrwaFormOutput) => {
-    if (editingCase) {
-      await onUpdate(editingCase.id, data);
-    } else {
-      await onSave(data);
+    try {
+      if (editingCase) await onUpdate(editingCase.id, data);
+      else await onSave(data);
+      onClose();
+    } catch (error) {
+      setError("root", { message: error instanceof Error ? error.message : "Nie udało się zapisać sprawy JRWA." });
     }
-    onClose();
   };
 
   return (
@@ -161,6 +163,8 @@ export function JrwaDialog({
       title={editingCase ? "Edycja Sprawy JRWA" : "Nowa Sprawa w Wykazie JRWA"}
       description="Zarejestruj teczkę spraw oświatowych zgodnie z Jednolitym Rzeczowym Wykazem Akt."
       size="lg"
+      error={errors.root?.message || null}
+      isSubmitting={isSubmitting}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Generator i parametry znaku sprawy */}
@@ -214,7 +218,7 @@ export function JrwaDialog({
         />
 
         {/* Błędy walidacji */}
-        {Object.keys(errors).length > 0 && (
+        {Object.keys(errors).some((key) => key !== "root") && (
           <p className="text-xs text-red-600">
             Proszę uzupełnić wszystkie wymagane pola formularza.
           </p>

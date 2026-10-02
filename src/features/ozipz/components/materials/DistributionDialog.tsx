@@ -39,8 +39,8 @@ interface DistributionDialogProps {
   staff: OzipzStaff[];
   actions?: OzipzAction[];
   municipalities?: string[];
-  onSave: (data: Omit<OzipzDistribution, "id" | "createdAt">) => void;
-  onUpdate: (id: string, data: Partial<OzipzDistribution>) => void;
+  onSave: (data: Omit<OzipzDistribution, "id" | "createdAt">) => unknown | Promise<unknown>;
+  onUpdate: (id: string, data: Partial<OzipzDistribution>) => unknown | Promise<unknown>;
 }
 
 export function DistributionDialog({
@@ -71,13 +71,14 @@ export function DistributionDialog({
     setValue,
     watch,
     reset,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<DistributionFormInput, undefined, DistributionFormOutput>({
     resolver: zodResolver(DistributionFormSchema),
     defaultValues: {
       materialId: initialMaterialId || "",
-      materialTitle: "",
-      materialType: "",
+      materialTitle: materials.find((m) => m.id === initialMaterialId)?.title || "",
+      materialType: materials.find((m) => m.id === initialMaterialId)?.materialType || "",
       recipientName: "",
       facilityId: "",
       municipality: "",
@@ -96,6 +97,7 @@ export function DistributionDialog({
   const selectedActionId = watch("actionId");
 
   useEffect(() => {
+    const initialMaterial = materials.find((m) => m.id === initialMaterialId);
     if (editingDistribution) {
       reset({
         materialId: editingDistribution.materialId || "",
@@ -116,8 +118,8 @@ export function DistributionDialog({
     } else {
       reset({
         materialId: initialMaterialId || "",
-        materialTitle: "",
-        materialType: "",
+        materialTitle: initialMaterial?.title || "",
+        materialType: initialMaterial?.materialType || "",
         recipientName: "",
         facilityId: "",
         municipality: "",
@@ -173,7 +175,7 @@ export function DistributionDialog({
     }
   };
 
-  const onSubmit = (data: DistributionFormOutput) => {
+  const onSubmit = async (data: DistributionFormOutput) => {
     const payload: Omit<OzipzDistribution, "id" | "createdAt"> = {
       materialId: data.materialId,
       materialTitle: data.materialTitle.trim(),
@@ -190,12 +192,13 @@ export function DistributionDialog({
       notes: data.notes?.trim() || undefined,
     };
 
-    if (editingDistribution) {
-      onUpdate(editingDistribution.id, payload);
-    } else {
-      onSave(payload);
+    try {
+      if (editingDistribution) await onUpdate(editingDistribution.id, payload);
+      else await onSave(payload);
+      onClose();
+    } catch (error) {
+      setError("root", { message: error instanceof Error ? error.message : "Nie udało się zapisać rozdzielnika." });
     }
-    onClose();
   };
 
   const errorMessage = Object.values(errors)
@@ -214,17 +217,19 @@ export function DistributionDialog({
       description="Ewidencja dystrybucji materiałów oświatowych do placówek oświatowych i partnerów"
       error={errorMessage || null}
       onSubmit={handleSubmit(onSubmit)}
+      isSubmitting={isSubmitting}
       submitText={editingDistribution ? "Zapisz Zmiany" : "Wydaj Materiały"}
     >
       <div className="space-y-4 text-xs">
         {actions.length > 0 && (
           <div className="p-3 bg-primary/5 border border-primary/20 rounded-[3px] space-y-1.5">
-            <label className="font-bold text-foreground flex items-center gap-1.5 text-xs">
+            <label htmlFor="distribution-action" className="font-bold text-foreground flex items-center gap-1.5 text-xs">
               <Layers className="size-3.5 text-primary" />
               <span>Powiązane Zadanie Źródłowe (Działanie Edukacyjne)</span>
             </label>
 
             <SearchableSelect
+              id="distribution-action"
               value={selectedActionId || ""}
               onChange={handleActionChange}
               options={actions.map((a) => ({
@@ -260,7 +265,11 @@ export function DistributionDialog({
           dynamicMunicipalities={dynamicMunicipalities}
           onFacilityChange={handleFacilityChange}
           currentRecipientName={watch("recipientName") || ""}
-          onRecipientNameChange={(name) => setValue("recipientName", name, { shouldValidate: true })}
+          onRecipientNameChange={(name) => {
+            setValue("recipientName", name, { shouldValidate: true });
+            const linkedFacility = facilities.find((f) => f.id === watch("facilityId"));
+            if (linkedFacility && linkedFacility.name !== name) setValue("facilityId", "");
+          }}
           currentMunicipality={watch("municipality") || ""}
           onMunicipalityChange={(muni) => setValue("municipality", muni, { shouldValidate: true })}
         />

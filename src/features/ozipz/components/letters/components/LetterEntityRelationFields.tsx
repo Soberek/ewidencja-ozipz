@@ -124,7 +124,7 @@ export function LetterEntityRelationFields({
       {/* Nadawca / Odbiorca i Placówka */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         <div className="space-y-1">
-          <label className="font-semibold text-foreground flex items-center gap-1 text-xs">
+          <label htmlFor="letter-correspondent" className="font-semibold text-foreground flex items-center gap-1 text-xs">
             <Building2 className="size-3.5 text-primary" />
             <span>
               {direction === "wychodzace" ? "Odbiorca / Adresat" : "Nadawca pisma"}{" "}
@@ -132,6 +132,7 @@ export function LetterEntityRelationFields({
             </span>
           </label>
           <Autocomplete
+            id="letter-correspondent"
             value={currentSenderRecipient}
             onChange={(val) => onSenderRecipientChange?.(val)}
             onSelectOption={(opt) => {
@@ -147,10 +148,11 @@ export function LetterEntityRelationFields({
         </div>
 
         <div className="space-y-1">
-          <label className="font-semibold text-muted-foreground flex items-center gap-1 text-xs">
+          <label htmlFor="letter-facility" className="font-semibold text-muted-foreground flex items-center gap-1 text-xs">
             <Building2 className="size-3.5 text-muted-foreground" /> Powiązana Placówka
           </label>
           <SearchableSelect
+            id="letter-facility"
             value={facilityId || ""}
             onChange={onFacilityChange}
             options={facilitySelectOptions}
@@ -165,11 +167,12 @@ export function LetterEntityRelationFields({
       {/* Znak JRWA i Program */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         <div className="space-y-1">
-          <label className="font-semibold text-foreground flex items-center gap-1 text-xs">
+          <label htmlFor="letter-case-sign" className="font-semibold text-foreground flex items-center gap-1 text-xs">
             <Bookmark className="size-3 text-primary" /> Znak Sprawy JRWA
           </label>
           {jrwaCases.length > 0 ? (
             <SearchableSelect
+              id="letter-case-sign"
               value={caseSign || ""}
               onChange={onCaseChange}
               options={caseOptions}
@@ -180,6 +183,7 @@ export function LetterEntityRelationFields({
             />
           ) : (
             <Input
+              id="letter-case-sign"
               type="text"
               placeholder="np. OZ.966.1.12.2026"
               {...register("caseSign")}
@@ -189,10 +193,11 @@ export function LetterEntityRelationFields({
         </div>
 
         <div className="space-y-1">
-          <label className="font-semibold text-foreground flex items-center gap-1 text-xs">
+          <label htmlFor="letter-program" className="font-semibold text-foreground flex items-center gap-1 text-xs">
             <Award className="size-3 text-primary" /> Powiązany Program Profilaktyczny
           </label>
           <SearchableSelect
+            id="letter-program"
             value={currentProgramId}
             onChange={(val) => onProgramIdChange?.(val)}
             options={programOptions}
@@ -207,10 +212,11 @@ export function LetterEntityRelationFields({
       {/* Osoba Przypisana i Status */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         <div className="space-y-1">
-          <label className="font-semibold text-foreground flex items-center gap-1 text-xs">
+          <label htmlFor="letter-assignee" className="font-semibold text-foreground flex items-center gap-1 text-xs">
             <User className="size-3 text-primary" /> Osoba Odpowiedzialna / Prowadząca
           </label>
           <Select
+            id="letter-assignee"
             value={currentAssignedPerson}
             onChange={(val) => onAssignedPersonChange?.(val)}
             options={staffOptions}
@@ -222,8 +228,9 @@ export function LetterEntityRelationFields({
         </div>
 
         <div className="space-y-1">
-          <label className="font-semibold text-foreground text-xs">Status Sprawy</label>
+          <label htmlFor="letter-status" className="font-semibold text-foreground text-xs">Status Sprawy</label>
           <Select
+            id="letter-status"
             value={currentStatus}
             onChange={(val) => onStatusChange?.(val)}
             options={[
@@ -240,10 +247,11 @@ export function LetterEntityRelationFields({
 
       {/* Uwagi */}
       <div className="space-y-1">
-        <label className="font-semibold text-foreground flex items-center gap-1 text-xs">
+        <label htmlFor="letter-notes" className="font-semibold text-foreground flex items-center gap-1 text-xs">
           <FileText className="size-3 text-muted-foreground" /> Uwagi / Notatki dodatkowe
         </label>
         <Textarea
+          id="letter-notes"
           rows={2}
           placeholder="np. informacja o załącznikach, terminie odpowiedzi..."
           {...register("notes")}
