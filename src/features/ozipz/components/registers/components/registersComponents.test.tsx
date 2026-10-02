@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { JRWA_DICTIONARY_FIXTURE } from "../../../../../test/fixtures/jrwaCatalog";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { RegistersFilterBar } from "./RegistersFilterBar";
 import { RegistersTypeTabs } from "./RegistersTypeTabs";
 import { InformationRegisterTable } from "./InformationRegisterTable";
@@ -8,8 +8,9 @@ import { PublicationsRegisterTable } from "./PublicationsRegisterTable";
 import { VisitationsRegisterTable } from "./VisitationsRegisterTable";
 import { RegistersSection } from "../RegistersSection";
 import { RegisterDialog } from "../RegisterDialog";
+import { RegistersConfigurationTab } from "./RegistersConfigurationTab";
 import { useOzipzDbStore } from "../../../store/useOzipzDbStore";
-import type { OzipzAction, OzipzFacility } from "../../../types/ozipz.types";
+import type { OzipzAction, OzipzDictionaryItem, OzipzFacility } from "../../../types/ozipz.types";
 
 const mockAction: OzipzAction = {
   id: "act-test-1",
@@ -29,7 +30,6 @@ const mockAction: OzipzAction = {
   leadEducator: "Anna Nowak-Kowalska",
   audienceGroup: "dzieci_szkolne",
   participantsCount: 65,
-  indirectRecipientsCount: 15,
   materialsDistributedCount: 30,
   notes: "Bardzo aktywne uczestnictwo uczniów",
   createdAt: "2026-06-10T10:00:00.000Z",
@@ -57,6 +57,19 @@ describe("Registers Module Components — UX/UI Harmonization", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+  });
+
+  it("keeps an explicitly empty register mapping unchecked and saves it", async () => {
+    const activity = { id: "activity-1", dictType: "activityType", code: "Prelekcja", label: "Prelekcja" } as OzipzDictionaryItem;
+    const save = vi.fn().mockResolvedValue(undefined);
+    render(<RegistersConfigurationTab
+      activityTypes={[activity]}
+      existingMappings={[{ id: "mapping-1", activityType: "Prelekcja", registers: [], updatedAt: "2026-10-01" }]}
+      onSaveMappings={save}
+    />);
+    expect(screen.getAllByRole("checkbox").every((input) => !(input as HTMLInputElement).checked)).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Zapisz Mapowanie" }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith([{ activityType: "Prelekcja", registers: [] }]));
   });
 
   describe("RegistersFilterBar (R1)", () => {

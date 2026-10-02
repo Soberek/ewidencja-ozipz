@@ -31,7 +31,7 @@ export function RegistersConfigurationTab({
       const label = type.label || type.code;
 
       const found = existingMappings.find((m) => m.activityType === code || m.activityType === label);
-      if (found && found.registers.length > 0) {
+      if (found) {
         nextMap.set(code, new Set(found.registers));
       } else {
         const defaults = defaultRegistersForActivity(label);

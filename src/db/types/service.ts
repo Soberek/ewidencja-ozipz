@@ -46,6 +46,11 @@ export interface SaveActionWithRelationsResult {
   companionAction?: OzipzAction;
 }
 
+export interface RegisterMappingSave {
+  activityType: string;
+  registers: ("informacje" | "publikacje" | "wizytacje")[];
+}
+
 export interface IOzipzDatabaseService {
   getClosedMonths(): Promise<string[]>;
   setMonthClosed(monthKey: string, closed: boolean): Promise<void>;
@@ -106,6 +111,7 @@ export interface IOzipzDatabaseService {
   addDictionaryItem(item: Omit<OzipzDictionaryItem, "id" | "createdAt" | "updatedAt">): Promise<OzipzDictionaryItem>;
   updateDictionaryItem(id: string, updates: Partial<OzipzDictionaryItem>): Promise<void>;
   deleteDictionaryItem(id: string): Promise<void>;
+  saveRegisterMappings(mappings: RegisterMappingSave[]): Promise<OzipzDictionaryItem[]>;
 
   getLetters(): Promise<OzipzLetter[]>;
   addLetter(letter: Omit<OzipzLetter, "id" | "createdAt" | "updatedAt">): Promise<OzipzLetter>;

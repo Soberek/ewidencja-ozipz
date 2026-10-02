@@ -224,6 +224,7 @@ export const OzipzDbService: IOzipzDatabaseService = {
   async addDictionaryItem(d) { return (await resolveService()).addDictionaryItem(d); },
   async updateDictionaryItem(id, u) { return (await resolveService()).updateDictionaryItem(id, u); },
   async deleteDictionaryItem(id) { return (await resolveService()).deleteDictionaryItem(id); },
+  async saveRegisterMappings(mappings) { return (await resolveService()).saveRegisterMappings(mappings); },
 
   async getLetters() { return (await resolveService()).getLetters(); },
   async addLetter(l) { return (await resolveService()).addLetter(l); },

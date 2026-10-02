@@ -1,4 +1,4 @@
-import type { OfficialRegisterKey, OzipzAction, OzipzRegisterMapping } from "../types/ozipz.types";
+import type { OfficialRegisterKey, OzipzAction, OzipzDictionaryItem, OzipzRegisterMapping } from "../types/ozipz.types";
 
 export const OFFICIAL_REGISTERS_CONFIG: Record<
   OfficialRegisterKey,
@@ -101,6 +101,25 @@ export interface ResolveRegistersInput {
   mappings?: OzipzRegisterMapping[];
 }
 
+export function parseRegisterMappings(dictionaryItems: OzipzDictionaryItem[]): OzipzRegisterMapping[] {
+  return dictionaryItems
+    .filter((item) => item.dictType === "register_mapping")
+    .map((item) => {
+      let registers: OfficialRegisterKey[] = [];
+      try {
+        const parsed: unknown = JSON.parse(item.description || "[]");
+        if (Array.isArray(parsed)) {
+          registers = [...new Set(parsed.filter((key): key is OfficialRegisterKey =>
+            key === "informacje" || key === "publikacje" || key === "wizytacje"
+          ))];
+        }
+      } catch {
+        registers = [];
+      }
+      return { id: item.id, activityType: item.code, registers, updatedAt: item.updatedAt };
+    });
+}
+
 /**
  * Rozpoznaje, do których rejestrów należy dane działanie:
  * 1. Bezpośrednie nadpisanie per action.id
@@ -113,7 +132,7 @@ export function resolveActionRegisters({
 }: ResolveRegistersInput): OfficialRegisterKey[] {
   // 1. Sprawdź czy jest jawne mapowanie dla tego konkretnego działania
   const actionOverride = mappings.find((m) => m.actionId === action.id);
-  if (actionOverride && actionOverride.registers.length > 0) {
+  if (actionOverride) {
     return [...actionOverride.registers];
   }
 
@@ -122,7 +141,7 @@ export function resolveActionRegisters({
     const activityMapping = mappings.find(
       (m) => !m.actionId && (m.activityType === action.actionType || m.id === action.actionType)
     );
-    if (activityMapping && activityMapping.registers.length > 0) {
+    if (activityMapping) {
       return [...activityMapping.registers];
     }
   }

@@ -18,7 +18,7 @@ import type {
   FacilityActivitySummary,
   OzipzMonthlyTarget,
 } from "../../features/ozipz/types/ozipz.types";
-import type { CompanionDistributionPayload, SaveActionWithRelationsParams, SaveActionWithRelationsResult } from "../types";
+import type { CompanionDistributionPayload, RegisterMappingSave, SaveActionWithRelationsParams, SaveActionWithRelationsResult } from "../types";
 import type { OzipzYearlyMonthlyTargets } from "../../features/ozipz/utils/monthlyTargetsUtils";
 import type { MetricPlanState } from "../../features/ozipz/components/reports/components/reportConstants";
 import type { RozdzielnikTemplate } from "../../features/ozipz/utils/rozdzielnikTemplates";
@@ -88,6 +88,7 @@ export interface IDictionariesRepository {
   addDictionaryItem(item: Omit<OzipzDictionaryItem, "id" | "createdAt" | "updatedAt">): Promise<OzipzDictionaryItem>;
   updateDictionaryItem(id: string, updates: Partial<OzipzDictionaryItem>): Promise<void>;
   deleteDictionaryItem(id: string): Promise<void>;
+  saveRegisterMappings(mappings: RegisterMappingSave[]): Promise<OzipzDictionaryItem[]>;
 }
 
 export interface IStaffContactsRepository {

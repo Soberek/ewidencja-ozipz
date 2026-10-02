@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { ClipboardList } from "lucide-react";
-import { useOzipzDb } from "../../hooks/useOzipzDb";
+import { useOzipzDbStore } from "../../store/useOzipzDbStore";
 import { useModalStore } from "../../store/useModalStore";
 import type { RegisterTabKey, OfficialRegisterKey, OzipzAction, OzipzFacility } from "../../types/ozipz.types";
 import { RegistersStatsHeader } from "./components/RegistersStatsHeader";
@@ -11,14 +11,29 @@ import { InformationRegisterTable } from "./components/InformationRegisterTable"
 import { PublicationsRegisterTable } from "./components/PublicationsRegisterTable";
 import { VisitationsRegisterTable } from "./components/VisitationsRegisterTable";
 import { RegistersConfigurationTab } from "./components/RegistersConfigurationTab";
-import { resolveActionRegisters } from "../../utils/registerConfig";
+import { parseRegisterMappings, resolveActionRegisters } from "../../utils/registerConfig";
 import { exportRegisterToCsv, exportRegisterToExcel } from "../../utils/registerPresentation";
 import { printRegister } from "../../utils/registerPrint";
 import { useRegisterFiltering } from "./hooks/useRegisterFiltering";
 import { useKpiVisibility } from "@/hooks/usePersistentToggle";
 
 export function RegistersSection() {
-  const db = useOzipzDb();
+  const actions = useOzipzDbStore((state) => state.actions);
+  const facilities = useOzipzDbStore((state) => state.facilities);
+  const staff = useOzipzDbStore((state) => state.staff);
+  const saveRegisterMappings = useOzipzDbStore((state) => state.saveRegisterMappings);
+  const dictionaryItems = useOzipzDbStore((state) => state.dictionaryItems);
+  const activityTypes = useMemo(() => dictionaryItems.filter((item) => item.dictType === "activityType"), [dictionaryItems]);
+  const jrwaSymbols = useMemo(() => {
+    const seen = new Set<string>();
+    return dictionaryItems.filter((item) => {
+      if (item.dictType !== "jrwaSymbol" || item.code === "070" || item.code === "9010" || item.id.startsWith("dict-jrw-") || seen.has(item.code)) return false;
+      seen.add(item.code);
+      return true;
+    });
+  }, [dictionaryItems]);
+  const registerMappings = useMemo(() => parseRegisterMappings(dictionaryItems), [dictionaryItems]);
+  const db = { actions, facilities, staff, activityTypes, jrwaSymbols, registerMappings, saveRegisterMappings };
   const openModal = useModalStore((s) => s.openModal);
 
   // Stan aktywnej zakładki

@@ -124,6 +124,7 @@ export class SqliteDatabaseService implements IOzipzDatabaseService {
   addDictionaryItem(d: Omit<OzipzDictionaryItem, "id" | "createdAt" | "updatedAt">): Promise<OzipzDictionaryItem> { return this.dictionariesRepo.addDictionaryItem(d); }
   updateDictionaryItem(id: string, u: Partial<OzipzDictionaryItem>): Promise<void> { return this.dictionariesRepo.updateDictionaryItem(id, u); }
   deleteDictionaryItem(id: string): Promise<void> { return this.dictionariesRepo.deleteDictionaryItem(id); }
+  saveRegisterMappings(mappings: import("./types").RegisterMappingSave[]): Promise<OzipzDictionaryItem[]> { return this.dictionariesRepo.saveRegisterMappings(mappings); }
   // Letters, Scans, Templates, Registers
   getLetters(): Promise<OzipzLetter[]> { return this.registryRepo.getLetters(); }
   addLetter(l: Omit<OzipzLetter, "id" | "createdAt" | "updatedAt">): Promise<OzipzLetter> { return this.registryRepo.addLetter(l); }

@@ -34,7 +34,6 @@ describe("Ewidencja OZiPZ - Oficjalne Rejestry Urzędowe (Wzór better-oz & edu-
     leadEducator: "Krzysztof Palpuchowski",
     audienceGroup: "dzieci_szkolne",
     participantsCount: 45,
-    indirectRecipientsCount: 0,
     materialsDistributedCount: 10,
     notes: "Wszystko zgodnie z planem",
     createdAt: "2026-05-15T10:00:00.000Z",
@@ -94,6 +93,16 @@ describe("Ewidencja OZiPZ - Oficjalne Rejestry Urzędowe (Wzór better-oz & edu-
 
       expect(keys).toContain("informacje");
       expect(keys).toContain("publikacje");
+    });
+
+    it("honors an explicit empty mapping for an action or activity", () => {
+      const activityMapping = { id: "map-empty", activityType: "Prelekcja", registers: [], updatedAt: "2026-01-01" };
+      expect(resolveActionRegisters({ action: sampleAction, mappings: [activityMapping] })).toEqual([]);
+      expect(resolveActionRegisters({
+        action: sampleAction,
+        mappings: [{ ...activityMapping, id: "action-empty", actionId: sampleAction.id },
+          { ...activityMapping, registers: ["informacje"] }],
+      })).toEqual([]);
     });
   });
 

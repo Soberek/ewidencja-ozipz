@@ -52,10 +52,11 @@ export function RegisterFormFields({
     <div className="space-y-4">
       {/* Wybór typu rejestru */}
       <div className="space-y-1">
-        <label className="text-xs font-semibold text-foreground">
+        <label htmlFor="register-type" className="text-xs font-semibold text-foreground">
           Kategoria / Typ Rejestru: <span className="text-destructive">*</span>
         </label>
         <Select
+          id="register-type"
           value={selectedType}
           onChange={(val) => setValue("registerType", val as OzipzRegisterType)}
           options={REGISTER_TYPE_OPTIONS}
@@ -68,10 +69,11 @@ export function RegisterFormFields({
       {/* Numer wpisu i data */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
         <div className="space-y-1">
-          <label className="font-semibold text-foreground">
+          <label htmlFor="register-number" className="font-semibold text-foreground">
             Nr w rejestrze: <span className="text-destructive">*</span>
           </label>
           <Input
+            id="register-number"
             {...register("registerNumber")}
             placeholder={`np. 1/${currentYear}`}
             className="text-xs h-9 font-mono"
@@ -79,11 +81,12 @@ export function RegisterFormFields({
         </div>
 
         <div className="space-y-1">
-          <label className="font-semibold text-foreground flex items-center gap-1">
+          <label htmlFor="register-date" className="font-semibold text-foreground flex items-center gap-1">
             <Calendar className="size-3.5 text-muted-foreground" />
             <span>Data wydarzenia: <span className="text-destructive">*</span></span>
           </label>
           <DatePicker
+            id="register-date"
             value={watch("date")}
             onChange={(d) => setValue("date", d, { shouldValidate: true })}
             placeholder="Wybierz datę..."
@@ -96,10 +99,11 @@ export function RegisterFormFields({
 
       {/* Tytuł / Temat */}
       <div className="space-y-1">
-        <label className="text-xs font-semibold text-foreground">
+        <label htmlFor="register-title" className="text-xs font-semibold text-foreground">
           Temat / Nazwa Wpisu: <span className="text-destructive">*</span>
         </label>
         <Input
+          id="register-title"
           {...register("title")}
           placeholder="np. Szkolenie dla szkolnych koordynatorów programu Skąd się biorą produkty ekologiczne"
           className="text-xs h-9"
@@ -109,11 +113,12 @@ export function RegisterFormFields({
       {/* Placówka i Organizator */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
         <div className="space-y-1">
-          <label className="font-medium text-foreground flex items-center gap-1 text-xs">
+          <label htmlFor="register-facility" className="font-medium text-foreground flex items-center gap-1 text-xs">
             <Building2 className="size-3.5 text-muted-foreground" />
             <span>Placówka / Miejsce:</span>
           </label>
           <SearchableSelect
+            id="register-facility"
             value={selectedFacilityId || ""}
             onChange={(id) => {
               setValue("facilityId", id);
@@ -142,10 +147,11 @@ export function RegisterFormFields({
         </div>
 
         <div className="space-y-1">
-          <label className="font-medium text-foreground text-xs">
+          <label htmlFor="register-organizer" className="font-medium text-foreground text-xs">
             Organizator / Współorganizator:
           </label>
           <Input
+            id="register-organizer"
             {...register("organizer")}
             placeholder="np. PSSE w Myśliborzu / SP nr 1"
             className="text-xs h-9"
@@ -156,11 +162,12 @@ export function RegisterFormFields({
       {/* Prowadzący i Uczestnicy */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
         <div className="space-y-1">
-          <label className="font-medium text-foreground flex items-center gap-1 text-xs">
+          <label htmlFor="register-responsible" className="font-medium text-foreground flex items-center gap-1 text-xs">
             <User className="size-3.5 text-muted-foreground" />
             <span>Prowadzący / Koordynator:</span>
           </label>
           <Select
+            id="register-responsible"
             value={watch("responsiblePerson") || ""}
             onChange={(val) => setValue("responsiblePerson", val, { shouldValidate: true })}
             options={staff.map((s) => ({
@@ -177,11 +184,12 @@ export function RegisterFormFields({
         </div>
 
         <div className="space-y-1">
-          <label className="font-medium text-foreground flex items-center gap-1 text-xs">
+          <label htmlFor="register-participants" className="font-medium text-foreground flex items-center gap-1 text-xs">
             <Users className="size-3.5 text-muted-foreground" />
             <span>Liczba uczestników:</span>
           </label>
           <Input
+            id="register-participants"
             type="number"
             min={0}
             {...register("participantsCount", { valueAsNumber: true })}
@@ -193,11 +201,12 @@ export function RegisterFormFields({
       {/* Program i Hasło JRWA */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
         <div className="space-y-1">
-          <label className="font-medium text-foreground flex items-center gap-1 text-xs">
+          <label htmlFor="register-program" className="font-medium text-foreground flex items-center gap-1 text-xs">
             <Sparkles className="size-3.5 text-purple-600 dark:text-purple-400" />
             <span>Powiązany Program:</span>
           </label>
           <SearchableSelect
+            id="register-program"
             value={selectedProgramId || ""}
             onChange={(id) => {
               setValue("programId", id);
@@ -220,11 +229,12 @@ export function RegisterFormFields({
         </div>
 
         <div className="space-y-1">
-          <label className="font-medium text-foreground flex items-center gap-1 text-xs">
+          <label htmlFor="register-jrwa" className="font-medium text-foreground flex items-center gap-1 text-xs">
             <Bookmark className="size-3.5 text-blue-600 dark:text-blue-400" />
             <span>Znak sprawy JRWA:</span>
           </label>
           <Input
+            id="register-jrwa"
             {...register("jrwaSign")}
             placeholder="np. PSSE.OZiPZ.9011.1.2026"
             className="text-xs h-9 font-mono"
@@ -234,10 +244,11 @@ export function RegisterFormFields({
 
       {/* Uwagi */}
       <div className="space-y-1">
-        <label className="text-xs font-medium text-foreground">
+        <label htmlFor="register-notes" className="text-xs font-medium text-foreground">
           Uwagi i wnioski merytoryczne:
         </label>
         <textarea
+          id="register-notes"
           {...register("notes")}
           rows={2}
           placeholder="Dodatkowe informacje, wydane zaświadczenia, protokoły..."

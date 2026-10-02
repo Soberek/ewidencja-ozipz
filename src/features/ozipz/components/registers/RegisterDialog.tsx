@@ -28,8 +28,8 @@ export interface RegisterDialogProps {
   facilities: OzipzFacility[];
   programs?: OzipzProgram[];
   staff?: OzipzStaff[];
-  onSave: (data: Omit<OzipzRegisterItem, "id" | "createdAt" | "updatedAt">) => void;
-  onUpdate: (id: string, data: Partial<OzipzRegisterItem>) => void;
+  onSave: (data: Omit<OzipzRegisterItem, "id" | "createdAt" | "updatedAt">) => unknown | Promise<unknown>;
+  onUpdate: (id: string, data: Partial<OzipzRegisterItem>) => unknown | Promise<unknown>;
 }
 
 export function RegisterDialog({
@@ -51,7 +51,8 @@ export function RegisterDialog({
     setValue,
     watch,
     reset,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<RegisterFormInput, unknown, RegisterFormOutput>({
     resolver: zodResolver(RegisterFormSchema),
     defaultValues: {
@@ -115,12 +116,13 @@ export function RegisterDialog({
   }, [editingItem, defaultType, isOpen, reset, currentYear]);
 
   const onSubmit = async (data: RegisterFormOutput) => {
-    if (editingItem) {
-      onUpdate(editingItem.id, data);
-    } else {
-      onSave(data);
+    try {
+      if (editingItem) await onUpdate(editingItem.id, data);
+      else await onSave(data);
+      onClose();
+    } catch (error) {
+      setError("root", { message: error instanceof Error ? error.message : "Nie udało się zapisać wpisu." });
     }
-    onClose();
   };
 
   const typeConfig = REGISTER_TYPE_OPTIONS.find((t) => t.value === selectedType);
@@ -135,6 +137,7 @@ export function RegisterDialog({
       size="lg"
       error={errorMessage || null}
       onSubmit={handleSubmit(onSubmit)}
+      isSubmitting={isSubmitting}
       submitText={editingItem ? "Zapisz Zmiany" : "Dodaj do Rejestru"}
     >
       <RegisterFormFields

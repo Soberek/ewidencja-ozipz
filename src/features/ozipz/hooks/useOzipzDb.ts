@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useOzipzDbStore } from "../store/useOzipzDbStore";
 import { calculateTotalRecipients } from "../utils/ozipzCalculations";
-import { resolveActionRegisters } from "../utils/registerConfig";
+import { parseRegisterMappings, resolveActionRegisters } from "../utils/registerConfig";
 import { CANONICAL_EDUCATION_TYPES } from "../constants";
 import type { OzipzDictionaryItem } from "../types/ozipz.types";
 
@@ -163,24 +163,7 @@ export function useOzipzDb() {
     ]
   );
 
-  const registerMappings = useMemo(() => {
-    return store.dictionaryItems
-      .filter((d) => d.dictType === "register_mapping")
-      .map((d) => {
-        let registers: ("informacje" | "publikacje" | "wizytacje")[] = [];
-        try {
-          registers = JSON.parse(d.description || "[]");
-        } catch {
-          registers = [];
-        }
-        return {
-          id: d.id,
-          activityType: d.code,
-          registers,
-          updatedAt: d.updatedAt,
-        };
-      });
-  }, [store.dictionaryItems]);
+  const registerMappings = useMemo(() => parseRegisterMappings(store.dictionaryItems), [store.dictionaryItems]);
 
   const registerActions = useMemo(() => {
     const result: Record<"informacje" | "publikacje" | "wizytacje", typeof store.actions> = {

@@ -1,5 +1,5 @@
 import type { OzipzDictionaryItem } from "../../../features/ozipz/types/ozipz.types";
-import type { ISqlDatabase, DictionarySqlRow } from "../../types";
+import type { ISqlDatabase, DictionarySqlRow, RegisterMappingSave } from "../../types";
 import { Mappers } from "../../mappers";
 import type { IDictionariesRepository } from "../interfaces";
 import { generateId } from "../id-generator";
@@ -39,5 +39,40 @@ export class SqliteDictionariesRepository implements IDictionariesRepository {
 
   async deleteDictionaryItem(id: string): Promise<void> {
     await this.db.execute("DELETE FROM ozipz_dictionaries WHERE id = $1 AND is_system = 0", [id]);
+  }
+
+  async saveRegisterMappings(mappings: RegisterMappingSave[]): Promise<OzipzDictionaryItem[]> {
+    await this.db.execute("BEGIN TRANSACTION;");
+    try {
+      const existing = new Map(
+        (await this.getDictionaryItems())
+          .filter((item) => item.dictType === "register_mapping")
+          .map((item) => [item.code, item.id])
+      );
+      const now = new Date().toISOString();
+      for (const mapping of mappings) {
+        const description = JSON.stringify(mapping.registers);
+        const id = existing.get(mapping.activityType);
+        if (id) {
+          await this.db.execute(
+            "UPDATE ozipz_dictionaries SET description = $1, updated_at = $2 WHERE id = $3",
+            [description, now, id]
+          );
+        } else {
+          const id = generateId("dict");
+          await this.db.execute(
+            "INSERT INTO ozipz_dictionaries (id, dict_type, code, label, description, is_system, created_at, updated_at) VALUES ($1, 'register_mapping', $2, $3, $4, 0, $5, $5)",
+            [id, mapping.activityType, mapping.activityType, description, now]
+          );
+          existing.set(mapping.activityType, id);
+        }
+      }
+      const items = await this.getDictionaryItems();
+      await this.db.execute("COMMIT;");
+      return items;
+    } catch (error) {
+      await this.db.execute("ROLLBACK;");
+      throw error;
+    }
   }
 }

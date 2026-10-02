@@ -30,23 +30,7 @@ export const createDictionariesSlice: SliceCreator<DictionariesSlice> = (set, ge
   },
 
   saveRegisterMappings: async (mappings) => {
-    for (const map of mappings) {
-      const existing = get().dictionaryItems.find(
-        (d) => d.dictType === "register_mapping" && d.code === map.activityType
-      );
-      if (existing) {
-        await get().updateDictionaryItem(existing.id, {
-          description: JSON.stringify(map.registers),
-        });
-      } else {
-        await get().addDictionaryItem({
-          dictType: "register_mapping",
-          code: map.activityType,
-          label: map.activityType,
-          description: JSON.stringify(map.registers),
-          isSystem: false,
-        });
-      }
-    }
+    const dictionaryItems = await OzipzDbService.saveRegisterMappings(mappings);
+    set({ dictionaryItems });
   },
 });
