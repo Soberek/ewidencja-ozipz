@@ -17,6 +17,7 @@ import {
   type MetricPlanState,
 } from "./components/reportConstants";
 import { safeParseDate } from "../../utils/dateUtils";
+import { isActionCountedInReports } from "../../utils/calculators/actionMetrics";
 import { useReportExports } from "./useReportExports";
 
 import { useDictionaries } from "../../store/useOzipzDbStore";
@@ -24,7 +25,7 @@ import { useDictionaries } from "../../store/useOzipzDbStore";
 const METRIC_PLAN_LOOKBACK_YEARS = 5;
 const METRIC_PLAN_AUTOSAVE_MS = 600;
 
-export type MetricPlanSource = { kind: "saved" } | { kind: "inherited"; fromYear: number } | { kind: "empty" };
+export type MetricPlanSource = { kind: "saved" } | { kind: "inherited"; fromYear: number } | { kind: "empty" } | { kind: "loading" };
 
 interface UseReportsDataParams {
   allActions: OzipzAction[];
@@ -45,9 +46,11 @@ export function useReportsData({
   const effectiveKindMap = customInterventionMap ?? dictStore.jrwaInterventionKindMap;
   const effectiveNamesMap = customInterventionNames ?? dictStore.jrwaInterventionNamesMap;
 
-  const [metricPlan, setMetricPlanState] = useState<MetricPlanState>(emptyMetricPlan);
-  /** Skąd pochodzi plan: zapisany dla roku, przejęty z wcześniejszego roku (jeszcze niezapisany) albo brak. */
-  const [metricPlanSource, setMetricPlanSource] = useState<MetricPlanSource>({ kind: "empty" });
+  const [planState, setPlanState] = useState<{ year: number; plan: MetricPlanState; source: MetricPlanSource }>(
+    { year, plan: emptyMetricPlan, source: { kind: "loading" } }
+  );
+  const metricPlan = planState.year === year ? planState.plan : emptyMetricPlan;
+  const metricPlanSource: MetricPlanSource = planState.year === year ? planState.source : { kind: "loading" };
   /** Plan zmieniony przez użytkownika i czekający na zapis w bazie. */
   const pendingPlan = useRef<{ year: number; plan: MetricPlanState } | null>(null);
   /** Licznik zmian planu wprowadzonych przez użytkownika. */
@@ -79,17 +82,14 @@ export function useReportsData({
         const plan = await OzipzDbService.getMetricPlan(candidate);
         if (cancelled || editedMeanwhile()) return;
         if (plan) {
-          setMetricPlanState(plan);
-          setMetricPlanSource(candidate === year ? { kind: "saved" } : { kind: "inherited", fromYear: candidate });
+          setPlanState({ year, plan, source: candidate === year ? { kind: "saved" } : { kind: "inherited", fromYear: candidate } });
           return;
         }
       }
-      setMetricPlanState(emptyMetricPlan);
-      setMetricPlanSource({ kind: "empty" });
+      setPlanState({ year, plan: emptyMetricPlan, source: { kind: "empty" } });
     })().catch(() => {
       if (cancelled || editedMeanwhile()) return;
-      setMetricPlanState(emptyMetricPlan);
-      setMetricPlanSource({ kind: "empty" });
+      setPlanState({ year, plan: emptyMetricPlan, source: { kind: "empty" } });
     });
     return () => {
       cancelled = true;
@@ -97,26 +97,28 @@ export function useReportsData({
   }, [year]);
 
   const handlePersistMetricPlan = useCallback(async (updatedPlan?: MetricPlanState, planYear = year): Promise<boolean> => {
+    if (!updatedPlan && planState.year !== planYear) return false;
     try {
       await OzipzDbService.saveMetricPlan(planYear, updatedPlan || metricPlan);
-      if (planYear === year) setMetricPlanSource({ kind: "saved" });
+      if (planYear === year) setPlanState((current) => current.year === year ? { ...current, source: { kind: "saved" } } : current);
       return true;
     } catch {
       toast.error("Nie udało się zapisać planu miernika");
       return false;
     }
-  }, [metricPlan, year]);
+  }, [metricPlan, planState.year, year]);
 
   const persistRef = useRef(handlePersistMetricPlan);
   persistRef.current = handlePersistMetricPlan;
 
   /** Zmiana w tabeli planu – zapis w bazie chwilę po ostatnim wpisanym znaku. */
   const setMetricPlan = useCallback((update: MetricPlanState | ((prev: MetricPlanState) => MetricPlanState)) => {
-    setMetricPlanState((prev) => {
-      const next = typeof update === "function" ? update(prev) : update;
+    setPlanState((prev) => {
+      const currentPlan = prev.year === year ? prev.plan : emptyMetricPlan;
+      const next = typeof update === "function" ? update(currentPlan) : update;
       pendingPlan.current = { year, plan: next };
       planEdits.current += 1;
-      return next;
+      return { year, plan: next, source: prev.year === year && prev.source.kind !== "loading" ? prev.source : { kind: "empty" } };
     });
   }, [year]);
 
@@ -159,7 +161,7 @@ export function useReportsData({
   const filteredActions = useMemo(() => {
     return yearActions.filter((a) => {
       const ym = getActionYearMonth(a.date);
-      return ym !== null && months.includes(ym.month);
+      return isActionCountedInReports(a) && ym !== null && months.includes(ym.month);
     });
   }, [yearActions, months]);
 
@@ -322,6 +324,16 @@ export function useReportsData({
     return buildReportAnnexRows(filteredActions, effectiveKindMap, effectiveNamesMap);
   }, [filteredActions, effectiveKindMap, effectiveNamesMap]);
 
+  const cumulativeMonths = useMemo(() => Array.from({ length: Math.max(0, ...months) }, (_, index) => index + 1), [months]);
+  const cumulativeAnnexRows = useMemo(() => buildReportAnnexRows(
+    yearActions.filter((action) => {
+      const ym = getActionYearMonth(action.date);
+      return isActionCountedInReports(action) && ym !== null && cumulativeMonths.includes(ym.month);
+    }),
+    effectiveKindMap,
+    effectiveNamesMap
+  ), [yearActions, cumulativeMonths, effectiveKindMap, effectiveNamesMap]);
+
   const reportHierarchy = useMemo(() => {
     return buildReportHierarchy(annexRows);
   }, [annexRows]);
@@ -360,8 +372,10 @@ export function useReportsData({
   } = useReportExports({
     filteredActions,
     annexRows,
+    cumulativeAnnexRows,
     year,
     months,
+    cumulativeMonths,
     preparedPersonId,
     defaultPersonName: persons[0]?.name ?? "",
   });
@@ -386,6 +400,7 @@ export function useReportsData({
     statisticsRows,
     metricSummary,
     annexRows,
+    cumulativeAnnexRows,
     reportHierarchy,
     vacationFilteredActions,
     vacationActionSummary,

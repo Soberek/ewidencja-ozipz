@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { useActions, useDictionaries } from "../../../store/useOzipzDbStore";
+import { useDictionaries } from "../../../store/useOzipzDbStore";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -19,6 +19,7 @@ import {
 import { MiernikExportCard } from "./miernik/MiernikExportCard";
 import { MiernikBudgetPlanTable } from "./miernik/MiernikBudgetPlanTable";
 import { MiernikAnnexProgramsTable } from "./miernik/MiernikAnnexProgramsTable";
+import type { OzipzAction } from "../../../types/ozipz.types";
 
 export interface MetricSummaryState {
   totalActions: number;
@@ -39,6 +40,8 @@ interface ReportMiernikTabProps {
   preparedBy?: string;
   onPreparedByChange?: (name: string) => void;
   year: number;
+  yearActions: OzipzAction[];
+  filteredActions: OzipzAction[];
   months?: number[];
   onMonthsChange?: (months: number[]) => void;
   metricPlan: MetricPlanState;
@@ -57,14 +60,14 @@ export function ReportMiernikTab({
   onPersistMetricPlan,
   metricPlanSource,
   year,
+  yearActions,
+  filteredActions,
   months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   metricPlan,
   metricSummary,
   onMetricPlanChange,
   showKpiSummary = true,
 }: ReportMiernikTabProps) {
-  const actionsStore = useActions();
-  const allActions = actionsStore.actions;
   const { jrwaInterventionKindMap, jrwaInterventionNamesMap } = useDictionaries();
 
   const selectedMonths = months.length > 0 ? months : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
@@ -79,27 +82,24 @@ export function ReportMiernikTab({
     () => buildDefaultHeaderTitle(1, stationName, selectedMonths, year),
     [stationName, selectedMonths, year]
   );
-  const defaultHeaderTitleZal2 = useMemo(
-    () => buildDefaultHeaderTitle(2, stationName, selectedMonths, year),
-    [stationName, selectedMonths, year]
-  );
-
   const effectiveHeaderTitleZal1 = customHeaderTitle.trim() || defaultHeaderTitleZal1;
-  const effectiveHeaderTitleZal2 = customHeaderTitle.trim() || defaultHeaderTitleZal2;
-
-  // Działania dla wybranego roku i miesięcy
-  const yearActions = useMemo(() => {
-    return allActions.filter((a) => (a.date || "").startsWith(String(year)));
-  }, [allActions, year]);
 
   const aggregatedData = useMemo(() => {
     return aggregateActionsToProgramsData(
-      yearActions,
-      selectedMonths,
+      filteredActions,
+      undefined,
       jrwaInterventionKindMap,
       jrwaInterventionNamesMap
     );
-  }, [yearActions, selectedMonths, jrwaInterventionKindMap, jrwaInterventionNamesMap]);
+  }, [filteredActions, jrwaInterventionKindMap, jrwaInterventionNamesMap]);
+
+  const cumulativeMonths = useMemo(() => Array.from({ length: Math.max(...selectedMonths) }, (_, index) => index + 1), [selectedMonths]);
+  const cumulativeData = useMemo(() => aggregateActionsToProgramsData(
+    yearActions,
+    cumulativeMonths,
+    jrwaInterventionKindMap,
+    jrwaInterventionNamesMap
+  ), [yearActions, cumulativeMonths, jrwaInterventionKindMap, jrwaInterventionNamesMap]);
 
   // Handlery eksportu
   const handleExportZal1 = async () => {
@@ -122,10 +122,10 @@ export function ReportMiernikTab({
     setIsExporting("zal2");
     try {
       const ok = await exportToCumulativeTemplate(
-        aggregatedData,
-        `Zalacznik_nr_2_narastajacy_OZIPZ_${year}_${formatPeriodForHeader(selectedMonths).replace(/[\s/\\:]+/g, "_")}`,
+        cumulativeData,
+        `Zalacznik_nr_2_narastajacy_OZIPZ_${year}_${formatPeriodForHeader(cumulativeMonths).replace(/[\s/\\:]+/g, "_")}`,
         preparedBy,
-        effectiveHeaderTitleZal2
+        customHeaderTitle.trim() || buildDefaultHeaderTitle(2, stationName, cumulativeMonths, year)
       );
       if (ok) toast.success("Pobrano plik Załącznika nr 2 (.xlsx)");
       else toast.error("Błąd podczas generowania Załącznika nr 2");
@@ -202,13 +202,15 @@ export function ReportMiernikTab({
 
         <div className="flex items-center justify-end gap-3">
           <p className="text-xs text-muted-foreground">
-            {metricPlanSource.kind === "saved"
+            {metricPlanSource.kind === "loading"
+              ? `Wczytywanie planu na ${year} r.…`
+              : metricPlanSource.kind === "saved"
               ? `Plan na ${year} r. jest zapisany w bazie – zmiany w tabeli zapisują się automatycznie.`
               : metricPlanSource.kind === "inherited"
                 ? `Brak planu na ${year} r. – podpowiedziano plan z ${metricPlanSource.fromYear} r. Zatwierdź go albo wpisz nowe wartości.`
                 : `Brak planu na ${year} r. – wpisz wartości planowane w tabeli.`}
           </p>
-          {metricPlanSource.kind !== "saved" && (
+          {metricPlanSource.kind !== "saved" && metricPlanSource.kind !== "loading" && (
             <Button
               variant="outline"
               onClick={async () => {
@@ -233,6 +235,7 @@ export function ReportMiernikTab({
           defaultHeaderTitleZal1={defaultHeaderTitleZal1}
           isExporting={isExporting}
           totalActions={aggregatedData.allActions}
+          cumulativeActions={cumulativeData.allActions}
           yearActionsCount={yearActions.length}
           onStationNameChange={setStationName}
           onPreparedByChange={(name) => onPreparedByChange?.(name)}

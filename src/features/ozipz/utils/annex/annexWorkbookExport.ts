@@ -1,7 +1,8 @@
 import ExcelJS from "exceljs";
 import type { OzipzAction } from "../../types/ozipz.types";
 import { downloadBlob } from "../downloadHelper";
-import { getTodayIsoDate } from "../dateUtils";
+import { getTodayIsoDate, safeParseDate } from "../dateUtils";
+import { isActionCountedInReports } from "../calculators/actionMetrics";
 import { isProgramAction } from "../calculators/jrwaClassification";
 import type { AggregatedMiernikData } from "./annexTypes";
 import { aggregateActionsToProgramsData } from "./annexAggregation";
@@ -82,6 +83,11 @@ export async function downloadFullReportWorkbook(
   preparedBy: string = ""
 ): Promise<void> {
   const monthText = formatPeriodForHeader(months);
+  const reportActions = actions.filter(isActionCountedInReports);
+  const actionInMonth = (action: OzipzAction, month: number) => {
+    const date = safeParseDate(action.date);
+    return !!date && date.getFullYear() === year && date.getMonth() + 1 === month;
+  };
   const wb = new ExcelJS.Workbook();
   wb.creator = "Ewidencja OZiPZ";
   wb.created = new Date();
@@ -95,8 +101,7 @@ export async function downloadFullReportWorkbook(
 
   for (let m = 1; m <= 12; m++) {
     if (!months.includes(m)) continue;
-    const mPad = String(m).padStart(2, "0");
-    const mActions = actions.filter((a) => (a.date || "").startsWith(`${year}-${mPad}`));
+    const mActions = reportActions.filter((a) => actionInMonth(a, m));
     const tasks = mActions.length;
     const acts = mActions.reduce((s, a) => s + (Number(a.numberOfActions) || 1), 0);
     const recs = mActions.reduce((s, a) => s + (Number(a.participantsCount) || 0), 0);
@@ -113,8 +118,7 @@ export async function downloadFullReportWorkbook(
 
   for (let m = 1; m <= 12; m++) {
     if (!months.includes(m)) continue;
-    const mPad = String(m).padStart(2, "0");
-    const mActions = actions.filter((a) => (a.date || "").startsWith(`${year}-${mPad}`));
+    const mActions = reportActions.filter((a) => actionInMonth(a, m));
     let pAct = 0, nAct = 0, pRec = 0, nRec = 0;
     mActions.forEach((a) => {
       const isProg = isProgramAction(a);
@@ -132,7 +136,7 @@ export async function downloadFullReportWorkbook(
   const headerRow = ws3.addRow(["Lp.", "Program / Forma Działania", "Działania", "Odbiorcy"]);
   headerRow.font = { bold: true };
 
-  const aggregatedData = aggregateActionsToProgramsData(actions, months);
+  const aggregatedData = aggregateActionsToProgramsData(reportActions.filter((a) => months.some((m) => actionInMonth(a, m))));
   let pCount = 0;
 
   Object.entries(aggregatedData.aggregated).forEach(([type, programs]) => {

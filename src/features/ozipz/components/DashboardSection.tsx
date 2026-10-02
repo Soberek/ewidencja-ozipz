@@ -19,6 +19,8 @@ import { DashboardCurrentMonthPlanCard } from "./dashboard/DashboardCurrentMonth
 import { DashboardDeadlinesCard } from "./dashboard/DashboardDeadlinesCard";
 import { collectDeadlines } from "../utils/deadlineUtils";
 import { classifyScheduleEvent, linkedScheduleEventIds } from "../utils/scheduleEventStatus";
+import { isActionCountedInReports } from "../utils/calculators/actionMetrics";
+import { safeParseDate } from "../utils/dateUtils";
 
 export interface DashboardSectionProps {
   actions?: OzipzAction[];
@@ -29,6 +31,13 @@ export interface DashboardSectionProps {
   onOpenAddAction?: () => void;
   onOpenAddParticipation?: () => void;
   onOpenAddDistribution?: () => void;
+}
+
+export function currentYearExecutedActions(actions: OzipzAction[], year: number): OzipzAction[] {
+  return actions.filter((action) => {
+    const date = safeParseDate(action.date);
+    return date?.getFullYear() === year && isActionCountedInReports(action);
+  });
 }
 
 export function DashboardSection(props: DashboardSectionProps) {
@@ -79,7 +88,9 @@ export function DashboardSection(props: DashboardSectionProps) {
   const onOpenAddParticipation = props.onOpenAddParticipation ?? (() => openModal("participation"));
   const onOpenAddDistribution = props.onOpenAddDistribution ?? (() => openModal("distribution"));
   const onNavigateTab = handleNavigateTab;
-  const recipients = useMemo(() => calculateTotalRecipients(actions), [actions]);
+  const reportActions = useMemo(() => actions.filter(isActionCountedInReports), [actions]);
+  const currentYearActions = useMemo(() => currentYearExecutedActions(actions, new Date().getFullYear()), [actions]);
+  const recipients = useMemo(() => calculateTotalRecipients(reportActions), [reportActions]);
   const letters = store.letters;
   const closedMonths = store.closedMonths;
   const deadlines = useMemo(
@@ -103,7 +114,7 @@ export function DashboardSection(props: DashboardSectionProps) {
 
   const typeStats = useMemo(() => {
     const map: Record<string, { count: number; participants: number }> = {};
-    for (const a of actions) {
+    for (const a of reportActions) {
       const t = a.actionType || "Inne";
       if (!map[t]) map[t] = { count: 0, participants: 0 };
       map[t].count += Number(a.numberOfActions) || 1;
@@ -116,14 +127,14 @@ export function DashboardSection(props: DashboardSectionProps) {
         participants: stats.participants,
       }))
       .sort((a, b) => b.count - a.count);
-  }, [actions]);
+  }, [reportActions]);
 
   return (
     <TooltipProvider delayDuration={150}>
       <div className="space-y-4 select-none">
         {/* Top KPIs Banner */}
         <DashboardKpiBanner
-          actions={actions}
+          actions={currentYearActions}
           programs={programs}
           participations={participations}
           scheduleEvents={scheduleEvents}

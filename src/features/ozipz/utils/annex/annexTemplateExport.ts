@@ -259,7 +259,7 @@ export async function downloadAnnexReportExcel(
     mockAggregated.allPeople += r.people || 0;
   });
 
-  await exportToTemplateGeneric(
+  const exported = await exportToTemplateGeneric(
     mockAggregated,
     templatePath,
     defaultFileName,
@@ -268,4 +268,5 @@ export async function downloadAnnexReportExcel(
     preparedBy,
     headerTitle
   );
+  if (!exported) throw new Error(`Nie udało się wygenerować Załącznika nr ${annexNumber}`);
 }

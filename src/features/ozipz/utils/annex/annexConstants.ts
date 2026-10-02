@@ -103,7 +103,7 @@ export const formatPeriodForHeader = (selectedMonths: readonly number[]): string
     return `${POLISH_MONTHS[first - 1].toLowerCase()} - ${POLISH_MONTHS[last - 1].toLowerCase()}`;
   }
 
-  return `${POLISH_MONTHS[first - 1].toLowerCase()} - ${POLISH_MONTHS[last - 1].toLowerCase()}`;
+  return selected.map((month) => POLISH_MONTHS[month - 1].toLowerCase()).join(", ");
 };
 
 export const buildDefaultHeaderTitle = (

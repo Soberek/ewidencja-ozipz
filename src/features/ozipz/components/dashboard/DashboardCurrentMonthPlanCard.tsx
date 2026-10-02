@@ -10,7 +10,7 @@ import { DashboardMonthEventItem } from "./DashboardMonthEventItem";
 import { getJrwaDetails } from "../../utils/programJrwaUtils";
 import type { HealthPromotionTab, OzipzScheduleEvent, OzipzAction } from "../../types/ozipz.types";
 import { useModalStore } from "../../store/useModalStore";
-import { useOzipzDb } from "../../hooks/useOzipzDb";
+import { useOzipzDbStore } from "../../store/useOzipzDbStore";
 import { classifyScheduleEvent, linkedScheduleEventIds } from "../../utils/scheduleEventStatus";
 
 const MONTH_NAMES_PL = [
@@ -39,7 +39,11 @@ export function DashboardCurrentMonthPlanCard({
   actions = [],
   onNavigateTab,
 }: DashboardCurrentMonthPlanCardProps) {
-  const db = useOzipzDb();
+  const programs = useOzipzDbStore((s) => s.programs);
+  const dictionaryItems = useOzipzDbStore((s) => s.dictionaryItems);
+  const jrwaSymbols = useMemo(() => dictionaryItems.filter(
+    (item) => item.dictType === "jrwaSymbol" && item.code !== "070" && item.code !== "9010" && !item.id.startsWith("dict-jrw-")
+  ), [dictionaryItems]);
   const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
   const openModal = useModalStore((s) => s.openModal);
@@ -48,10 +52,10 @@ export function DashboardCurrentMonthPlanCard({
   const getEventJrwaInfo = (ev: OzipzScheduleEvent) => {
     // 1. Sprawdź czy zadanie ma programId
     if (ev.programId) {
-      const prog = db.programs.find((p) => p.id === ev.programId);
+      const prog = programs.find((p) => p.id === ev.programId);
       if (prog) {
         const cleanSym = (prog.jrwaSymbol || ev.jrwa || "").replace(/[^0-9.]/g, "");
-        const dictItem = cleanSym ? db.jrwaSymbols.find((d) => d.code === cleanSym) : null;
+        const dictItem = cleanSym ? jrwaSymbols.find((d) => d.code === cleanSym) : null;
         return {
           symbol: cleanSym || prog.jrwaSymbol || "",
           label: prog.name,
@@ -62,7 +66,7 @@ export function DashboardCurrentMonthPlanCard({
 
     // 2. Wyciągnij ze słownika JRWA przez getJrwaDetails
     const rawText = `${ev.jrwa || ""} ${ev.category || ""} ${ev.title || ""}`;
-    const details = getJrwaDetails(rawText, db.programs);
+    const details = getJrwaDetails(rawText, programs);
     if (details) return details;
 
     if (ev.category && ev.category.trim() && !ev.category.toLowerCase().includes("ogólne")) {

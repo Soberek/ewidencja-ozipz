@@ -1,5 +1,6 @@
 import type { OzipzAction } from "../../types/ozipz.types";
 import { isActionCountedInReports } from "../calculators/actionMetrics";
+import { safeParseDate } from "../dateUtils";
 import {
   isProgramAction,
   extractCleanJrwaSymbol,
@@ -137,6 +138,7 @@ export function buildReportAnnexRows(
     : (customInterventionNames ? Array.from(customInterventionNames.keys()) : undefined);
 
   actions.forEach((action) => {
+    if (!isActionCountedInReports(action)) return;
     const isProg = isProgramAction(action, interventionMap);
     const kind: ReportAnnexKind = isProg ? "programowe" : "nieprogramowe";
     const programName = resolveInterventionName(action, isProg, interventionNames);
@@ -257,9 +259,8 @@ export function aggregateActionsToProgramsData(
   const filtered = actions.filter((a) => {
     if (!isActionCountedInReports(a)) return false;
     if (selectedMonths && selectedMonths.length > 0) {
-      const dateStr = a.date || "";
-      const m = parseInt(dateStr.slice(5, 7), 10);
-      if (Number.isInteger(m) && !selectedMonths.includes(m)) return false;
+      const date = safeParseDate(a.date);
+      if (!date || !selectedMonths.includes(date.getMonth() + 1)) return false;
     }
     return true;
   });

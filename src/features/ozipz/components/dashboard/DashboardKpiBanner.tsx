@@ -52,7 +52,7 @@ export function DashboardKpiBanner({
           </div>
         </div>
         <div className="mt-2.5 pt-2 border-t border-primary/15 flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>Wszystkie placówki:</span>
+          <span>Placówki w roku:</span>
           <strong className="text-foreground font-mono">
             {new Set(actions.map((a) => (a.facilityName || a.facilityId || "").trim()).filter(Boolean)).size}
           </strong>
@@ -97,7 +97,7 @@ export function DashboardKpiBanner({
         <button type="button" aria-label="Przejdź do udziału szkół w programach" onClick={() => onNavigateTab("szkoly-w-programie")} className="absolute inset-0 cursor-pointer rounded-[3px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
       </Card>
 
-      {/* Card 3: Zasięg Całkowity */}
+      {/* Card 3: Odbiorcy */}
       <Card
         className="relative rounded-[3px] border border-border bg-card p-3.5 shadow-none transition-all hover:bg-muted/40 group"
       >
@@ -133,13 +133,13 @@ export function DashboardKpiBanner({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate">
-              Harmonogram i Wydarzenia
+              Otwarte zadania
             </p>
             <p className="mt-1 font-mono text-2xl font-bold tracking-tight text-foreground">
               {upcomingEventsCount}
             </p>
             <p className="mt-0.5 text-[11px] text-muted-foreground truncate">
-              Zadań zaplanowanych do realizacji
+              Zaplanowane lub w toku
             </p>
           </div>
           <div className="flex size-8 shrink-0 items-center justify-center rounded-[2px] border border-border bg-muted/40 text-amber-600 dark:text-amber-400">
@@ -150,7 +150,7 @@ export function DashboardKpiBanner({
           <span>
             Łącznie w planie: <strong className="text-foreground">{scheduleEvents.length}</strong>
           </span>
-          <span className="text-primary font-bold font-sans">Aktywne</span>
+          <span className="text-primary font-bold font-sans">Otwarte</span>
         </div>
         <button type="button" aria-label="Przejdź do harmonogramu" onClick={() => onNavigateTab("harmonogram")} className="absolute inset-0 cursor-pointer rounded-[3px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
       </Card>

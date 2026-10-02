@@ -1,7 +1,7 @@
 import type { OzipzAction } from "../types/ozipz.types";
 import { extractCleanJrwaSymbol } from "./ozipzCalculations";
 import { resolveActivityFormLabel } from "./actionFormUtils";
-import { isActionCancelled } from "./calculators/actionMetrics";
+import { isActionCountedInReports } from "./calculators/actionMetrics";
 
 export { resolveActivityFormLabel };
 
@@ -137,7 +137,7 @@ export function buildVacationSummary(actions: readonly OzipzAction[]): VacationS
   let childrenWithoutAge = 0;
 
   actions
-    .filter((a) => !isActionCancelled(a.status))
+    .filter(isActionCountedInReports)
     .filter(isVacationAction)
     .forEach((action) => {
       const actLabel = resolveActivityFormLabel(action);

@@ -32,6 +32,7 @@ interface ReportHeaderCardProps {
   onYearChange: (year: number) => void;
   months: number[];
   actions: OzipzAction[];
+  annex2Available: boolean;
   preparedPersonId: string;
   onPreparedPersonChange: (person: string) => void;
   persons: ReportPerson[];
@@ -49,6 +50,7 @@ export function ReportHeaderCard({
   onYearChange,
   months,
   actions,
+  annex2Available,
   preparedPersonId,
   onPreparedPersonChange,
   persons,
@@ -138,7 +140,7 @@ export function ReportHeaderCard({
               size="sm"
               variant="outline"
               className="h-8 rounded-[3px] border-border bg-background px-2.5 text-xs font-semibold text-foreground shadow-none hover:bg-muted cursor-pointer"
-              disabled={exportPending !== null || actions.length === 0}
+              disabled={exportPending !== null || !annex2Available}
               onClick={() => onExportAnnex(2)}
               title="Pobierz Załącznik nr 2 do sprawozdania"
             >
@@ -227,4 +229,3 @@ export function ReportHeaderCard({
     </Card>
   );
 }
-

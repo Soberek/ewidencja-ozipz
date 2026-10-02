@@ -41,6 +41,7 @@ describe("reportAnnex (Better-OZ Parity & Excel Export Engine)", () => {
       expect(formatPeriodForHeader([1, 2, 3, 4, 5, 6])).toBe("styczeń - czerwiec (I półrocze)");
       expect(formatPeriodForHeader([7, 8, 9, 10, 11, 12])).toBe("lipiec - grudzień (II półrocze)");
       expect(formatPeriodForHeader([2, 3, 4])).toBe("luty - kwiecień");
+      expect(formatPeriodForHeader([1, 3])).toBe("styczeń, marzec");
     });
 
     it("formats station and header title for Excel annexes accurately", () => {

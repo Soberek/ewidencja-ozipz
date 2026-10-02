@@ -258,6 +258,39 @@ describe("useReportsData Hook", () => {
     load.mockRestore();
   });
 
+  it("does not carry a previous year's plan into a new year while loading", async () => {
+    const oldPlan = { razemDzialania: 120, razemUczestnicy: 600, programyDzialania: 60, programyUczestnicy: 300 };
+    await OzipzDbService.saveMetricPlan(2033, oldPlan);
+    const { result, rerender } = renderHook(
+      ({ year }) => useReportsData({ allActions: [], year, months: [5] }),
+      { initialProps: { year: 2033 } }
+    );
+    await waitFor(() => expect(result.current.metricPlanSource).toEqual({ kind: "saved" }));
+
+    let finishLoad: (plan: null) => void = () => undefined;
+    const load = vi.spyOn(OzipzDbService, "getMetricPlan").mockImplementationOnce(
+      () => new Promise((resolve) => { finishLoad = resolve; })
+    );
+    rerender({ year: 2034 });
+    expect(result.current.metricPlanSource).toEqual({ kind: "loading" });
+    expect(result.current.metricPlan).toEqual(emptyMetricPlan);
+    await act(async () => expect(await result.current.handlePersistMetricPlan()).toBe(false));
+
+    act(() => result.current.setMetricPlan((prev) => ({ ...prev, razemDzialania: 2 })));
+    expect(result.current.metricPlan).toEqual({ ...emptyMetricPlan, razemDzialania: 2 });
+    await act(async () => finishLoad(null));
+    load.mockRestore();
+  });
+
+  it("exports annex 2 cumulatively through the last selected month", async () => {
+    const { buildReportAnnexRows, downloadAnnexReportExcel } = await import("../../utils/reportAnnex");
+    const actions = [{ ...mockActions[0], id: "january", date: "2026-01-10" }, ...mockActions];
+    const { result } = renderHook(() => useReportsData({ allActions: actions, year: 2026, months: [5] }));
+    await act(async () => result.current.handleExportAnnex(2));
+    expect(vi.mocked(buildReportAnnexRows).mock.calls.some(([input]) => input.map((action) => action.id).join(",") === "january,act-1,act-2")).toBe(true);
+    expect(downloadAnnexReportExcel).toHaveBeenCalledWith(expect.any(Array), 2, 2026, [1, 2, 3, 4, 5], expect.any(String));
+  });
+
   it("handles XLSX export call and sets success message", async () => {
     const { result } = renderHook(() =>
       useReportsData({

@@ -86,6 +86,7 @@ export function ReportsSection(props: ReportsSectionProps) {
     maxMonthlyActions,
     statisticsRows,
     metricSummary,
+    cumulativeAnnexRows,
     reportHierarchy,
     vacationSummary,
     handleExportXlsx,
@@ -101,6 +102,7 @@ export function ReportsSection(props: ReportsSectionProps) {
         onYearChange={setYear}
         months={months}
         actions={filteredActions}
+        annex2Available={cumulativeAnnexRows.length > 0}
         preparedPersonId={preparedPersonId}
         onPreparedPersonChange={setPreparedPersonId}
         persons={persons}
@@ -165,6 +167,8 @@ export function ReportsSection(props: ReportsSectionProps) {
           preparedBy={preparedPersonId}
           onPreparedByChange={setPreparedPersonId}
           year={year}
+          yearActions={yearActions}
+          filteredActions={filteredActions}
           months={months}
           onMonthsChange={setMonths}
           metricPlan={metricPlan}
