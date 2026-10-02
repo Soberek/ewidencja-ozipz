@@ -135,7 +135,7 @@ export async function fetchGovAktualnosciPage(
     html = res.body;
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(`Nie udało się pobrać aktualności PSSE Myślibórz z gov.pl (${detail}).`);
+    throw new Error(`Nie udało się pobrać aktualności PSSE Myślibórz z gov.pl (${detail}).`, { cause: error });
   }
 
   const parsed = parseGovAktualnosciHtml(html, programs, jrwaSymbols);

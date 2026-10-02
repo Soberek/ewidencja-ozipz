@@ -36,8 +36,8 @@ export function buildRegisterPrintHtml({
   if (filters?.educator) filterParts.push(`Osoba: ${filters.educator}`);
   if (filters?.search) filterParts.push(`Filtr: „${filters.search}”`);
 
-  let tableHeaderHtml = "";
-  let tableBodyHtml = "";
+  let tableHeaderHtml: string;
+  let tableBodyHtml: string;
 
   if (registerKey === "informacje") {
     tableHeaderHtml = `

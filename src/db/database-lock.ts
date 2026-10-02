@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { getDatabaseInfo } from "./client";
 
 /** Kto trzyma bazę otwartą na innym komputerze lub w innym oknie. */
 export interface DatabaseLockHolder {
@@ -29,7 +30,6 @@ export async function forceDatabaseTakeover(): Promise<void> {
 
 /** Zwraca osobę, która przejęła bazę w trakcie pracy tego okna. */
 export async function getDatabaseTakeover(): Promise<DatabaseLockHolder | null> {
-  const { getDatabaseInfo } = await import("./client");
   if ((await getDatabaseInfo()).mode !== "tauri-sqlite") return null;
   return invoke<DatabaseLockHolder | null>("database_lock_status");
 }

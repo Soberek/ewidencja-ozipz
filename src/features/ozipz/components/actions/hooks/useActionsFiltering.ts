@@ -64,13 +64,14 @@ export function useActionsFiltering({ actions, programs, onDeleteAction, onUpdat
     filterState,
     { period: filterState.defaultMonth, year: filterState.defaultYear },
     programs
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- filterState jako drugi argument to settery (stabilne); liczą się tylko wartości filtrów
   ), [
     filterState.search, filterState.effectivePeriod, filterState.yearFilter, filterState.statusFilter,
     filterState.publicationsMode, filterState.quickFilterEzd, filterState.quickFilterProgramOnly,
     filterState.materialsOnlyFilter, filterState.selectedMunicipalities,
     filterState.selectedPrograms, filterState.selectedActivityTypes, filterState.selectedTopics,
     filterState.educatorFilter, filterState.ezdFilter, filterState.defaultMonth, filterState.defaultYear, programs,
-  ]);
+    ]);
 
   const selection = useActionSelection({ actions, filteredActions, onDeleteAction, onUpdateAction });
 

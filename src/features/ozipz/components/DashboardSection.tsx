@@ -21,6 +21,7 @@ import { collectDeadlines } from "../utils/deadlineUtils";
 import { classifyScheduleEvent, linkedScheduleEventIds } from "../utils/scheduleEventStatus";
 import { isActionCountedInReports } from "../utils/calculators/actionMetrics";
 import { safeParseDate } from "../utils/dateUtils";
+import { EMPTY_LIST } from "@/lib/utils";
 
 export interface DashboardSectionProps {
   actions?: OzipzAction[];
@@ -45,15 +46,16 @@ export function DashboardSection(props: DashboardSectionProps) {
   const openModal = useModalStore((s) => s.openModal);
   const navigate = useNavigate();
 
-  const actions = props.actions ?? store.actions ?? [];
-  const programs = props.programs ?? store.programs ?? [];
-  const participations = props.participations ?? store.participations ?? [];
-  const scheduleEvents = props.scheduleEvents ?? store.scheduleEvents ?? [];
+  const actions = props.actions ?? store.actions ?? EMPTY_LIST;
+  const programs = props.programs ?? store.programs ?? EMPTY_LIST;
+  const participations = props.participations ?? store.participations ?? EMPTY_LIST;
+  const scheduleEvents = props.scheduleEvents ?? store.scheduleEvents ?? EMPTY_LIST;
+  const { onNavigateTab: navigateTabProp } = props;
 
   const handleNavigateTab = useCallback(
     (tab: HealthPromotionTab) => {
-      if (props.onNavigateTab) {
-        props.onNavigateTab(tab);
+      if (navigateTabProp) {
+        navigateTabProp(tab);
         return;
       }
       const routeMap: Record<string, string> = {
@@ -81,7 +83,7 @@ export function DashboardSection(props: DashboardSectionProps) {
       };
       navigate(routeMap[tab] || `/${tab}`);
     },
-    [props.onNavigateTab, navigate]
+    [navigateTabProp, navigate]
   );
 
   const onOpenAddAction = props.onOpenAddAction ?? (() => openModal("action"));

@@ -28,7 +28,7 @@ export class SqliteMonthlyTargetsRepository implements IMonthlyTargetsRepository
   /** Wersje do 1.1.0 trzymały plan w pamięci przeglądarki — przenosimy go do bazy przy pierwszym odczycie. */
   private async importLegacyMetricPlan(year: number): Promise<MetricPlanState | null> {
     const legacyKey = `ozipz_metric_plan_${year}`;
-    let legacy: MetricPlanState | null = null;
+    let legacy: MetricPlanState | null;
     try {
       legacy = parseJsonPlan(globalThis.localStorage?.getItem(legacyKey) ?? "null");
     } catch {

@@ -59,8 +59,8 @@ export function exportRegisterToCsv(
   facilitiesMap: Map<string, OzipzFacility>
 ): void {
   const meta = OFFICIAL_REGISTERS_CONFIG[registerKey];
-  let headers: string[] = [];
-  let rows: string[][] = [];
+  let headers: string[];
+  let rows: string[][];
 
   if (registerKey === "informacje") {
     headers = [

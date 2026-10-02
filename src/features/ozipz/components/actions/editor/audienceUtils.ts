@@ -4,7 +4,7 @@ const hasAudienceCount = (token: string) => parseAudienceItem(token).count > 0 |
 
 // Pomocnicza funkcja parsująca pojedynczy element odbiorcy z ewentualnym wiekiem i liczbą
 export function parseAudienceItem(token: string, totalFallback = 0): RecipientSubItem {
-  let count = 0;
+  let count: number;
   let remaining = token.trim();
   // Liczba tylko po jawnym separatorze („ - 25”, „: 25”, „(25)”) – „kl. 7” to opis, nie liczba osób.
   const unit = "(?:\\s*(?:os\\.?|osób|osoby|szt\\.?))?";

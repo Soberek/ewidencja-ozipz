@@ -50,13 +50,13 @@ export const useUIStore = create<UIState>((set) => ({
       const next = !state.isSidebarCollapsed;
       try {
         localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next));
-      } catch {}
+      } catch { /* pamięć przeglądarki niedostępna – ustawienie obowiązuje do zamknięcia */ }
       return { isSidebarCollapsed: next };
     }),
   setSidebarCollapsed: (collapsed: boolean) => {
     try {
       localStorage.setItem(SIDEBAR_STORAGE_KEY, String(collapsed));
-    } catch {}
+    } catch { /* pamięć przeglądarki niedostępna – ustawienie obowiązuje do zamknięcia */ }
     set({ isSidebarCollapsed: collapsed });
   },
   collapsedSidebarGroups: getInitialCollapsedGroups(),
@@ -67,7 +67,7 @@ export const useUIStore = create<UIState>((set) => ({
         : [...state.collapsedSidebarGroups, groupId];
       try {
         localStorage.setItem(SIDEBAR_GROUPS_STORAGE_KEY, JSON.stringify(next));
-      } catch {}
+      } catch { /* pamięć przeglądarki niedostępna – ustawienie obowiązuje do zamknięcia */ }
       return { collapsedSidebarGroups: next };
     }),
   tableDensity: getInitialTableDensity(),
@@ -76,13 +76,13 @@ export const useUIStore = create<UIState>((set) => ({
       const next: TableDensity = state.tableDensity === "compact" ? "normal" : "compact";
       try {
         localStorage.setItem(TABLE_DENSITY_STORAGE_KEY, next);
-      } catch {}
+      } catch { /* pamięć przeglądarki niedostępna – ustawienie obowiązuje do zamknięcia */ }
       return { tableDensity: next };
     }),
   setTableDensity: (density: TableDensity) => {
     try {
       localStorage.setItem(TABLE_DENSITY_STORAGE_KEY, density);
-    } catch {}
+    } catch { /* pamięć przeglądarki niedostępna – ustawienie obowiązuje do zamknięcia */ }
     set({ tableDensity: density });
   },
 }));

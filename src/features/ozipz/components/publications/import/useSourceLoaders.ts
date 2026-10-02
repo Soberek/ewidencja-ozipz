@@ -5,6 +5,7 @@ import type { OzipzProgram } from "../../../types/ozipz.types";
 import type { ScrapedPublication } from "../sources/importTypes";
 import { fetchGovAktualnosciPage } from "../sources/govSource";
 import { extractTweetIds, fetchXPostById, fetchXTimeline } from "../sources/xSource";
+import { EMPTY_LIST } from "@/lib/utils";
 
 type AddItems = (items: ScrapedPublication[], replace?: boolean) => void;
 
@@ -17,11 +18,13 @@ function useInitialLoad(load: () => void) {
     if (started.current) return;
     started.current = true;
     load();
+    // Wczytanie tylko przy wejściu na zakładkę – późniejsze zmiany `load` nie mają ponawiać pobierania.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }
 
 export function useGovLoader(addItems: AddItems, programs: OzipzProgram[]) {
-  const jrwaSymbols = useDictionaries().jrwaSymbols || [];
+  const jrwaSymbols = useDictionaries().jrwaSymbols || EMPTY_LIST;
   const [loadedPages, setLoadedPages] = useState(0);
   const [totalPages, setTotalPages] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -72,7 +75,7 @@ export function useGovLoader(addItems: AddItems, programs: OzipzProgram[]) {
 }
 
 export function useXLoader(addItems: AddItems, programs: OzipzProgram[]) {
-  const jrwaSymbols = useDictionaries().jrwaSymbols || [];
+  const jrwaSymbols = useDictionaries().jrwaSymbols || EMPTY_LIST;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -70,7 +70,7 @@ export function ReportMiernikTab({
 }: ReportMiernikTabProps) {
   const { jrwaInterventionKindMap, jrwaInterventionNamesMap } = useDictionaries();
 
-  const selectedMonths = months.length > 0 ? months : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  const selectedMonths = useMemo(() => (months.length > 0 ? months : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]), [months]);
 
   // Konfiguracja eksportu (Stacja, Sporządzający, Tytuł A1)
   const [stationName, setStationName] = useState("Myślibórz");

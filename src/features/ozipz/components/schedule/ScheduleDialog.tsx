@@ -146,6 +146,8 @@ export function ScheduleDialog({
         notes: "",
       });
     }
+    // Formularz ustawiamy przy otwarciu; odświeżenie słownika kampanii w tle nie może czyścić wpisanych danych.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingEvent, isOpen, reset]);
 
   const handleActivityTypeChange = (code: string) => {

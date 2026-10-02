@@ -132,6 +132,8 @@ export function DistributionDialog({
         notes: "",
       });
     }
+    // Formularz ustawiamy przy otwarciu; odświeżenie listy materiałów w tle nie może czyścić wpisanych danych.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingDistribution, initialMaterialId, isOpen, reset]);
 
   const handleMaterialChange = (matId: string) => {

@@ -1,4 +1,4 @@
-# Kontrola każdej zmiany: typy, testy frontendu (z pokryciem) i testy powłoki Tauri na Windows.
+# Kontrola każdej zmiany: lint, typy, testy frontendu (z pokryciem) i testy powłoki Tauri na Windows.
 name: Testy
 
 on:
@@ -26,6 +26,9 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
 
       - name: Kontrola typów
         run: pnpm typecheck

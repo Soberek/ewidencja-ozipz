@@ -4,9 +4,9 @@
   "version": "../package.json",
   "identifier": "pl.gov.pis.ewidencja.ozipz",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "pnpm dev:local",
     "devUrl": "http://localhost:1421",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
   },
   "app": {

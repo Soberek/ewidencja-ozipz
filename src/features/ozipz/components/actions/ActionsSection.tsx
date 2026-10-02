@@ -154,19 +154,20 @@ export function ActionsSection(props: ActionsSectionProps) {
     defaultYear: String(new Date().getFullYear()),
   });
 
+  const { onDuplicateAction, distributions: propDistributions } = props;
   const handleDuplicateAction = useCallback(
     (action: OzipzAction) => {
-      if (props.onDuplicateAction) {
-        props.onDuplicateAction(action);
+      if (onDuplicateAction) {
+        onDuplicateAction(action);
         return;
       }
-      const draft = duplicateActionDraft(action, props.distributions ?? useOzipzDbStore.getState().distributions);
+      const draft = duplicateActionDraft(action, propDistributions ?? useOzipzDbStore.getState().distributions);
       navigate("/dzialania/nowe", {
         state: { duplicateFrom: draft, sourceActionId: action.id },
       });
       toast.info(`Skopiowano dane zadania: "${action.title}". Możesz zmienić datę i zapisać.`);
     },
-    [props.onDuplicateAction, props.distributions, navigate]
+    [onDuplicateAction, propDistributions, navigate]
   );
 
   const tableDensity = useUIStore((s) => s.tableDensity);

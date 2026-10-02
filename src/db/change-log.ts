@@ -283,9 +283,9 @@ export async function restoreChange(db: ISqlDatabase, id: number): Promise<numbe
     await db.execute("ROLLBACK;").catch(() => undefined);
     const message = error instanceof Error ? error.message : String(error);
     if (/FOREIGN KEY/i.test(message)) {
-      throw new Error("Nie można przywrócić: rekord wskazuje na usunięty rekord nadrzędny. Najpierw przywróć rekord nadrzędny.");
+      throw new Error("Nie można przywrócić: rekord wskazuje na usunięty rekord nadrzędny. Najpierw przywróć rekord nadrzędny.", { cause: error });
     }
-    throw error instanceof Error ? error : new Error(message);
+    throw error instanceof Error ? error : new Error(message, { cause: error });
   }
   return restored;
 }

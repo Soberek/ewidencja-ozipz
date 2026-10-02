@@ -19,6 +19,7 @@ import {
   downloadHealthPromotionReportCsv,
 } from "../../../utils/reportExport";
 import { useStaff } from "../../../store/useOzipzDbStore";
+import { EMPTY_LIST } from "@/lib/utils";
 
 interface ReportPerson {
   readonly id: string;
@@ -61,7 +62,7 @@ export function ReportHeaderCard({
   onExportAnnex,
 }: ReportHeaderCardProps) {
   const staffStore = useStaff();
-  const dbStaff = staffStore?.staff || [];
+  const dbStaff = staffStore?.staff || EMPTY_LIST;
 
   const staffOptions = useMemo(() => {
     const names = new Set<string>();

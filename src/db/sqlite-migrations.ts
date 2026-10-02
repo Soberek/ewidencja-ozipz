@@ -295,7 +295,7 @@ export async function migrateDatabase(db: ISqlDatabase): Promise<{ migrated: boo
     try { await db.execute("DROP TABLE IF EXISTS temp.migration_version_guard;"); } catch { /* already gone */ }
     const now = await db.select<Array<{ user_version: number }>>("PRAGMA user_version;");
     if (now[0]?.user_version === SCHEMA_VERSION) return { migrated: false, backupPath };
-    throw new Error(`Nie udało się zaktualizować bazy. Dane nie zostały usunięte. ${String(error)}`);
+    throw new Error(`Nie udało się zaktualizować bazy. Dane nie zostały usunięte. ${String(error)}`, { cause: error });
   } finally {
     await db.execute("PRAGMA foreign_keys = ON;");
   }

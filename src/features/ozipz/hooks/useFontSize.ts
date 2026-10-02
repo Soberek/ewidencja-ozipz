@@ -15,7 +15,7 @@ export function useFontSize() {
           return val;
         }
       }
-    } catch {}
+    } catch { /* pamięć przeglądarki niedostępna – ustawienie obowiązuje do zamknięcia */ }
     return DEFAULT_FONT_SIZE;
   });
 
@@ -24,7 +24,7 @@ export function useFontSize() {
     setFontSizePercentState(clamped);
     try {
       localStorage.setItem(STORAGE_KEY, String(clamped));
-    } catch {}
+    } catch { /* pamięć przeglądarki niedostępna – ustawienie obowiązuje do zamknięcia */ }
     document.documentElement.style.fontSize = `${clamped}%`;
   }, []);
 

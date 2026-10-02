@@ -12,7 +12,7 @@ beforeEach(() => {
 
 it("keeps JRWA signs and case numbers unique like SQLite", async () => {
   const repo = new FallbackJrwaRepository();
-  const { id, createdAt, updatedAt, ...draft } = MIGRATED_FIREBASE_DATA.jrwaCases[0];
+  const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...draft } = MIGRATED_FIREBASE_DATA.jrwaCases[0];
   const first = await repo.addJrwaCase(draft);
   await expect(repo.addJrwaCase({ ...draft, fullCaseSign: `${draft.fullCaseSign}-2` })).rejects.toThrow();
   await expect(repo.addJrwaCase({ ...draft, caseNumber: draft.caseNumber + 1 })).rejects.toThrow();
@@ -30,7 +30,7 @@ it("keeps JRWA signs and case numbers unique like SQLite", async () => {
 it("keeps dictionary type and code unique like SQLite", async () => {
   const repo = new FallbackDictionariesRepository();
   const template = MIGRATED_FIREBASE_DATA.dictionaryItems.find((item) => item.dictType !== "jrwaSymbol")!;
-  const { id, createdAt, updatedAt, ...draft } = template;
+  const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...draft } = template;
   const first = await repo.addDictionaryItem({ ...draft, code: "AUDIT-ONE" });
   await expect(repo.addDictionaryItem({ ...draft, code: first.code })).rejects.toThrow();
   const second = await repo.addDictionaryItem({ ...draft, code: "AUDIT-TWO" });

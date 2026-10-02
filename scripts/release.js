@@ -1,5 +1,5 @@
 // Lokalne wydanie. GitHub Actions tylko kompiluje instalator .exe — wszystko inne dzieje się tutaj:
-// testy, build, podbicie wersji, commit, tag, push, pobranie instalatora, latest.json i wydanie na GitHubie.
+// lint, testy, build, podbicie wersji, commit, tag, push, pobranie instalatora, latest.json i wydanie na GitHubie.
 //
 // Użycie:
 //   pnpm release patch | minor | major | 1.2.3   pełne wydanie
@@ -44,6 +44,8 @@ function prepare(arg) {
   if (read("git", "rev-list", "--count", "HEAD..origin/main") !== "0") fail("Lokalny main jest za origin/main. Zrób najpierw git pull.");
   if (read("git", "tag", "-l", tag)) fail(`Tag ${tag} już istnieje. Aby tylko opublikować wydanie: pnpm release --publish ${tag}`);
 
+  step("Lint");
+  run("pnpm", "lint");
   step("Testy JS");
   run("pnpm", "test");
   step("Testy Rust");

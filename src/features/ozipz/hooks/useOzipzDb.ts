@@ -3,7 +3,7 @@ import { useOzipzDbStore } from "../store/useOzipzDbStore";
 import { calculateTotalRecipients } from "../utils/ozipzCalculations";
 import { parseRegisterMappings, resolveActionRegisters } from "../utils/registerConfig";
 import { CANONICAL_EDUCATION_TYPES } from "../constants";
-import type { OzipzDictionaryItem } from "../types/ozipz.types";
+import type { OzipzAction, OzipzDictionaryItem } from "../types/ozipz.types";
 
 /** Gminy ze słownika bez duplikatów (po kodzie lub etykiecie). */
 export function selectMunicipalities(dictionaryItems: OzipzDictionaryItem[]): OzipzDictionaryItem[] {
@@ -164,7 +164,7 @@ export function useOzipzDb() {
   const registerMappings = useMemo(() => parseRegisterMappings(store.dictionaryItems), [store.dictionaryItems]);
 
   const registerActions = useMemo(() => {
-    const result: Record<"informacje" | "publikacje" | "wizytacje", typeof store.actions> = {
+    const result: Record<"informacje" | "publikacje" | "wizytacje", OzipzAction[]> = {
       informacje: [],
       publikacje: [],
       wizytacje: [],

@@ -116,7 +116,7 @@ export function DataTable<T>({
       if (valA === undefined || valA === null) valA = "";
       if (valB === undefined || valB === null) valB = "";
 
-      let comparison = 0;
+      let comparison: number;
       if (typeof valA === "number" && typeof valB === "number") {
         comparison = valA - valB;
       } else if (typeof valA === "string" && typeof valB === "string") {

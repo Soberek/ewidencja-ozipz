@@ -22,6 +22,7 @@ import type {
 import { MaterialSchema } from "../../schemas/ozipz.schemas";
 import { useOzipzDbStore, useDictionaries } from "../../store/useOzipzDbStore";
 import { z } from "zod";
+import { EMPTY_LIST } from "@/lib/utils";
 
 const MaterialFormSchema = MaterialSchema.omit({
   id: true,
@@ -55,8 +56,8 @@ export function MaterialDialog({
 }: MaterialDialogProps) {
   const dbPrograms = useOzipzDbStore((s) => s.programs);
   const dictStore = useDictionaries();
-  const programs = propPrograms || dbPrograms || [];
-  const jrwaSymbols = propJrwaSymbols || dictStore.jrwaSymbols || [];
+  const programs = propPrograms || dbPrograms || EMPTY_LIST;
+  const jrwaSymbols = propJrwaSymbols || dictStore.jrwaSymbols || EMPTY_LIST;
 
   const materialTypeOptions: SelectOption[] = useMemo(() => {
     return materialTypes.map((t) => ({

@@ -18,6 +18,7 @@ import type {
 import { TemplateSchema } from "../../schemas/ozipz.schemas";
 import { useOzipzDbStore, useDictionaries } from "../../store/useOzipzDbStore";
 import { z } from "zod";
+import { EMPTY_LIST } from "@/lib/utils";
 
 export const TemplateFormSchema = TemplateSchema.omit({
   id: true,
@@ -61,9 +62,9 @@ export function TemplateDialog({
 }: TemplateDialogProps) {
   const dbPrograms = useOzipzDbStore((s) => s.programs);
   const dictStore = useDictionaries();
-  const programs = propPrograms || dbPrograms || [];
-  const jrwaSymbols = propJrwaSymbols || dictStore.jrwaSymbols || [];
-  const actionTypes: OzipzDictionaryItem[] = propActionTypes || dictStore.activityTypes || [];
+  const programs = propPrograms || dbPrograms || EMPTY_LIST;
+  const jrwaSymbols = propJrwaSymbols || dictStore.jrwaSymbols || EMPTY_LIST;
+  const actionTypes: OzipzDictionaryItem[] = propActionTypes || dictStore.activityTypes || EMPTY_LIST;
   const topics = propTopics || dictStore.dictionaryItems.filter((item) => item.dictType === "topic" || item.dictType === "tematyki");
 
   const topicOptions: SelectOption[] = useMemo(() => {

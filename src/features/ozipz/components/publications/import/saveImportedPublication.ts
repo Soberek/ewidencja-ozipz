@@ -22,12 +22,12 @@ export async function saveImportedPublication({
   try {
     await addPublication({ ...publication, actionId: createdAction.id });
   } catch (error) {
-    // ponytail: two store writes cannot be atomic; use a database transaction if this API gains one.
+    // Dwa zapisy w magazynie nie są atomowe – przy błędzie cofamy utworzone działanie ręcznie.
     try {
       await deleteAction(createdAction.id);
     } catch (rollbackError) {
       const detail = rollbackError instanceof Error ? rollbackError.message : String(rollbackError);
-      throw new Error(`Nie zapisano publikacji. Nie udało się też cofnąć działania ${createdAction.id}: ${detail}`);
+      throw new Error(`Nie zapisano publikacji. Nie udało się też cofnąć działania ${createdAction.id}: ${detail}`, { cause: rollbackError });
     }
     throw error;
   }

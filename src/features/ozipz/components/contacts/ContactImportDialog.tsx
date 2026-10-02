@@ -31,7 +31,7 @@ export function ContactImportDialog({ isOpen, onClose }: ContactImportDialogProp
             saved += 1;
           } catch (error) {
             const reason = error instanceof Error ? error.message : String(error);
-            throw new Error(`Zapisano ${saved} z ${plan.toCreate.length} kontaktów, potem błąd przy „${contact.name}”: ${reason}. Popraw plik i zaimportuj ponownie — zapisane osoby zostaną pominięte.`);
+            throw new Error(`Zapisano ${saved} z ${plan.toCreate.length} kontaktów, potem błąd przy „${contact.name}”: ${reason}. Popraw plik i zaimportuj ponownie — zapisane osoby zostaną pominięte.`, { cause: error });
           }
         }
       }}

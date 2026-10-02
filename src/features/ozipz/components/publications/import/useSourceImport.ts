@@ -13,6 +13,7 @@ import {
   type ImportRowStatus,
 } from "./importRows";
 import { buildLinkOperation, importPublicationRows } from "./importExecution";
+import { EMPTY_LIST } from "@/lib/utils";
 
 export type ImportStatusFilter = "todo" | "all" | ImportRowStatus;
 
@@ -59,8 +60,8 @@ const matchesFilter = (row: EvaluatedRow, filter: ImportStatusFilter) =>
 export function useSourceImport(source: ImportSourceId) {
   const publicationsStore = usePublications();
   const actionsStore = useActions();
-  const programs = usePrograms().programs || [];
-  const staff = useStaff().staff || [];
+  const programs = usePrograms().programs || EMPTY_LIST;
+  const staff = useStaff().staff || EMPTY_LIST;
 
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [selection, setSelection] = useState<Map<string, boolean>>(new Map());

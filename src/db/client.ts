@@ -93,7 +93,7 @@ export async function getDatabaseService(): Promise<IOzipzDatabaseService> {
         return activeService;
       } catch (err) {
         if (err instanceof DatabaseLockedError) throw err;
-        throw new Error(`Nie udało się otworzyć bazy SQLite. ${String(err)}`);
+        throw new Error(`Nie udało się otworzyć bazy SQLite. ${String(err)}`, { cause: err });
       }
     }
 
@@ -125,7 +125,7 @@ export async function getDatabaseService(): Promise<IOzipzDatabaseService> {
 
     // 3. Fallback do localStorage w trybie offline/statycznym
     const { FallbackDatabaseService } = await import("./fallback-service");
-    // ponytail: without Web Locks, keep one tab open; SQLite is needed for multi-tab safety.
+    // Bez Web Locks pracujemy w jednej karcie; bezpieczną pracę w wielu kartach zapewnia SQLite.
     activeService = serializeDatabaseService(new FallbackDatabaseService(), true);
     activeDatabaseInfo = {
       mode: "browser-storage",

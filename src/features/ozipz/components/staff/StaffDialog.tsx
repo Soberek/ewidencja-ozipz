@@ -53,7 +53,7 @@ export function StaffDialog({
     reset,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<StaffFormInput, any, StaffFormOutput>({
+  } = useForm<StaffFormInput, unknown, StaffFormOutput>({
     resolver: zodResolver(StaffFormSchema),
     defaultValues: {
       fullName: "",

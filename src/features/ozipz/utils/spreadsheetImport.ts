@@ -30,7 +30,7 @@ const normalizeHeader = (value: string) => normalizeNavQuery(value).replace(/[^a
 
 /** Czyta arkusz CSV (średnik, przecinek lub tabulator; cudzysłowy jak w Excelu). */
 export function parseCsv(text: string): string[][] {
-  const content = text.replace(/^﻿/, "");
+  const content = text.replace(/^\uFEFF/, "");
   const firstLine = content.split(/\r?\n/, 1)[0] ?? "";
   const delimiter = [";", "\t", ","].reduce((best, candidate) =>
     firstLine.split(candidate).length > firstLine.split(best).length ? candidate : best, ";");
