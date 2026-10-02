@@ -68,6 +68,16 @@ describe("vacationReporting", () => {
   });
 
   describe("buildVacationSummary", () => {
+    it("rozdziela odbiorców według pozycji opisu: dzieci z wiekiem, dzieci bez wieku i dorośli", () => {
+      const summary = buildVacationSummary([
+        { id: "a", jrwaSign: "OZiPZ.966.14.1.2026", actionType: "Prelekcja (warsztat)", participantsCount: 22, audienceGroup: "Dzieci (3-6 lat) - 20, Opiekunowie - 2" },
+        { id: "b", jrwaSign: "OZiPZ.966.14.2.2026", actionType: "Prelekcja (warsztat)", participantsCount: 30, audienceGroup: "Uczniowie" },
+      ] as OzipzAction[]);
+      expect(summary.recipientsSplit).toEqual({ adults: 2, childrenWithAge: 20, childrenWithoutAge: 30 });
+      expect(summary.byAge).toEqual([{ label: "3–6 lat", value: 20 }]);
+    });
+
+
     it("aggregates actions for Bezpieczne Wakacje (JRWA 966.14 or wakacje keyword)", () => {
       const mockActions: Partial<OzipzAction>[] = [
         {

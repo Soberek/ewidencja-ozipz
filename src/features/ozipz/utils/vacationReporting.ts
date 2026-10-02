@@ -2,6 +2,7 @@ import type { OzipzAction } from "../types/ozipz.types";
 import { extractCleanJrwaSymbol } from "./ozipzCalculations";
 import { resolveActivityFormLabel } from "./actionFormUtils";
 import { isActionCountedInReports } from "./calculators/actionMetrics";
+import { parseAudienceGroups } from "../components/actions/editor/audienceUtils";
 
 export { resolveActivityFormLabel };
 
@@ -148,12 +149,28 @@ export function buildVacationSummary(actions: readonly OzipzAction[]): VacationS
       const count = Number(action.participantsCount) || 0;
       bump(byGroup, audGroup, count);
 
-      if (isAdultVacationRecipientGroup(audGroup)) {
-        adults += count;
-        bump(byCategory, "Dorośli", count);
-      } else {
-        childrenWithoutAge += count;
-        bump(byCategory, audGroup, count);
+      // Każda pozycja opisu osobno: dorośli, dzieci z przedziałem wieku albo dzieci bez wieku.
+      // Opis nieczytelny dla parsera zostaje jedną pozycją z zapisaną liczbą odbiorców.
+      const items = action.audienceGroup?.trim()
+        ? parseAudienceGroups(action.audienceGroup, count).flatMap((group) => group.items)
+        : [{ name: audGroup, count, ageFrom: null, ageTo: null }];
+      for (const item of items) {
+        if (!item.count) continue;
+        const name = item.name.trim() || audGroup;
+        const recipient = isAdultVacationRecipientGroup(name) || (isAdultVacationRecipientGroup(audGroup) && items.length === 1)
+          ? { kind: "dorosli" as const, label: "Dorośli" }
+          : classifyVacationRecipient({ group: name, ageFrom: item.ageFrom, ageTo: item.ageTo });
+        if (recipient.kind === "dorosli") {
+          adults += item.count;
+          bump(byCategory, "Dorośli", item.count);
+        } else if (recipient.kind === "wiek") {
+          childrenWithAge += item.count;
+          bump(byAge, recipient.label, item.count);
+          bump(byCategory, name, item.count);
+        } else {
+          childrenWithoutAge += item.count;
+          bump(byCategory, name, item.count);
+        }
       }
 
       if (action.materialsDistributedCount) {
