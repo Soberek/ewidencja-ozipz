@@ -23,7 +23,7 @@
 **Ewidencja OZiPZ** to desktopowa aplikacja dla sekcji Oświaty Zdrowotnej i Promocji Zdrowia (PSSE), która zastępuje rozproszone arkusze i papierowe rejestry jednym, spójnym narzędziem. Pozwala prowadzić rejestr działań, planować harmonogram, obsługiwać korespondencję i materiały oraz generować sprawozdania — wszystko na lokalnej bazie SQLite, bez serwera i bez wysyłania danych do chmury.
 
 - 🔒 **Dane zostają na komputerze** — baza w folderze `Dokumenty\Ewidencja OZiPZ\ozipz.db`
-- ⚡ **Szybka i lekka** — natywna aplikacja Tauri zamiast ciężkiego Electrona
+- ⚡ **Szybka i lekka** — natywna aplikacja Tauri: mały instalator i niskie zużycie pamięci
 - 🔄 **Automatyczne aktualizacje** — aplikacja sama powiadamia o nowych wersjach
 - 💾 **Bezpieczne kopie zapasowe** — spójne migawki bazy, walidacja integralności, bezpieczne przywracanie
 
@@ -92,13 +92,14 @@ W trybie przeglądarkowym Vite udostępnia bazę SQLite przez wbudowany plugin (
 | Polecenie | Opis |
 | --- | --- |
 | `pnpm dev:local` | Serwer deweloperski tylko na `127.0.0.1` |
-| `pnpm dev` / `pnpm dev:lan` | Serwer dostępny w sieci lokalnej (wymaga klucza parowania) |
+| `pnpm dev` | Serwer dostępny w sieci lokalnej (wymaga klucza parowania) |
 | `pnpm tauri dev` | Aplikacja desktopowa z hot-reloadem |
 | `pnpm build` | Kontrola typów i build produkcyjny frontendu |
 | `pnpm tauri build` | Instalator aplikacji desktopowej |
 | `pnpm test` | Testy (Vitest + Testing Library) |
 | `pnpm test:coverage` | Testy z raportem pokrycia (`coverage/`) |
 | `pnpm typecheck` | Kontrola typów TypeScript |
+| `pnpm lint` | ESLint (TypeScript, React Hooks) |
 
 ### Zmienne środowiskowe
 
@@ -122,9 +123,16 @@ ewidencja-ozipz/
 ├── src-tauri/                   # Backend (Rust + Tauri 2)
 │   └── src/
 │       ├── lib.rs               # Lokalizacja bazy, kopie, przywracanie, komendy Tauri
+│       ├── auto_backup.rs       # Codzienne kopie automatyczne i ich rotacja
+│       ├── attachment_backups.rs# Dokumenty zgłoszeń dołączane do kopii bazy
+│       ├── db_lock.rs           # Blokada bazy na dysku sieciowym (ozipz.db.lock)
+│       ├── storage_kind.rs      # Rozpoznawanie dysku lokalnego, sieciowego i chmury
+│       ├── participation_files.rs # Pliki zgłoszeń do programów
 │       └── publication_fetch.rs # Pobieranie źródeł publikacji
-├── scripts/                     # Skrypty pomocnicze
-└── .github/workflows/           # CI: testy i build instalatora
+├── scripts/                     # kill-port (serwer deweloperski), release (wydania)
+├── DATABASE_SCHEMA.md           # Opis tabel, relacji i migracji
+├── CONTRIBUTING.md              # Zasady pracy nad kodem
+└── .github/workflows/           # CI: lint, typy, testy i build instalatora
 ```
 
 ### Stos technologiczny
@@ -152,7 +160,7 @@ ewidencja-ozipz/
 
    Możesz też podać `minor`, `major` lub konkretną wersję, np. `pnpm release 1.3.0`.
 
-2. Skrypt uruchamia testy i build, aktualizuje wersję, tworzy commit i tag oraz wypycha je do GitHuba. GitHub Actions buduje podpisany instalator NSIS, a skrypt pobiera go i publikuje wydanie z `latest.json` dla auto-aktualizacji.
+2. Skrypt uruchamia lint, testy i build, aktualizuje wersję, tworzy commit i tag oraz wypycha je do GitHuba. GitHub Actions buduje podpisany instalator NSIS, a skrypt pobiera go i publikuje wydanie z `latest.json` dla auto-aktualizacji.
 
 Jeśli skrypt zatrzyma się po wypchnięciu tagu, dokończ publikację poleceniem `pnpm release --publish v1.3.0` (z właściwym numerem wersji).
 
@@ -164,6 +172,12 @@ Jeśli skrypt zatrzyma się po wypchnięciu tagu, dokończ publikację polecenie
 pnpm test                          # testy frontendu i warstwy bazy
 cargo test --manifest-path src-tauri/Cargo.toml   # testy backendu Rust
 ```
+
+Zasady pracy nad kodem (reguły domenowe, migracje, opisy commitów) są w [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## 📄 Licencja
+
+Oprogramowanie własnościowe — wszelkie prawa zastrzeżone. Szczegóły w pliku [LICENSE](LICENSE).
 
 ---
 

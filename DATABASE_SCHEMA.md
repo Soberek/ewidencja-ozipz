@@ -1,21 +1,22 @@
 # Schemat Relacyjnej Bazy Danych SQLite (Ewidencja OZiPZ)
 
-Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VERSION = 13`). Zarówno aplikacja, jak i skrypt inicjalizacji używają tej samej migracji. Poniższy opis encji należy czytać wraz z ograniczeniami opisanymi niżej.
+Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VERSION = 14`). Zarówno aplikacja, jak i skrypt inicjalizacji używają tej samej migracji. Poniższy opis encji należy czytać wraz z ograniczeniami opisanymi niżej.
 
-## Aktualizacja i integralność (2026-09-09)
+## Aktualizacja i integralność
 
 - `PRAGMA user_version` identyfikuje wersję schematu. Przed aktualizacją istniejącego pliku powstaje spójna kopia SQLite `*.before-migration-1-<czas>.db`, uwzględniająca dziennik WAL.
 - v12 (2026-09-30): zgłoszenie szkoły nie zawiera już liczby oddziałów ani rodziców (`classes_count`, `parents_count` usunięte; wartości zostają tylko w kopii sprzed migracji). Dochodzi opcjonalny drugi koordynator (`second_coordinator_*`), powiązany ze Spisem Kontaktów na tych samych zasadach co pierwszy.
-- v13 (2026-10-01): zgłoszenie szkoły może mieć plik zgłoszenia (`application_file`) – ścieżkę względną do kopii w folderze `Zgłoszenia/<rok szkolny>/` obok pliku bazy. Same pliki nie są częścią bazy ani jej kopii zapasowych.
+- v13 (2026-10-01): zgłoszenie szkoły może mieć plik zgłoszenia (`application_file`) – ścieżkę względną do kopii w folderze `Zgłoszenia/<rok szkolny>/` obok pliku bazy. Same pliki leżą poza bazą; kopia zapasowa dołącza je w tabeli `ozipz_backup_files` i odtwarza przy przywracaniu.
+- v14 (2026-10-02): działanie jest wykonane albo odwołane/odroczone – zapisane `zaplanowane` i `w_toku` zmieniają się na `wykonane`. Kolumna `indirect_recipients_count` jest usuwana (odbiorcy to jedna liczba). Dystrybucja zapisana razem z innym działaniem (`linked_action_id`) wraca do 1 odbiorcy, z grupą odbiorców zapisaną z liczbą 1.
 - v5 (2026-09-27): placówki mają własne `email`/`phone` sekretariatu. Przy aktualizacji kontakt zapisany w polach koordynatora bez nazwiska przechodzi do tych kolumn, prefiks „Gmina” znika z nazwy gminy (zmiana spływa do powiązanych działań i zgłoszeń), a z `notes` usuwane są wyłącznie wpisy importu dublujące inne pola.
 - Migracja przebudowuje stare tabele w jednej transakcji, zachowuje rekordy i sprawdza klucze obce przed zatwierdzeniem. Duplikaty, błędne relacje lub nieznane kolumny przerywają migrację; rekordy nie są automatycznie usuwane ani scalane.
-- Obowiązuje 25 kluczy obcych. Udział placówki jest unikalny dla `(program_id, facility_id, school_year)`. Placówki ani programu z udziałami nie można usunąć (`RESTRICT`); usunięcie zgłoszenia jest osobną, jawną operacją.
+- Obowiązuje 28 kluczy obcych. Udział placówki jest unikalny dla `(program_id, facility_id, school_year)`. Placówki ani programu z udziałami nie można usunąć (`RESTRICT`); usunięcie zgłoszenia jest osobną, jawną operacją.
 - Liczniki muszą być całkowite i nieujemne; liczba działań i ilość dystrybucji muszą być dodatnie, miesiąc mieścić się w zakresie 1–12, a flagi przyjmują 0 lub 1. Kolumny opcjonalne nadal dopuszczają `NULL`.
 - Kopie nazw w powiązanych działaniach, udziałach, sprawach, skanach, kontaktach i rejestrach są synchronizowane wyzwalaczami z placówką lub programem. Zmiana nazwy jest też widoczna od razu w stanie interfejsu.
 - Serwer HTTP działa na `127.0.0.1`. API wymaga lokalnego adresu klienta, poprawnego nagłówka Host, zgodnego Origin i tokenu aplikacji; odrzuca żądania między witrynami. Transakcje są przypisane do karty, a operacje w jednej karcie wykonują się kolejno. Wersja desktopowa korzysta z puli z jednym połączeniem.
 - Błąd otwarcia lub migracji rozpoznanej bazy SQLite jest zgłaszany użytkownikowi; nie powoduje przejścia do innego magazynu danych.
 
-Ręczna aktualizacja: `node scripts/migrate-db.js [ścieżka-do-bazy]` (Node.js 24). Po aktualizacji uruchom aplikację ponownie. Kopie odzyskiwania są wyłączone z Git.
+Migrację uruchamia aplikacja (i serwer deweloperski) przy otwarciu bazy. Kopie odzyskiwania są wyłączone z Git.
 
 ---
 
@@ -158,13 +159,13 @@ Silnik SQLite działa z aktywnym `PRAGMA foreign_keys = ON;` w trybie `WAL` (`PR
 | `jrwa_case_id` | `TEXT` | `FK -> ozipz_jrwa_cases(id) ON DELETE SET NULL` | ID powiązanej teczki sprawy JRWA | `jrwaCaseId?: string` |
 | `izrz_sign` | `TEXT` | | Globalny numer IZRZ (np. `88/2026`) | `izrzSign?: string` |
 | `ezd_status` | `TEXT` | | Status w EZD (`brak_ezd`, `zarejestrowane`, `zakonczone`) | `ezdStatus?: string` |
-| `status` | `TEXT` | | Status realizacji (`wykonane`, `zaplanowane`, `odwolane`) | `status?: string` |
+| `status` | `TEXT` | | `wykonane` (także pusty), `odwolane` albo `odroczone` – dwa ostatnie są pomijane w sprawozdaniach | `status?: string` |
 | `source_info` | `TEXT` | | Źródło / inicjatywa zgłoszenia | `sourceInfo?: string` |
 | `schedule_event_id` | `TEXT` | `FK -> ozipz_schedule(id) ON DELETE SET NULL` | ID powiązanego zadania z harmonogramu | `scheduleEventId?: string` |
+| `linked_action_id` | `TEXT` | `FK -> ozipz_actions(id) ON DELETE SET NULL` | Działanie, z którym zapisano tę dystrybucję | `linkedActionId?: string` |
 | `material_id` | `TEXT` | `FK -> ozipz_materials(id) ON DELETE SET NULL` | ID materiału edukacyjnego | `materialId?: string` |
 | `number_of_actions` | `INTEGER` | `DEFAULT 1` | Krotność działania (dla sprawozdań MZ/GIS) | `numberOfActions: number` |
-| `participants_count` | `INTEGER` | `DEFAULT 0` | Bezpośrednia liczba uczestników | `participantsCount: number` |
-| `indirect_recipients_count` | `INTEGER` | `DEFAULT 0` | Szacunkowa liczba odbiorców pośrednich | `indirectRecipientsCount?: number` |
+| `participants_count` | `INTEGER` | `DEFAULT 0` | Liczba odbiorców (dla dystrybucji przy innym działaniu: 1) | `participantsCount: number` |
 | `materials_distributed_count`| `INTEGER` | `DEFAULT 0` | Liczba rozdanych materiałów | `materialsDistributedCount?: number` |
 | `lead_educator` | `TEXT` | `NOT NULL` | Pracownik OZiPZ prowadzący działanie | `leadEducator: string` |
 | `notes` | `TEXT` | | Sprawozdanie opisowe / adnotacje | `notes?: string` |
