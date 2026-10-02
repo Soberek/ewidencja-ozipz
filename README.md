@@ -51,17 +51,19 @@ Dodatkowo: globalna wyszukiwarka we wszystkich modułach (**Ctrl+K**), przypomni
 
 ### Lokalizacja bazy danych
 
-Folder bazy można zmienić w **Ustawieniach** (np. na dysk sieciowy lub zsynchronizowany folder). Aplikacja kopiuje aktualną bazę do nowego miejsca albo przejmuje istniejący tam plik `ozipz.db` po sprawdzeniu jego poprawności. Zmiana obowiązuje po ponownym uruchomieniu.
+Folder bazy można zmienić w **Ustawieniach** (np. na dysk sieciowy lub zsynchronizowany folder). Aplikacja kopiuje aktualną bazę wraz z folderem dokumentów `Zgłoszenia` do nowego miejsca albo przejmuje istniejący tam plik `ozipz.db` po sprawdzeniu jego poprawności. Zmiana obowiązuje po ponownym uruchomieniu.
 
 Na dysku sieciowym lub w folderze synchronizowanym z chmurą aplikacja przełącza SQLite z WAL na klasyczny dziennik i zakłada plik `ozipz.db.lock`: bazę może mieć otwartą tylko jeden komputer naraz. Drugi zobaczy, kto z niej korzysta, i może ją świadomie przejąć (np. po awarii tamtego komputera) — pierwsze okno zostaje wtedy zablokowane.
 
 ### Kopie zapasowe i przywracanie
 
 - **Kopie automatyczne** — codziennie (kilkadziesiąt sekund po starcie i co godzinę sprawdzane) w `Dokumenty\Ewidencja OZiPZ\Kopie automatyczne`, także gdy sama baza leży na dysku sieciowym. Zostaje 14 ostatnich dni i po jednej kopii z 12 ostatnich miesięcy; listę i przywracanie znajdziesz w **Ustawieniach**.
-- **Kopia** — wykonywana przez `VACUUM INTO`, więc jest spójna nawet podczas pracy; przed zapisaniem przechodzi `PRAGMA integrity_check`.
-- **Przywracanie** — wybrana kopia jest walidowana i przygotowywana, a podmiana następuje przy kolejnym starcie. Poprzednia baza zostaje zachowana jako `ozipz.before-restore`.
+- **Kopia** — migawka bazy wykonywana przez `VACUUM INTO` zawiera także zapisane skany i dokumenty z folderu `Zgłoszenia`. Przed zapisaniem przechodzi `PRAGMA integrity_check`; pojedynczy plik kopii można przenieść na inny komputer.
+- **Przywracanie** — wybrana kopia jest walidowana i przygotowywana, a podmiana następuje przy kolejnym starcie, po zajęciu blokady bazy. Poprzednia baza zostaje zachowana jako `ozipz.before-restore`, a poprzedni folder dokumentów jako `ozipz.before-restore-files`.
 - **Historia zmian i kosz** — każde dodanie, zmiana i usunięcie rekordu jest zapisywane (kto, kiedy, co) przez triggery SQLite. Usunięte rekordy można przywrócić razem z rekordami usuniętymi w tej samej operacji, a zmienione — cofnąć do poprzedniej wersji. Wpisy starsze niż 2 lata są usuwane.
 - **Migracje** — przed każdą migracją schematu tworzona jest kopia `ozipz.db.before-migration-<wersja>-<znacznik>.db` (przechowywana najnowsza dla każdej wersji).
+
+Starsze kopie zawierające wyłącznie bazę pozostawiają obecny folder `Zgłoszenia` bez zmian; do odtworzenia brakujących dokumentów potrzebna jest ich osobna kopia. Starsze wpisy skanów, które przechowywały tylko nazwę i ścieżkę, wymagają ponownego dodania pliku. Nowe skany PDF, PNG i JPG są zapisywane z pełną zawartością (do 60 MiB na plik), dostępne w podglądzie i do pobrania.
 
 ## 🛠 Uruchomienie w trybie deweloperskim
 
@@ -122,7 +124,7 @@ ewidencja-ozipz/
 │       ├── lib.rs               # Lokalizacja bazy, kopie, przywracanie, komendy Tauri
 │       └── publication_fetch.rs # Pobieranie źródeł publikacji
 ├── scripts/                     # Skrypty pomocnicze
-└── .github/workflows/           # CI: build instalatora i publikacja wydania
+└── .github/workflows/           # CI: testy i build instalatora
 ```
 
 ### Stos technologiczny
@@ -142,15 +144,17 @@ ewidencja-ozipz/
 
 ## 🚀 Wydawanie nowej wersji
 
-1. Podnieś wersję w `package.json` (Tauri odczytuje ją automatycznie).
-2. Utwórz i wypchnij tag:
+1. Na czystej, aktualnej gałęzi `main` uruchom:
 
    ```bash
-   git tag v1.0.1
-   git push origin v1.0.1
+   pnpm release patch
    ```
 
-3. GitHub Actions uruchomi testy, zbuduje podpisany instalator NSIS i opublikuje wydanie wraz z plikiem `latest.json` dla auto-aktualizacji.
+   Możesz też podać `minor`, `major` lub konkretną wersję, np. `pnpm release 1.3.0`.
+
+2. Skrypt uruchamia testy i build, aktualizuje wersję, tworzy commit i tag oraz wypycha je do GitHuba. GitHub Actions buduje podpisany instalator NSIS, a skrypt pobiera go i publikuje wydanie z `latest.json` dla auto-aktualizacji.
+
+Jeśli skrypt zatrzyma się po wypchnięciu tagu, dokończ publikację poleceniem `pnpm release --publish v1.3.0` (z właściwym numerem wersji).
 
 > Wymagane sekrety repozytorium: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
 

@@ -91,7 +91,7 @@ export async function restoreDatabaseBackup(file?: File): Promise<"reload" | "re
     const response = await fetch("/api/db/restore", {
       method: "POST",
       headers: { ...httpHeaders(), "Content-Type": "application/octet-stream" },
-      body: await file.arrayBuffer(),
+      body: file,
     });
     if (!response.ok) {
       const result = await response.json().catch(() => ({}));

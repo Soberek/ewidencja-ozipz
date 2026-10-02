@@ -42,6 +42,19 @@ function insert(raw: DatabaseSync, table: string, values: Record<string, string 
 }
 
 describe("versioned database migration", () => {
+  it("rebuilds missing required views and indexes at the current schema version", async () => {
+    const raw = new DatabaseSync(":memory:"); databases.push(raw);
+    const db = adapter(raw);
+    await migrateDatabase(db);
+    expect((await migrateDatabase(db)).migrated).toBe(false);
+
+    raw.exec("DROP VIEW v_ozipz_facility_overview; DROP INDEX ux_actions_schedule_event;");
+    expect((await migrateDatabase(db)).migrated).toBe(true);
+    expect(raw.prepare("SELECT * FROM v_ozipz_facility_overview").all()).toEqual([]);
+    expect(raw.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'ux_actions_schedule_event'").all())
+      .toEqual([{ name: "ux_actions_schedule_event" }]);
+  });
+
   it("preserves schedule notes and stores annotation text separately", async () => {
     const raw = legacy();
     raw.exec("PRAGMA user_version = 2");

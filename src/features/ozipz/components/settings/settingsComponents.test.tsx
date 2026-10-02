@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SettingsSection } from "./SettingsSection";
 import { createDatabaseBackup } from "../../../../db/client";
 import { toast } from "sonner";
@@ -27,5 +27,18 @@ describe("Settings Module Components", () => {
     expect(screen.getByText("Integralność Referencyjna")).toBeDefined();
     expect(screen.queryByText(/snapshot/i)).toBeNull();
     await waitFor(() => expect(screen.queryByText("Sprawdzanie aktywnego magazynu danych…")).toBeNull());
+  });
+
+  it("renders backup controls when localStorage is unavailable", async () => {
+    const read = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("Storage access denied", "SecurityError");
+    });
+    try {
+      await act(async () => { render(<SettingsSection />); });
+      expect(screen.getByText(/Ostatnia kopia: brak informacji/)).toBeDefined();
+      expect(screen.getByRole("button", { name: "Utwórz kopię zapasową" })).toBeDefined();
+    } finally {
+      read.mockRestore();
+    }
   });
 });

@@ -162,7 +162,13 @@ export async function migrateDatabase(db: ISqlDatabase): Promise<{ migrated: boo
   const generated = synchronizationSql();
   const requiredTriggers = [...generated, ...statements].filter((sql) => sql.startsWith("CREATE TRIGGER"))
     .map((sql) => sql.match(/IF NOT EXISTS (\w+)/)![1]);
-  if (version[0]?.user_version === SCHEMA_VERSION && matches && requiredTriggers.every((name) => existing.some((entry) => entry.type === "trigger" && entry.name === name))) {
+  const requiredAuxiliary = statements.filter((sql) => /^CREATE (?:UNIQUE )?(?:VIEW|INDEX)\b/.test(sql));
+  const auxiliaryMatches = requiredAuxiliary.every((ddl) => {
+    const name = ddl.match(/IF NOT EXISTS (\w+)/)![1];
+    const type = ddl.startsWith("CREATE VIEW") ? "view" : "index";
+    return existing.some((entry) => entry.type === type && entry.name === name && entry.sql && normalize(entry.sql) === normalize(ddl));
+  });
+  if (version[0]?.user_version === SCHEMA_VERSION && matches && auxiliaryMatches && requiredTriggers.every((name) => existing.some((entry) => entry.type === "trigger" && entry.name === name))) {
     return { migrated: false };
   }
   let backupPath: string | undefined;

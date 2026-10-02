@@ -1,4 +1,5 @@
 mod auto_backup;
+mod attachment_backups;
 mod db_lock;
 mod participation_files;
 mod publication_fetch;
@@ -6,6 +7,7 @@ mod storage_kind;
 use sqlx::{Connection, SqliteConnection, sqlite::SqliteConnectOptions};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicU64;
 use std::sync::OnceLock;
 use tauri::Manager;
 
@@ -15,6 +17,23 @@ static DATABASE_PATH: OnceLock<Result<PathBuf, String>> = OnceLock::new();
 const DATABASE_FILE: &str = "ozipz.db";
 const DATABASE_FOLDER: &str = "Ewidencja OZiPZ";
 const LOCATION_FILE: &str = "database-location.txt";
+static TEMPORARY_FILE_ID: AtomicU64 = AtomicU64::new(0);
+
+fn temporary_path(target: &std::path::Path, purpose: &str) -> PathBuf {
+    target.with_extension(format!("{}-{}-{}", purpose, std::process::id(), TEMPORARY_FILE_ID.fetch_add(1, Ordering::SeqCst)))
+}
+
+/// Windows cannot replace every existing destination with rename; retain it until the new file is installed.
+fn replace_file(source: &std::path::Path, target: &std::path::Path) -> Result<(), String> {
+    let previous = temporary_path(target, "replace-previous");
+    if target.exists() { std::fs::rename(target, &previous).map_err(|e| e.to_string())?; }
+    if let Err(error) = std::fs::rename(source, target) {
+        if previous.exists() { std::fs::rename(&previous, target).map_err(|e| e.to_string())?; }
+        return Err(error.to_string());
+    }
+    if previous.exists() { let _ = std::fs::remove_file(previous); }
+    Ok(())
+}
 
 fn validate_database(path: &std::path::Path) -> Result<(), String> {
     tauri::async_runtime::block_on(async {
@@ -31,7 +50,7 @@ fn validate_database(path: &std::path::Path) -> Result<(), String> {
     })
 }
 
-fn activate_staged_restore(database_path: &std::path::Path) -> Result<(), String> {
+fn activate_staged_restore(database_path: &std::path::Path, guard: Option<&db_lock::AcquisitionGuard>) -> Result<(), String> {
     let staged_path = database_path.with_extension("restore");
     if !staged_path.exists() {
         return Ok(());
@@ -48,6 +67,17 @@ fn activate_staged_restore(database_path: &std::path::Path) -> Result<(), String
         })?;
     }
 
+    if let Some(guard) = guard { guard.verify()?; }
+    attachment_backups::stage_files(&staged_path, database_path)?;
+    if let Some(guard) = guard { guard.verify()?; }
+    if db_lock::foreign_holder(&db_lock::lock_path(database_path), chrono::Utc::now().timestamp()).is_some() {
+        return Err("Inny komputer przejął bazę w trakcie przywracania. Połącz się ponownie.".into());
+    }
+    // Remove checkpointed sidecars before replacing the database, so a failure keeps the live file.
+    for suffix in ["-wal", "-shm"] {
+        let sidecar = std::path::PathBuf::from(format!("{}{}", database_path.display(), suffix));
+        if sidecar.exists() { std::fs::remove_file(sidecar).map_err(|e| e.to_string())?; }
+    }
     let previous_path = database_path.with_extension("before-restore");
     if previous_path.exists() {
         std::fs::remove_file(&previous_path).map_err(|error| error.to_string())?;
@@ -61,13 +91,12 @@ fn activate_staged_restore(database_path: &std::path::Path) -> Result<(), String
         }
         return Err(error.to_string());
     }
-    for suffix in ["-wal", "-shm"] {
-        let sidecar = std::path::PathBuf::from(format!("{}{}", database_path.display(), suffix));
-        if sidecar.exists() {
-            std::fs::remove_file(sidecar).map_err(|error| error.to_string())?;
-        }
-    }
     if let Err(error) = validate_database(database_path) {
+        std::fs::rename(database_path, &staged_path).map_err(|e| e.to_string())?;
+        if previous_path.exists() { std::fs::rename(&previous_path, database_path).map_err(|e| e.to_string())?; }
+        return Err(error);
+    }
+    if let Err(error) = attachment_backups::activate_files(database_path) {
         std::fs::rename(database_path, &staged_path).map_err(|e| e.to_string())?;
         if previous_path.exists() { std::fs::rename(&previous_path, database_path).map_err(|e| e.to_string())?; }
         return Err(error);
@@ -151,6 +180,7 @@ fn resolve_database_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
         if let Some(legacy) = legacy_database_path() {
             // The original file stays in place as a fallback copy.
             snapshot_database(&legacy, &path)?;
+            attachment_backups::copy_files(&legacy, &path)?;
         }
     }
     Ok(path)
@@ -169,6 +199,7 @@ fn get_database_path() -> Result<String, String> {
 #[tauri::command]
 fn set_database_location(app: tauri::AppHandle, directory: String) -> Result<(), String> {
     let current = database_path()?;
+    db_lock::ensure_owned(&current)?;
     let directory = PathBuf::from(directory);
     if !directory.is_dir() { return Err("Wybrany folder nie istnieje".into()); }
     let target = directory.join(DATABASE_FILE);
@@ -181,6 +212,7 @@ fn set_database_location(app: tauri::AppHandle, directory: String) -> Result<(),
         let temporary_path = target.with_extension("move-pending");
         snapshot_database(&current, &temporary_path)?;
         validate_database(&temporary_path)?;
+        attachment_backups::copy_files(&current, &target)?;
         std::fs::rename(&temporary_path, &target).map_err(|e| e.to_string())?;
     }
     let file = location_file(&app)?;
@@ -220,7 +252,10 @@ fn queue_database_restore(source_path: String) -> Result<(), String> {
     validate_database(&source)?;
 
     let database_path = database_path()?;
-    stage_database_restore(&source, &database_path)
+    db_lock::with_acquire_guard(&db_lock::lock_path(&database_path), |guard| {
+        db_lock::ensure_owned(&database_path)?;
+        stage_database_restore(&source, &database_path, Some(guard))
+    })
 }
 
 fn snapshot_database(source: &std::path::Path, destination: &std::path::Path) -> Result<(), String> {
@@ -236,14 +271,22 @@ fn snapshot_database(source: &std::path::Path, destination: &std::path::Path) ->
     })
 }
 
-fn stage_database_restore(source: &std::path::Path, database_path: &std::path::Path) -> Result<(), String> {
+fn stage_database_restore(source: &std::path::Path, database_path: &std::path::Path, guard: Option<&db_lock::AcquisitionGuard>) -> Result<(), String> {
     let staged_path = database_path.with_extension("restore");
     let temporary_path = database_path.with_extension("restore-pending");
     snapshot_database(source, &temporary_path)?;
     validate_database(&temporary_path)?;
-    if staged_path.exists() { std::fs::remove_file(&staged_path).map_err(|e| e.to_string())?; }
-    std::fs::rename(temporary_path, staged_path).map_err(|error| error.to_string())?;
+    if let Some(guard) = guard { guard.verify()?; }
+    replace_file(&temporary_path, &staged_path)?;
+    let staged_files = database_path.with_extension("restore-files");
+    if staged_files.exists() { std::fs::remove_dir_all(staged_files).map_err(|e| e.to_string())?; }
     Ok(())
+}
+
+fn backup_snapshot(source: &std::path::Path, destination: &std::path::Path) -> Result<(), String> {
+    snapshot_database(source, destination)?;
+    attachment_backups::embed_files(source, destination)?;
+    validate_database(destination)
 }
 
 #[tauri::command]
@@ -252,11 +295,11 @@ fn backup_database(destination_path: String) -> Result<(), String> {
     if std::fs::canonicalize(&destination_path).ok() == std::fs::canonicalize(&database_path).ok() {
         return Err("Wybierz inną lokalizację niż aktywna baza danych".into());
     }
-    let temporary_path = database_path.with_extension("backup-pending");
-    snapshot_database(&database_path, &temporary_path)?;
-    validate_database(&temporary_path)?;
-    std::fs::copy(&temporary_path, destination_path).map_err(|error| error.to_string())?;
-    std::fs::remove_file(temporary_path).map_err(|error| error.to_string())
+    let destination = PathBuf::from(destination_path);
+    let temporary = temporary_path(&destination, "backup-pending");
+    let result = backup_snapshot(&database_path, &temporary).and_then(|_| replace_file(&temporary, &destination));
+    if temporary.exists() { let _ = std::fs::remove_file(temporary); }
+    result
 }
 
 #[tauri::command]
@@ -269,6 +312,7 @@ fn acknowledge_database_restore() { RESTORED_DATABASE.store(false, Ordering::Seq
 #[tauri::command]
 async fn open_local_database(instances: tauri::State<'_, tauri_plugin_sql::DbInstances>) -> Result<(), String> {
     let path = get_database_path()?;
+    db_lock::ensure_owned(std::path::Path::new(&path))?;
     let key = format!("sqlite:{}", path);
     let mut pools = instances.0.write().await;
     if pools.contains_key(&key) { return Ok(()); }
@@ -291,7 +335,6 @@ pub fn run() {
             // An unavailable database folder is reported in the window instead of aborting startup.
             let resolved = resolve_database_path(app.handle());
             if let Ok(path) = &resolved {
-                activate_staged_restore(path).map_err(std::io::Error::other)?;
                 prune_migration_backups(path);
                 // Kopie trafiają na dysk lokalny (Dokumenty), także gdy baza leży na dysku sieciowym.
                 if development_database_path().is_none() {
@@ -323,6 +366,22 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn replacing_an_existing_file_preserves_it_on_failure() {
+        let directory = std::env::temp_dir().join(format!("ozipz-replace-file-test-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let target = directory.join("backup.db");
+        let pending = directory.join("pending.db");
+        std::fs::write(&target, b"previous backup").unwrap();
+        assert!(replace_file(&pending, &target).is_err());
+        assert_eq!(std::fs::read(&target).unwrap(), b"previous backup");
+        std::fs::write(&pending, b"new backup").unwrap();
+        replace_file(&pending, &target).unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), b"new backup");
+        assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 1);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
 
     #[test]
     fn desktop_transactions_and_migration_batches_keep_one_connection() {
@@ -368,10 +427,10 @@ mod tests {
         let original = std::fs::read(&database).unwrap();
         let staged = database.with_extension("restore");
         std::fs::write(&staged, b"SQLite format 3\0truncated").unwrap();
-        assert!(activate_staged_restore(&database).is_err());
+        assert!(activate_staged_restore(&database, None).is_err());
         assert_eq!(std::fs::read(&database).unwrap(), original);
         std::fs::copy(&database, &staged).unwrap();
-        activate_staged_restore(&database).unwrap();
+        activate_staged_restore(&database, None).unwrap();
         assert!(validate_database(&database).is_ok());
         assert!(database.with_extension("before-restore").exists());
         std::fs::remove_dir_all(directory).unwrap();
@@ -392,7 +451,7 @@ mod tests {
             connection
         });
 
-        stage_database_restore(&source, &database_path).unwrap();
+        stage_database_restore(&source, &database_path, None).unwrap();
         tauri::async_runtime::block_on(async {
             let mut staged = SqliteConnection::connect_with(&SqliteConnectOptions::new().filename(database_path.with_extension("restore"))).await.unwrap();
             let count: (i64,) = sqlx::query_as("SELECT count(*) FROM ozipz_actions").fetch_one(&mut staged).await.unwrap();
@@ -400,6 +459,81 @@ mod tests {
             staged.close().await.unwrap();
             connection.close().await.unwrap();
         });
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn backups_and_relocation_keep_document_contents() {
+        let directory = std::env::temp_dir().join(format!("ozipz-portable-backup-test-{}", std::process::id()));
+        let source_dir = directory.join("source");
+        let target_dir = directory.join("target");
+        let moved_dir = directory.join("moved");
+        for folder in [&source_dir, &target_dir, &moved_dir] { std::fs::create_dir_all(folder).unwrap(); }
+        let source = source_dir.join("ozipz.db");
+        let target = target_dir.join("ozipz.db");
+        tauri::async_runtime::block_on(async {
+            for path in [&source, &target] {
+                let mut connection = SqliteConnection::connect_with(&SqliteConnectOptions::new().filename(path).create_if_missing(true)).await.unwrap();
+                sqlx::query("CREATE TABLE ozipz_actions (id TEXT, title TEXT, date TEXT)").execute(&mut connection).await.unwrap();
+                sqlx::query("INSERT INTO ozipz_actions VALUES ('1', ?, '2026-10-01')").bind(if path == &source { "from backup" } else { "previous" }).execute(&mut connection).await.unwrap();
+                sqlx::query("CREATE TABLE ozipz_scan_files (path TEXT PRIMARY KEY, data_url TEXT NOT NULL)").execute(&mut connection).await.unwrap();
+                sqlx::query("INSERT INTO ozipz_scan_files VALUES ('scan:file-1', 'data:application/pdf;base64,JVBERg==')").execute(&mut connection).await.unwrap();
+                connection.close().await.unwrap();
+            }
+        });
+        let relative = "Zgłoszenia/2026-2027/zgłoszenie.pdf";
+        let document: Vec<u8> = (0..2 * 1024 * 1024 + 13).map(|index| (index % 251) as u8).collect();
+        std::fs::create_dir_all(source_dir.join("Zgłoszenia/2026-2027")).unwrap();
+        std::fs::write(source_dir.join(relative), &document).unwrap();
+        let moved = moved_dir.join("ozipz.db");
+        snapshot_database(&source, &moved).unwrap();
+        attachment_backups::copy_files(&source, &moved).unwrap();
+        assert_eq!(std::fs::read(moved_dir.join(relative)).unwrap(), document);
+        std::fs::create_dir_all(target_dir.join("Zgłoszenia")).unwrap();
+        std::fs::write(target_dir.join("Zgłoszenia/previous.pdf"), b"previous document").unwrap();
+        let backup = directory.join("portable.db");
+        backup_snapshot(&source, &backup).unwrap();
+        // Only the backup survives: recovery must not depend on the source folder.
+        std::fs::remove_dir_all(&source_dir).unwrap();
+        stage_database_restore(&backup, &target, None).unwrap();
+        activate_staged_restore(&target, None).unwrap();
+        assert_eq!(std::fs::read(target_dir.join(relative)).unwrap(), document);
+        assert_eq!(std::fs::read(target.with_extension("before-restore-files").join("previous.pdf")).unwrap(), b"previous document");
+        tauri::async_runtime::block_on(async {
+            let mut connection = SqliteConnection::connect_with(&SqliteConnectOptions::new().filename(&target)).await.unwrap();
+            let (title,): (String,) = sqlx::query_as("SELECT title FROM ozipz_actions").fetch_one(&mut connection).await.unwrap();
+            let (contents,): (String,) = sqlx::query_as("SELECT data_url FROM ozipz_scan_files").fetch_one(&mut connection).await.unwrap();
+            let (embedded,): (i64,) = sqlx::query_as("SELECT count(*) FROM sqlite_master WHERE name='ozipz_backup_files'").fetch_one(&mut connection).await.unwrap();
+            assert_eq!(title, "from backup");
+            assert_eq!(contents, "data:application/pdf;base64,JVBERg==");
+            assert_eq!(embedded, 0);
+            connection.close().await.unwrap();
+        });
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn restore_rejects_attachment_paths_outside_archive_without_replacing_database() {
+        let directory = std::env::temp_dir().join(format!("ozipz-unsafe-backup-test-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let database = directory.join("ozipz.db");
+        tauri::async_runtime::block_on(async {
+            let mut connection = SqliteConnection::connect_with(&SqliteConnectOptions::new().filename(&database).create_if_missing(true)).await.unwrap();
+            sqlx::query("CREATE TABLE ozipz_actions (id TEXT, title TEXT, date TEXT)").execute(&mut connection).await.unwrap();
+            connection.close().await.unwrap();
+        });
+        let original = std::fs::read(&database).unwrap();
+        let staged = database.with_extension("restore");
+        std::fs::copy(&database, &staged).unwrap();
+        tauri::async_runtime::block_on(async {
+            let mut connection = SqliteConnection::connect_with(&SqliteConnectOptions::new().filename(&staged)).await.unwrap();
+            sqlx::query("CREATE TABLE ozipz_backup_files (path TEXT PRIMARY KEY, contents BLOB NOT NULL)").execute(&mut connection).await.unwrap();
+            sqlx::query("INSERT INTO ozipz_backup_files VALUES ('Zgłoszenia/../../outside.txt', ?)").bind(b"unsafe".to_vec()).execute(&mut connection).await.unwrap();
+            connection.close().await.unwrap();
+        });
+        assert!(activate_staged_restore(&database, None).is_err());
+        assert_eq!(std::fs::read(&database).unwrap(), original);
+        assert!(!directory.parent().unwrap().join("outside.txt").exists());
         std::fs::remove_dir_all(directory).unwrap();
     }
 }

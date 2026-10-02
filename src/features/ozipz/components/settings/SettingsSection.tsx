@@ -17,6 +17,15 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { executeConfirmedAction } from "@/components/ui/confirmHelper";
 
+function lastBackupLabel(): string {
+  try {
+    const value = localStorage.getItem("ozipz_lastBackupAt");
+    return value ? new Date(value).toLocaleString("pl-PL") : "brak informacji";
+  } catch {
+    return "brak informacji";
+  }
+}
+
 export function SettingsSection() {
   const [databaseInfo, setDatabaseInfo] = useState<DatabaseInfo | null>(null);
   const [isBackupBusy, setIsBackupBusy] = useState(false);
@@ -149,7 +158,7 @@ export function SettingsSection() {
           <Download className="size-3.5" /> Kopia zapasowa i odzyskiwanie
         </h4>
         <p className="text-xs text-muted-foreground">
-          Zapisz pełną kopię aktualnych danych albo przywróć wcześniej utworzoną kopię. Ostatnia kopia: {localStorage.getItem("ozipz_lastBackupAt") ? new Date(localStorage.getItem("ozipz_lastBackupAt") as string).toLocaleString("pl-PL") : "brak informacji"}.
+          Zapisz pełną kopię aktualnych danych albo przywróć wcześniej utworzoną kopię. Ostatnia kopia: {lastBackupLabel()}.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" disabled={isBackupBusy} onClick={() => void handleBackup()} className="gap-1.5 text-xs">

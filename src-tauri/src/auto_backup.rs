@@ -66,16 +66,27 @@ pub fn ensure_today(database: &Path, directory: &Path) -> Result<Option<PathBuf>
     std::fs::create_dir_all(directory).map_err(|e| format!("Nie można utworzyć folderu kopii „{}”: {}", directory.display(), e))?;
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     let target = directory.join(format!("{PREFIX}{today}.db"));
-    if target.exists() { return Ok(None); }
-    let pending = directory.join(format!("{PREFIX}{today}.pending"));
-    super::snapshot_database(database, &pending)?;
-    if let Err(error) = super::validate_database(&pending) {
-        let _ = std::fs::remove_file(&pending);
-        return Err(error);
-    }
-    std::fs::rename(&pending, &target).map_err(|e| e.to_string())?;
-    prune(directory);
-    Ok(Some(target))
+    super::db_lock::with_acquire_guard(&target, |guard| {
+        if target.exists() { return Ok(None); }
+        let pending = directory.join(format!("{PREFIX}{today}.pending"));
+        if let Err(error) = super::backup_snapshot(database, &pending) {
+            let _ = std::fs::remove_file(&pending);
+            return Err(error);
+        }
+        guard.verify()?;
+        std::fs::rename(&pending, &target).map_err(|e| e.to_string())?;
+        prune(directory);
+        Ok(Some(target.clone()))
+    })
+}
+
+fn ensure_owned_today(database: &Path, directory: &Path) -> Result<Option<PathBuf>, String> {
+    super::db_lock::with_acquire_guard(&super::db_lock::lock_path(database), |guard| {
+        super::db_lock::ensure_owned(database)?;
+        let result = ensure_today(database, directory);
+        guard.verify()?;
+        result
+    })
 }
 
 pub fn start(database: PathBuf, directory: PathBuf) {
@@ -83,8 +94,11 @@ pub fn start(database: PathBuf, directory: PathBuf) {
     std::thread::spawn(move || {
         std::thread::sleep(STARTUP_DELAY);
         loop {
-            let result = ensure_today(&database, &directory);
-            *LAST_ERROR.lock().unwrap() = result.err();
+            // An unopened or taken-over shared database must not be bundled by this window.
+            if super::db_lock::ensure_owned(&database).is_ok() {
+                let result = ensure_owned_today(&database, &directory);
+                *LAST_ERROR.lock().unwrap() = result.err();
+            }
             std::thread::sleep(CHECK_INTERVAL);
         }
     });
@@ -118,7 +132,7 @@ pub fn get_auto_backups() -> AutoBackupStatus {
 pub fn create_auto_backup_now() -> Result<(), String> {
     let directory = DIRECTORY.lock().unwrap().clone().ok_or("Kopie automatyczne są wyłączone w tej wersji")?;
     let database = super::database_path()?;
-    let result = ensure_today(&database, &directory).map(|_| ());
+    let result = ensure_owned_today(&database, &directory).map(|_| ());
     *LAST_ERROR.lock().unwrap() = result.clone().err();
     result
 }
@@ -133,6 +147,51 @@ pub fn open_auto_backup_folder() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_unowned_database_cannot_create_an_automatic_backup() {
+        let directory = std::env::temp_dir().join(format!("ozipz-unowned-backup-test-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let database = directory.join("ozipz.db");
+        std::fs::write(&database, b"must not be opened").unwrap();
+        let backups = directory.join("backups");
+        assert!(ensure_owned_today(&database, &backups).is_err());
+        assert!(!backups.exists());
+        assert_eq!(std::fs::read(&database).unwrap(), b"must not be opened");
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn concurrent_requests_create_one_complete_daily_backup() {
+        let directory = std::env::temp_dir().join(format!("ozipz-concurrent-backup-test-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let database = directory.join("ozipz.db");
+        tauri::async_runtime::block_on(async {
+            use sqlx::Connection;
+            let mut connection = sqlx::SqliteConnection::connect_with(&sqlx::sqlite::SqliteConnectOptions::new().filename(&database).create_if_missing(true)).await.unwrap();
+            sqlx::query("CREATE TABLE ozipz_actions (id TEXT, title TEXT, date TEXT)").execute(&mut connection).await.unwrap();
+            connection.close().await.unwrap();
+        });
+        std::fs::create_dir_all(directory.join("Zgłoszenia")).unwrap();
+        std::fs::write(directory.join("Zgłoszenia/document.pdf"), b"document bytes").unwrap();
+        let backups = directory.join("backups");
+        let start = std::sync::Arc::new(std::sync::Barrier::new(4));
+        let workers: Vec<_> = (0..4).map(|_| {
+            let (database, backups, start) = (database.clone(), backups.clone(), start.clone());
+            std::thread::spawn(move || { start.wait(); ensure_today(&database, &backups).unwrap() })
+        }).collect();
+        let created: Vec<_> = workers.into_iter().filter_map(|worker| worker.join().unwrap()).collect();
+        assert_eq!(created.len(), 1);
+        super::super::validate_database(&created[0]).unwrap();
+        tauri::async_runtime::block_on(async {
+            use sqlx::Connection;
+            let mut connection = sqlx::SqliteConnection::connect_with(&sqlx::sqlite::SqliteConnectOptions::new().filename(&created[0])).await.unwrap();
+            let (contents,): (Vec<u8>,) = sqlx::query_as("SELECT contents FROM ozipz_backup_files WHERE path='Zgłoszenia/document.pdf'").fetch_one(&mut connection).await.unwrap();
+            assert_eq!(contents, b"document bytes");
+            connection.close().await.unwrap();
+        });
+        std::fs::remove_dir_all(directory).unwrap();
+    }
 
     #[test]
     fn keeps_two_weeks_and_one_backup_per_month() {

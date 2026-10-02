@@ -49,7 +49,7 @@ fn unique_target(directory: &Path, stem: &str, extension: Option<&str>) -> PathB
 }
 
 /// Ścieżka względna z bazy → ścieżka na dysku; odrzuca wszystko, co wychodzi poza folder zgłoszeń.
-fn resolve_relative(root: &Path, relative: &str) -> Result<PathBuf, String> {
+pub(crate) fn resolve_relative(root: &Path, relative: &str) -> Result<PathBuf, String> {
     let relative = Path::new(relative);
     let mut components = relative.components();
     let inside_folder = components.next() == Some(Component::Normal(FOLDER.as_ref()))
@@ -57,7 +57,17 @@ fn resolve_relative(root: &Path, relative: &str) -> Result<PathBuf, String> {
         && components.all(|component| matches!(component, Component::Normal(_)));
     if !inside_folder { return Err("Nieprawidłowa ścieżka pliku zgłoszenia".into()); }
     let parent = root.parent().ok_or("Nieznany folder bazy danych")?;
-    Ok(parent.join(relative))
+    let mut path = parent.to_path_buf();
+    for component in relative.components() {
+        path.push(component);
+        match std::fs::symlink_metadata(&path) {
+            Ok(metadata) if metadata.file_type().is_symlink() => return Err("Plik zgłoszenia prowadzi przez dowiązanie poza archiwum".into()),
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+    Ok(path)
 }
 
 fn existing_file(relative_path: &str) -> Result<PathBuf, String> {
@@ -71,7 +81,7 @@ fn existing_file(relative_path: &str) -> Result<PathBuf, String> {
 fn import_into(root: &Path, source: &Path, school_year: &str, base_name: &str) -> Result<String, String> {
     if !source.is_file() { return Err("Wybrany plik nie istnieje".into()); }
     let year = year_folder(school_year);
-    let directory = root.join(&year);
+    let directory = resolve_relative(root, &format!("{}/{}", FOLDER, year))?;
     std::fs::create_dir_all(&directory)
         .map_err(|e| format!("Nie można utworzyć folderu zgłoszeń „{}”: {}", directory.display(), e))?;
     let mut stem = sanitize_component(base_name);
@@ -80,6 +90,7 @@ fn import_into(root: &Path, source: &Path, school_year: &str, base_name: &str) -
     }
     if stem.is_empty() { stem = "zgłoszenie".into(); }
     let target = unique_target(&directory, &stem, extension_of(source).as_deref());
+    resolve_relative(root, &format!("{}/{}/{}", FOLDER, year, target.file_name().ok_or("Nieprawidłowa nazwa pliku")?.to_string_lossy()))?;
     std::fs::copy(source, &target).map_err(|e| format!("Nie udało się skopiować pliku zgłoszenia: {}", e))?;
     let file_name = target.file_name().ok_or("Nieprawidłowa nazwa pliku")?.to_string_lossy();
     Ok(format!("{}/{}/{}", FOLDER, year, file_name))
@@ -88,6 +99,7 @@ fn import_into(root: &Path, source: &Path, school_year: &str, base_name: &str) -
 /// Kopiuje wskazany plik do folderu zgłoszeń danego roku szkolnego i zwraca ścieżkę do zapisania w bazie.
 #[tauri::command]
 pub fn import_participation_file(source_path: String, school_year: String, base_name: String) -> Result<String, String> {
+    super::db_lock::ensure_owned(&super::database_path()?)?;
     import_into(&files_root()?, Path::new(&source_path), &school_year, &base_name)
 }
 
@@ -123,6 +135,7 @@ pub fn open_participation_files_folder() -> Result<(), String> {
 /// Usuwa kopię zaimportowaną przed nieudanym zapisem zgłoszenia, aby nie zostawiać osieroconych plików.
 #[tauri::command]
 pub fn discard_participation_file(relative_path: String) -> Result<(), String> {
+    super::db_lock::ensure_owned(&super::database_path()?)?;
     let path = resolve_relative(&files_root()?, &relative_path)?;
     if path.is_file() { std::fs::remove_file(path).map_err(|e| e.to_string())?; }
     Ok(())
@@ -149,6 +162,22 @@ mod tests {
         assert!(resolve_relative(&root, "/etc/passwd").is_err());
         assert!(resolve_relative(&root, "Inny/plik.pdf").is_err());
         assert!(resolve_relative(&root, FOLDER).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rejects_symlinks_for_read_delete_and_import_paths() {
+        let directory = std::env::temp_dir().join(format!("ozipz-symlink-test-{}", std::process::id()));
+        let root = directory.join(FOLDER);
+        let outside = directory.join("outside");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::create_dir_all(&outside).unwrap();
+        std::fs::write(outside.join("file.pdf"), b"outside file").unwrap();
+        std::os::unix::fs::symlink(&outside, root.join("linked")).unwrap();
+        assert!(resolve_relative(&root, "Zgłoszenia/linked/file.pdf").is_err());
+        assert!(import_into(&root, &outside.join("file.pdf"), "linked", "copy").is_err());
+        assert_eq!(std::fs::read(outside.join("file.pdf")).unwrap(), b"outside file");
+        std::fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]

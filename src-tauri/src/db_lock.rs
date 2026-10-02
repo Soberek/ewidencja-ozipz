@@ -2,7 +2,7 @@
 //! (np. na dysku sieciowym, gdzie blokady SQLite nie działają niezawodnie).
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
+use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 
 /// Blokada bez odświeżenia przez ten czas uznawana jest za porzuconą (np. po awarii komputera).
@@ -66,15 +66,31 @@ fn write_holder(path: &Path, holder: &LockHolder) -> Result<(), String> {
     std::fs::rename(&temporary, path).map_err(|e| format!("Nie można zapisać blokady bazy: {}", e))
 }
 
+pub(crate) struct AcquisitionGuard {
+    path: PathBuf,
+    token: Vec<u8>,
+    refresh_failed: Arc<AtomicBool>,
+}
+
+impl AcquisitionGuard {
+    pub(crate) fn verify(&self) -> Result<(), String> {
+        if self.refresh_failed.load(Ordering::SeqCst)
+            || std::fs::read(&self.path).ok().as_ref() != Some(&self.token) {
+            return Err("Utracono blokadę operacji na bazie. Spróbuj ponownie po sprawdzeniu połączenia z folderem bazy.".into());
+        }
+        Ok(())
+    }
+}
+
 /// Sekcja krytyczna zakładania blokady. Plik `*.lock-acquire` tworzony jest atomowo (CREATE_NEW działa
 /// niepodzielnie także na udziałach sieciowych), więc dwa komputery uruchomione w tej samej chwili
 /// nie uznają jednocześnie bazy za wolną.
-fn with_acquire_guard<T>(path: &Path, task: impl FnOnce() -> Result<T, String>) -> Result<T, String> {
+pub(crate) fn with_acquire_guard<T>(path: &Path, task: impl FnOnce(&AcquisitionGuard) -> Result<T, String>) -> Result<T, String> {
     let guard = path.with_extension("lock-acquire");
     let deadline = std::time::Instant::now() + ACQUIRE_GUARD_WAIT;
-    loop {
+    let mut guard_file = loop {
         match std::fs::OpenOptions::new().write(true).create_new(true).open(&guard) {
-            Ok(_) => break,
+            Ok(file) => break file,
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
                 let abandoned = std::fs::metadata(&guard)
                     .and_then(|meta| meta.modified())
@@ -92,9 +108,39 @@ fn with_acquire_guard<T>(path: &Path, task: impl FnOnce() -> Result<T, String>) 
             }
             Err(error) => return Err(format!("Nie można zająć bazy: {}", error)),
         }
+    };
+    let token = format!("{}:{}:{:?}", current_host(), std::process::id(), std::time::SystemTime::now()).into_bytes();
+    if let Err(error) = std::io::Write::write_all(&mut guard_file, &token) {
+        drop(guard_file);
+        let _ = std::fs::remove_file(&guard);
+        return Err(error.to_string());
     }
-    let result = task();
-    let _ = std::fs::remove_file(&guard);
+    let refresh_failed = Arc::new(AtomicBool::new(false));
+    let worker_failed = refresh_failed.clone();
+    let acquisition = AcquisitionGuard { path: guard.clone(), token, refresh_failed };
+    // Restoring a database with attachments can take longer than the stale-guard timeout.
+    let finished = Arc::new((Mutex::new(false), Condvar::new()));
+    let worker_finished = finished.clone();
+    let refresher = std::thread::spawn(move || {
+        let (done, wake) = &*worker_finished;
+        let mut done = done.lock().unwrap();
+        while !*done {
+            let (next, _) = wake.wait_timeout(done, ACQUIRE_GUARD_STALE / 3).unwrap();
+            done = next;
+            if !*done && guard_file.set_modified(std::time::SystemTime::now()).is_err() {
+                worker_failed.store(true, Ordering::SeqCst);
+                break;
+            }
+        }
+    });
+    let result = task(&acquisition);
+    *finished.0.lock().unwrap() = true;
+    finished.1.notify_one();
+    let _ = refresher.join();
+    // A lost lease may already belong to another process; never remove its guard.
+    if std::fs::read(&guard).ok().as_ref() == Some(&acquisition.token) {
+        let _ = std::fs::remove_file(&guard);
+    }
     result
 }
 
@@ -124,22 +170,43 @@ fn start_heartbeat() {
 }
 
 /// Zajmuje bazę. Zwraca dane innej osoby, jeśli baza jest w użyciu, a `force` nie jest ustawione.
-#[tauri::command]
-pub fn acquire_database_lock(force: bool) -> Result<Option<LockHolder>, String> {
-    let path = lock_path(&super::database_path()?);
-    let conflict = with_acquire_guard(&path, || {
+fn claim_database(database: &Path, force: bool) -> Result<Option<LockHolder>, String> {
+    let path = lock_path(database);
+    with_acquire_guard(&path, |guard| {
         if !force {
             if let Some(holder) = foreign_holder(&path, now()) { return Ok(Some(holder)); }
         }
+        guard.verify()?;
         write_holder(&path, &own_holder(now()))?;
+        // The acquisition guard prevents another computer from taking over during activation.
+        if let Err(error) = super::activate_staged_restore(database, Some(guard)) {
+            if read_holder(&path).is_some_and(|holder| is_ours(&holder)) { let _ = std::fs::remove_file(&path); }
+            return Err(error);
+        }
         Ok(None)
-    })?;
+    })
+}
+
+#[tauri::command]
+pub fn acquire_database_lock(force: bool) -> Result<Option<LockHolder>, String> {
+    let database = super::database_path()?;
+    let path = lock_path(&database);
+    let conflict = claim_database(&database, force)?;
     if conflict.is_some() { return Ok(conflict); }
     *LOCK_PATH.lock().unwrap() = Some(path);
     *TAKEN_OVER_BY.lock().unwrap() = None;
     OWNED.store(true, Ordering::SeqCst);
     start_heartbeat();
     Ok(None)
+}
+
+pub fn ensure_owned(database: &Path) -> Result<(), String> {
+    let path = lock_path(database);
+    if OWNED.load(Ordering::SeqCst)
+        && LOCK_PATH.lock().unwrap().as_ref() == Some(&path)
+        && read_holder(&path).is_some_and(|holder| is_this_computer(&holder)) {
+        Ok(())
+    } else { Err("Baza nie jest zajęta przez to okno. Połącz się ponownie z bazą danych.".into()) }
 }
 
 /// Kto przejął bazę w trakcie pracy (okno powinno wtedy przestać zapisywać).
@@ -164,6 +231,56 @@ pub fn release() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lost_acquisition_guard_is_rejected_and_preserves_the_new_holder() {
+        let directory = std::env::temp_dir().join(format!("ozipz-lost-guard-test-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let path = lock_path(&directory.join("ozipz.db"));
+        with_acquire_guard(&path, |guard| {
+            guard.verify().unwrap();
+            guard.refresh_failed.store(true, Ordering::SeqCst);
+            assert!(guard.verify().is_err());
+            guard.refresh_failed.store(false, Ordering::SeqCst);
+            std::fs::write(&guard.path, b"new holder").unwrap();
+            assert!(guard.verify().is_err());
+            Ok(())
+        }).unwrap();
+        assert_eq!(std::fs::read(path.with_extension("lock-acquire")).unwrap(), b"new holder");
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn foreign_lock_prevents_staged_restore_activation() {
+        let directory = std::env::temp_dir().join(format!("ozipz-locked-restore-test-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let database = directory.join("ozipz.db");
+        std::fs::write(&database, b"live database is untouched").unwrap();
+        std::fs::write(database.with_extension("restore"), b"pending restore is untouched").unwrap();
+        let holder = LockHolder { user: "anna".into(), host: format!("{}-other", current_host()), pid: 1, since: now(), heartbeat: now() };
+        write_holder(&lock_path(&database), &holder).unwrap();
+        assert_eq!(claim_database(&database, false).unwrap(), Some(holder));
+        assert_eq!(std::fs::read(&database).unwrap(), b"live database is untouched");
+        assert!(database.with_extension("restore").exists());
+        assert!(!database.with_extension("before-restore").exists());
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn refreshes_acquisition_guard_during_long_restore_work() {
+        let directory = std::env::temp_dir().join(format!("ozipz-live-guard-test-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let path = lock_path(&directory.join("ozipz.db"));
+        with_acquire_guard(&path, |_guard| {
+            let guard = path.with_extension("lock-acquire");
+            let old = std::time::SystemTime::now() - ACQUIRE_GUARD_STALE - Duration::from_secs(1);
+            std::fs::File::options().write(true).open(&guard).unwrap().set_modified(old).unwrap();
+            std::thread::sleep(ACQUIRE_GUARD_STALE / 3 + Duration::from_millis(200));
+            assert!(std::fs::metadata(&guard).unwrap().modified().unwrap().elapsed().unwrap() < ACQUIRE_GUARD_STALE);
+            Ok(())
+        }).unwrap();
+        std::fs::remove_dir_all(directory).unwrap();
+    }
 
     #[test]
     fn detects_fresh_foreign_lock_and_ignores_stale_or_own_lock() {
@@ -194,7 +311,7 @@ mod tests {
         let workers: Vec<_> = (0..8).map(|_| {
             let (path, inside, overlaps) = (path.clone(), inside.clone(), overlaps.clone());
             std::thread::spawn(move || {
-                with_acquire_guard(&path, || {
+                with_acquire_guard(&path, |_guard| {
                     if inside.fetch_add(1, Ordering::SeqCst) > 0 { overlaps.fetch_add(1, Ordering::SeqCst); }
                     std::thread::sleep(Duration::from_millis(20));
                     inside.fetch_sub(1, Ordering::SeqCst);
@@ -211,7 +328,7 @@ mod tests {
         std::fs::write(&guard, b"").unwrap();
         let old = std::time::SystemTime::now() - ACQUIRE_GUARD_STALE - Duration::from_secs(1);
         std::fs::File::options().write(true).open(&guard).unwrap().set_modified(old).unwrap();
-        assert_eq!(with_acquire_guard(&path, || Ok(7)), Ok(7));
+        assert_eq!(with_acquire_guard(&path, |_guard| Ok(7)), Ok(7));
         std::fs::remove_dir_all(directory).unwrap();
     }
 }
