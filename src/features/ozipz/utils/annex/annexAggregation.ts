@@ -128,7 +128,7 @@ export function isOutsideMiernik(isProg: boolean, actionName: string): boolean {
 }
 
 /**
- * Agreguje działania w strukturę załączników sprawozdawczych identyczną z Better-OZ.
+ * Agreguje działania w strukturę załączników sprawozdawczych załączników nr 1 i 2.
  */
 export function buildReportAnnexRows(
   actions: readonly OzipzAction[],

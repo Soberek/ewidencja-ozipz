@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useOzipzDbStore } from "./useOzipzDbStore";
 
-describe("Adversarial Verification Part 1: Action, Program & Reciprocal Cascades", () => {
+describe("Kaskady usuwania: działania i programy", () => {
   beforeEach(async () => {
     localStorage.clear();
     await useOzipzDbStore.getState().loadAll();

@@ -22,7 +22,7 @@ import type {
   OzipzFacility,
 } from "./types/ozipz.types";
 
-// Adversarial extreme string fixtures
+// Skrajnie długie i nietypowe teksty
 const EXTREME_STRINGS = {
   unbrokenLong: "A".repeat(600),
   polishAccents: "Zażółć gęślą jaźń! ĄĆĘŁŃÓŚŹŻ — Szkoła Podstawowa z Oddziałami Integracyjnymi nr 999",
@@ -31,7 +31,7 @@ const EXTREME_STRINGS = {
   specialPunctuation: "Raport // 2026-03 :: [Pilne] -> (OZiPZ #123) / § 4 ust. 2 & 100%*",
 };
 
-describe("Core Modules UX/UI Harmonization — Adversarial Challenger Test Suite", () => {
+describe("Moduły główne: zawijanie tekstu, filtry i izolacja zdarzeń", () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
 
@@ -49,7 +49,7 @@ describe("Core Modules UX/UI Harmonization — Adversarial Challenger Test Suite
   // =========================================================================
   // Challenge 1: Multi-line Text Wrapping & Tooltip Presence with Extreme Data
   // =========================================================================
-  describe("Challenge 1: Multi-line Text Wrapping & Tooltips with Adversarial Inputs", () => {
+  describe("Multi-line Text Wrapping & Tooltips", () => {
     it("MaterialsCatalogTab: wraps unbroken 600-char titles and retains raw string in title tooltip", () => {
       const materials: OzipzMaterial[] = [
         {
@@ -287,7 +287,7 @@ describe("Core Modules UX/UI Harmonization — Adversarial Challenger Test Suite
   // =========================================================================
   // Challenge 2: Quick-Filter Chips Styling & Toggle-to-"all" Behavior
   // =========================================================================
-  describe("Challenge 2: Quick-Filter Chips Styling & Click Toggle Behaviors", () => {
+  describe("Quick-Filter Chips Styling & Click Toggle Behaviors", () => {
     it("MaterialsCatalogTab: active chip has primary styling, inactive has muted, clicking active toggles to 'all'", () => {
       const materialTypes: OzipzDictionaryItem[] = [
         { id: "t1", dictType: "material_types", code: "Broszura", label: "Broszura", isSystem: false, createdAt: "", updatedAt: "" },
@@ -329,7 +329,7 @@ describe("Core Modules UX/UI Harmonization — Adversarial Challenger Test Suite
       expect(broszuraBtn.className).toContain("border-primary");
       expect(allBtn.className).toContain("bg-muted/40");
 
-      // Adversarial Toggle: clicking the already-active "Broszura" chip MUST toggle back to "all"!
+      // clicking the already-active "Broszura" chip MUST toggle back to "all"!
       fireEvent.click(broszuraBtn);
       expect(allBtn.className).toContain("bg-primary");
       expect(broszuraBtn.className).toContain("bg-muted/40");
@@ -365,7 +365,7 @@ describe("Core Modules UX/UI Harmonization — Adversarial Challenger Test Suite
       expect(barlinekBtn.className).toContain("bg-primary text-primary-foreground border-primary");
       expect(allBtn.className).toContain("bg-muted/40");
 
-      // Adversarial Toggle: click active Barlinek again -> resets to "all"
+      // click active Barlinek again -> resets to "all"
       fireEvent.click(barlinekBtn);
       expect(allBtn.className).toContain("bg-primary text-primary-foreground border-primary");
       expect(barlinekBtn.className).toContain("bg-muted/40");
@@ -435,7 +435,7 @@ describe("Core Modules UX/UI Harmonization — Adversarial Challenger Test Suite
       );
       expect(currentYearBtn.className).toContain("bg-primary text-primary-foreground border-primary");
 
-      // Adversarial Toggle: clicking active "Bieżący rok" toggles back to "" ("all")
+      // clicking active "Bieżący rok" toggles back to "" ("all")
       fireEvent.click(currentYearBtn);
       expect(onYearChange).toHaveBeenCalledWith("");
 
@@ -467,7 +467,7 @@ describe("Core Modules UX/UI Harmonization — Adversarial Challenger Test Suite
       );
       expect(jrwa9661Btn.className).toContain("bg-primary text-primary-foreground border-primary");
 
-      // Adversarial Toggle: clicking active "966.1" toggles back to "" ("all")
+      // clicking active "966.1" toggles back to "" ("all")
       fireEvent.click(jrwa9661Btn);
       expect(onJrwaChange).toHaveBeenCalledWith("");
     });
@@ -554,7 +554,7 @@ describe("Core Modules UX/UI Harmonization — Adversarial Challenger Test Suite
   // =========================================================================
   // Challenge 3: React DOM Property Warning Cleanliness Gate (R5)
   // =========================================================================
-  describe("Challenge 3: Test Cleanliness & Zero-Warning Gate (R5)", () => {
+  describe("Test Cleanliness (bez ostrzeżeń)", () => {
     it("Autocomplete: renders with searchPlaceholder without logging any React DOM warnings", () => {
       render(
         <Autocomplete
@@ -684,7 +684,7 @@ describe("Core Modules UX/UI Harmonization — Adversarial Challenger Test Suite
   // =========================================================================
   // Challenge 4: Safe Event Bubbling & Action Isolation (R2)
   // =========================================================================
-  describe("Challenge 4: Event Bubbling & Action Isolation", () => {
+  describe("Event Bubbling & Action Isolation", () => {
     it("MaterialsCatalogTab: action buttons (Edit, Delete, Add Distribution) stop event propagation", () => {
       const onActionEdit = vi.fn();
       const onActionDelete = vi.fn();

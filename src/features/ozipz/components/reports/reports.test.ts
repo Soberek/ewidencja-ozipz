@@ -16,7 +16,7 @@ import type { OzipzAction, OzipzProgram } from "../../types/ozipz.types";
 import { useOzipzDbStore } from "../../store/useOzipzDbStore";
 import { MonthlyTargetsComplianceTab } from "./components/MonthlyTargetsComplianceTab";
 
-describe("Ewidencja OZiPZ - Moduł Mierników i Sprawozdań edu-report", () => {
+describe("Ewidencja OZiPZ - Mierniki i sprawozdania", () => {
   it("computes authentic synthetic metrics DZ, ODB, MAT on migrated actions", () => {
     const metrics = calculateSyntheticActionMetrics(MIGRATED_FIREBASE_DATA.actions);
     expect(metrics.dzCount).toBeGreaterThanOrEqual(200);
@@ -24,7 +24,7 @@ describe("Ewidencja OZiPZ - Moduł Mierników i Sprawozdań edu-report", () => {
     expect(metrics.uniqueFacilitiesCount).toBeGreaterThan(0);
   });
 
-  it("breaks down audience groups and forms cleanly for edu-report", () => {
+  it("breaks down audience groups and forms", () => {
     const audienceGroups = calculateAudienceGroupBreakdown(MIGRATED_FIREBASE_DATA.actions);
     expect(audienceGroups.length).toBeGreaterThan(0);
     const topGroup = audienceGroups[0];
@@ -117,7 +117,7 @@ describe("Ewidencja OZiPZ - Moduł Mierników i Sprawozdań edu-report", () => {
     expect(aug?.materialsCount).toBe(10);
   });
 
-  it("prawidłowo oblicza Miernik 20.5.1.W i 20.5.1.2.W zgodnie ze wzorcem z better-oz", () => {
+  it("prawidłowo oblicza Miernik 20.5.1.W i 20.5.1.2.W zgodnie z wcześniejszym arkuszem miernika", () => {
     const preview = {
       split: {
         programowe: { actions: 120, people: 2400 },

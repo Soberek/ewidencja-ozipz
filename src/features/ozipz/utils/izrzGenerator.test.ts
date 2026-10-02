@@ -41,7 +41,7 @@ function createMinimalDocxTemplate(content = "{znak_sprawy} - {numer_izrz} - {na
   return zip.generate({ type: "arraybuffer" });
 }
 
-describe("IZRZ Generator (edu-report-v3 standard)", () => {
+describe("IZRZ Generator", () => {
   const dummyAction: OzipzAction = {
     id: "act-1",
     title: "Prelekcja o zdrowym żywieniu",
@@ -81,7 +81,7 @@ describe("IZRZ Generator (edu-report-v3 standard)", () => {
     updatedAt: "2026-01-01T00:00:00Z",
   };
 
-  it("prepares complete IzrzGeneratorData matching edu-report standard", () => {
+  it("prepares complete IzrzGeneratorData", () => {
     const data = prepareIzrzData(dummyAction, dummyFacility);
 
     expect(data.caseNumber).toBe("OZiPZ.966.1.12.2026");
@@ -164,7 +164,7 @@ describe("IZRZ Generator (edu-report-v3 standard)", () => {
     expect(data.address).toBe("Szkoła Podstawowa w Ratajach, Rataje 25, 74-300 Myślibórz");
   });
 
-  it("builds authentic IZRZ docx file name matching edu-report scheme", () => {
+  it("builds the IZRZ docx file name", () => {
     const data = prepareIzrzData(dummyAction, dummyFacility);
     const fileName = buildIzrzDocxFileName(data);
 

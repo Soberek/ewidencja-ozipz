@@ -1,6 +1,5 @@
 /**
  * Moduł kanonicznych typów kształcenia i narzędzi placówek oświatowych
- * Port i adaptacja z better-oz.
  */
 
 export const TYPY_KSZTALCENIA: readonly string[] = [

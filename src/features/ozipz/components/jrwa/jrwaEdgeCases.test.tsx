@@ -12,7 +12,7 @@ import { EMPTY_FACILITY_FILTERS } from "../../utils/facilityUtils";
 import { ReportFilterBar } from "../reports/components/ReportFilterBar";
 import type { OzipzJrwaCase, OzipzAction } from "../../types/ozipz.types";
 
-describe("Challenger 2 — Adversarial Stress Test Suite", () => {
+describe("Sprawy JRWA: przypadki brzegowe", () => {
   const originalClipboard = { ...navigator.clipboard };
 
   beforeEach(() => {
@@ -48,7 +48,7 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
   /* =====================================================================
    * Challenge 1: JRWA Case Sign Copying across Table, Dialog, Generator
    * ===================================================================== */
-  describe("Challenge 1: JRWA Case Sign Copying", () => {
+  describe("JRWA Case Sign Copying", () => {
     it("Table: clicking copy button copies sign and does NOT trigger onOpenDetails (event stopPropagation)", () => {
       const handleCopySign = vi.fn();
       const handleOpenDetails = vi.fn();
@@ -173,7 +173,7 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
       expect(screen.getByText("Kopiuj")).toBeDefined();
     });
 
-    it("Adversarial: Generator Card with empty sign disables copy button and does NOT invoke writeText", () => {
+    it("Generator Card with empty sign disables copy button and does NOT invoke writeText", () => {
       render(
         <JrwaSignGeneratorCard
           section="PSSE.OZiPZ"
@@ -197,7 +197,7 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
       expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
     });
 
-    it("Adversarial: clipboard undefined (insecure context) does NOT crash dialog or generator", () => {
+    it("clipboard undefined (insecure context) does NOT crash dialog or generator", () => {
       // simulate missing navigator.clipboard
       (navigator as any).clipboard = undefined;
 
@@ -242,7 +242,7 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
   /* =====================================================================
    * Challenge 2: EZD Status Calculations and "! Wymaga EZD" Alert Badges
    * ===================================================================== */
-  describe("Challenge 2: EZD Status Calculations and Alerts", () => {
+  describe("EZD Status Calculations and Alerts", () => {
     it("JrwaSection: correctly computes pendingEzd when action has ezdStatus: 'do_ezd'", () => {
       const actWithDoEzd: OzipzAction = {
         id: "act-do-ezd",
@@ -422,7 +422,7 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
   /* =====================================================================
    * Challenge 3: Filter Bar Token Consistency & Active State Palette
    * ===================================================================== */
-  describe("Challenge 3: Filter Bar Token Consistency", () => {
+  describe("Filter Bar Token Consistency", () => {
     it("ActionsFilterBar: '! Wymaga EZD' uses destructive tokens; standard active filters use primary tokens", () => {
       const { rerender } = render(
         <ActionsFilterBar
@@ -650,9 +650,9 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
   });
 
   /* =====================================================================
-   * Challenge 4: Deep Adversarial Edge Cases & Structural Resiliency
+   * Challenge 4: Przypadki brzegowe i odporność struktury
    * ===================================================================== */
-  describe("Challenge 4: Edge Cases & Structural Resiliency", () => {
+  describe("Edge Cases & Structural Resiliency", () => {
     it("JrwaCasesTable: gracefully handles undefined or missing ezdStatusMap", () => {
       render(
         <JrwaCasesTable

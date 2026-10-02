@@ -1,6 +1,5 @@
 /**
  * Moduł narzędziowy IZRZ (Informacja z Realizacji Zadania)
- * Port i adaptacja z better-oz z pełnym typowaniem TypeScript Strict Mode.
  */
 
 export type IzrzSeria = 'standard' | 'wizytacja' | 'narada';

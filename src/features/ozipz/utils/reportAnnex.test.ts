@@ -19,7 +19,7 @@ import { assertAnnexFitsTemplate,
 } from "./reportAnnex";
 import * as downloadHelper from "./downloadHelper";
 
-describe("reportAnnex (Better-OZ Parity & Excel Export Engine)", () => {
+describe("Załączniki sprawozdawcze i eksport do Excela", () => {
   describe("Header & Period formatting", () => {
     it("formats month labels consistently", () => {
       expect(formatReportMonthLabel([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])).toBe("Cały rok");
@@ -263,7 +263,7 @@ describe("reportAnnex (Better-OZ Parity & Excel Export Engine)", () => {
       ]);
     });
 
-    it("aggregates actions into edu-report programs data structure", () => {
+    it("aggregates actions into the programs data structure", () => {
       const sampleActions: Partial<OzipzAction>[] = [
         {
           id: "act-1",
@@ -334,7 +334,7 @@ describe("reportAnnex (Better-OZ Parity & Excel Export Engine)", () => {
       expect(downloaded).toBeDefined();
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(await downloaded!.arrayBuffer());
-      expect(workbook.getWorksheet("Mierniki Miesięczne")?.getRow(5).values).toEqual([, "Maj", 1, 2, 10, 0]);
+      expect(workbook.getWorksheet("Mierniki Miesięczne")?.getRow(5).values).toEqual([undefined, "Maj", 1, 2, 10, 0]);
       expect(workbook.getWorksheet("Statystyki Programowe")?.getRow(4).getCell(7).value).toBe(10);
       expect(workbook.getWorksheet("Wykaz Programów i Działań")?.getColumn(4).values).toContain(10);
       downloadBlobSpy.mockRestore();

@@ -131,7 +131,7 @@ const mockFacility: OzipzFacility = {
   updatedAt: "2026-01-01",
 };
 
-describe("Adversarial Event Isolation & Storage Resilience across Core Modules", () => {
+describe("Moduły główne: izolacja zdarzeń i odporność na uszkodzoną pamięć przeglądarki", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.restoreAllMocks();
@@ -952,9 +952,9 @@ describe("Adversarial Event Isolation & Storage Resilience across Core Modules",
   });
 
   // =========================================================================
-  // 6. DEEP ADVERSARIAL STRESS: CONTAINERS, INNER PATHS, MULTI-ROW & CORRUPTED STORAGE
+  // 6. TRUDNE PRZYPADKI: CONTAINERS, INNER PATHS, MULTI-ROW & CORRUPTED STORAGE
   // =========================================================================
-  describe("Deep Adversarial Stress: Containers, SVG Inner Paths, Multi-Row & Corrupted Storage", () => {
+  describe("Trudne przypadki: Containers, SVG Inner Paths, Multi-Row & Corrupted Storage", () => {
     it("Stress: clicking actions wrapper <div> between buttons NEVER fires row onRowClick across all 4 modules", () => {
       // 1. MaterialsCatalogTab
       const handleEditMat = vi.fn();

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import type { OzipzProgram, OzipzSchoolParticipation } from "../../types/ozipz.types";
 import { getProgramJrwaSymbol } from "../../utils/programJrwaUtils";
 
-describe("Ewidencja OZiPZ - Lokalizacje i Szkoły w Programach (edu-report)", () => {
+describe("Ewidencja OZiPZ - Lokalizacje i szkoły w programach", () => {
   const dummyPrograms: OzipzProgram[] = [
     {
       id: "prog-1",

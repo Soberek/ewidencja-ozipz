@@ -45,7 +45,7 @@ function createInMemorySqlite(): ISqlDatabase {
   return db;
 }
 
-describe("Empirical Challenger: SQLite Multi-Table Transactions", () => {
+describe("SQLite: transakcje obejmujące wiele tabel", () => {
   let db: ISqlDatabase;
   let service: SqliteDatabaseService;
 

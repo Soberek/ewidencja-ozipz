@@ -1,6 +1,5 @@
 /**
  * Moduł dobierania i renderowania szablonów opisu merytorycznego zadań
- * Port i adaptacja z better-oz.
  */
 
 export interface OpisTemplateItem {

@@ -1,6 +1,5 @@
 /**
  * Moduł analizy i raportowania akcji „Bezpieczne Wakacje / Ferie” (JRWA 966.14)
- * Port i adaptacja z better-oz.
  */
 
 import type { OzipzAction } from "../types/ozipz.types";

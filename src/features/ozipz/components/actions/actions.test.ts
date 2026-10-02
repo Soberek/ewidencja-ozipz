@@ -3,7 +3,7 @@ import { MIGRATED_FIREBASE_DATA } from "../../../../test/fixtures/migratedData";
 import { ActionSchema } from "../../schemas/ozipz.schemas";
 import { isMonthClosed } from "../../utils/dateUtils";
 
-describe("Ewidencja OZiPZ - Rejestr Działań i System Znaków JRWA edu-report", () => {
+describe("Ewidencja OZiPZ - Rejestr działań i znaki JRWA", () => {
   it("contains migrated authentic actions for 2026", () => {
     expect(MIGRATED_FIREBASE_DATA.actions).toBeDefined();
     expect(MIGRATED_FIREBASE_DATA.actions.length).toBeGreaterThanOrEqual(68);

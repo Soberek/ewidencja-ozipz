@@ -1,7 +1,4 @@
-/**
- * Barrel re-export for OZiPZ Calculation Utilities
- * Decomposed into modular domain calculators under ./calculators/ strictly adhering to GEMINI.md Rule 2A.
- */
+/** Obliczenia OZiPZ – zbiorczy eksport modułów z ./calculators/. */
 
 export * from "./calculators/actionMetrics";
 export * from "./calculators/jrwaClassification";

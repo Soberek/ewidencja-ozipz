@@ -95,7 +95,7 @@ const mockParticipations: OzipzSchoolParticipation[] = [
   },
 ];
 
-describe("Challenger 2 — Adversarial Stress Test Suite: Programs & Participations Module", () => {
+describe("Programy i udziały: przypadki brzegowe", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.restoreAllMocks();
@@ -104,7 +104,7 @@ describe("Challenger 2 — Adversarial Stress Test Suite: Programs & Participati
   // =========================================================================
   // CHALLENGE 1: EMPTY STATES & FILTER BOUNDARIES
   // =========================================================================
-  describe("Challenge 1: Empty States & Filter Boundary Behaviors", () => {
+  describe("Empty States & Filter Boundary Behaviors", () => {
     it("SchoolParticipationsTab: displays 'Brak zgłoszeń placówek' and calls onOpenAdd when list is empty without filters", () => {
       const handleOpenAdd = vi.fn();
       render(
@@ -210,7 +210,7 @@ describe("Challenger 2 — Adversarial Stress Test Suite: Programs & Participati
   // =========================================================================
   // CHALLENGE 2: FILTER BAR TOKEN CONSISTENCY & COMBINATIONS
   // =========================================================================
-  describe("Challenge 2: Filter Bar Token & Styling Consistency vs Design System", () => {
+  describe("Filter Bar Token & Styling Consistency vs Design System", () => {
     it("Quick-filter chips match design system primary token (bg-primary text-primary-foreground) and muted inactive (bg-muted/40 text-muted-foreground)", () => {
       render(
         <SchoolParticipationsFilterBar
@@ -323,7 +323,7 @@ describe("Challenger 2 — Adversarial Stress Test Suite: Programs & Participati
   // =========================================================================
   // CHALLENGE 3: EVENT BUBBLING & STOP PROPAGATION ISOLATION
   // =========================================================================
-  describe("Challenge 3: Event Bubbling & stopPropagation Isolation on Tables", () => {
+  describe("Event Bubbling & stopPropagation Isolation on Tables", () => {
     it("SchoolParticipationsTab: Edit button triggers onEdit exactly ONCE and stops propagation from row onEdit", () => {
       const handleEdit = vi.fn();
       const handleDelete = vi.fn();
@@ -436,7 +436,7 @@ describe("Challenger 2 — Adversarial Stress Test Suite: Programs & Participati
   // =========================================================================
   // CHALLENGE 4: KEYBOARD ACCESSIBILITY & ARIA ATTRIBUTES
   // =========================================================================
-  describe("Challenge 4: Keyboard Accessibility & ARIA Attributes", () => {
+  describe("Keyboard Accessibility & ARIA Attributes", () => {
     it("Action buttons have descriptive aria-labels and are keyboard-focusable", () => {
       render(
         <SchoolParticipationsTab
@@ -539,7 +539,7 @@ describe("Challenger 2 — Adversarial Stress Test Suite: Programs & Participati
   // =========================================================================
   // CHALLENGE 5: MULTI-LINE TEXT WRAPPING & ERGONOMICS
   // =========================================================================
-  describe("Challenge 5: Multi-line Wrapping & Layout Ergonomics", () => {
+  describe("Multi-line Wrapping & Layout Ergonomics", () => {
     it("Facility names wrap cleanly on 2 lines with title tooltip and top-aligned icon", () => {
       render(
         <SchoolParticipationsTab
@@ -588,7 +588,7 @@ describe("Challenger 2 — Adversarial Stress Test Suite: Programs & Participati
   // =========================================================================
   // CHALLENGE 6: STORAGE RESILIENCE & FAILURE MODES
   // =========================================================================
-  describe("Challenge 6: LocalStorage Resilience & Failure Modes", () => {
+  describe("LocalStorage Resilience & Failure Modes", () => {
     it("ProgramsSection persists KPI collapse state across re-renders in localStorage", () => {
       render(<ProgramsSection programs={mockPrograms} participations={mockParticipations} />);
 

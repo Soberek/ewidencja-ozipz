@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { useOzipzDbStore } from "./useOzipzDbStore";
 import { seedFallbackStorage } from "../../../test/fixtures/seedFallbackStorage";
 
-describe("Adversarial Verification Part 2: Edge Cases & Material Cascades", () => {
+describe("Kaskady usuwania: materiały i przypadki brzegowe", () => {
   beforeEach(async () => {
     localStorage.clear(); seedFallbackStorage();
     await useOzipzDbStore.getState().loadAll();

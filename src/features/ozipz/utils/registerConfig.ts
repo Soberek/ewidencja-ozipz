@@ -34,7 +34,7 @@ export const INFORMACJE_OFFICIAL_FOOTER =
 
 /**
  * Domyślna heurystyka kwalifikacji na podstawie nazwy formy działania lub tytułu
- * (zgodna ze standardem better-oz / edu-report).
+ * (formy informacyjne, publikacje i wizytacje według nazwy).
  */
 export function defaultRegistersForActivity(name: string): OfficialRegisterKey[] {
   if (!name) return [];

@@ -1,7 +1,6 @@
 import { JRWA_DEFAULT_SECTION } from "../constants";
 /**
  * Moduł narzędziowy rejestru pism i korespondencji
- * Port i adaptacja z better-oz.
  */
 
 export interface PismaOrgDefaults {

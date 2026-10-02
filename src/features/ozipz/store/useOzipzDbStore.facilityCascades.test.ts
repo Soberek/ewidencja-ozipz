@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useOzipzDbStore } from "./useOzipzDbStore";
 import { OzipzDbService } from "../../../db/client";
 
-describe("Adversarial Verification Part 3: Facility Cascades & Atomicity", () => {
+describe("Kaskady usuwania: placówki i atomowość", () => {
   beforeEach(async () => {
     localStorage.clear();
     await useOzipzDbStore.getState().loadAll();

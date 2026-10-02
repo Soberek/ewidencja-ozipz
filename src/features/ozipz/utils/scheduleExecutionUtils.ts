@@ -1,7 +1,6 @@
 /**
  * Logika dopasowywania i automatycznego rozliczania zadań harmonogramu / planu pracy
  * na podstawie zrealizowanych działań z Rejestru Działań Edukacyjnych.
- * Zgodne ze standardem better-oz (WYKONANO_SQL / harmonogram.mjs).
  */
 import type { OzipzAction, OzipzScheduleEvent, OzipzProgram } from "../types/ozipz.types";
 import { getYearNumber, safeParseDate } from "./dateUtils";
@@ -159,7 +158,7 @@ export function getMatchingActionsForScheduleEvent(
       return false;
     }
 
-    // 3. Reguła publikacji medialnych (zgodnie z better-oz: dowolny kanał medialny zalicza zadanie medialne)
+    // 3. Reguła publikacji medialnych (dowolny kanał medialny zalicza zadanie medialne)
     if (isMediaScheduleEvent(event) && isMediaAction(a)) {
       return true;
     }

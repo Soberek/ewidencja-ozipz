@@ -15,7 +15,7 @@ import {
 import { buildRegisterPrintHtml } from "../../utils/registerPrint";
 import type { OzipzAction, OzipzFacility } from "../../types/ozipz.types";
 
-describe("Ewidencja OZiPZ - Oficjalne Rejestry Urzędowe (Wzór better-oz & edu-report)", () => {
+describe("Ewidencja OZiPZ - Oficjalne rejestry urzędowe", () => {
   const sampleAction: OzipzAction = {
     id: "act-101",
     date: "2026-05-15",

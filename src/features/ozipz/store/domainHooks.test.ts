@@ -130,7 +130,7 @@ describe("Empirical Challenge: Domain Hooks (domainHooks.ts)", () => {
       act(() => {
         const dummy: OzipzAction = {
           id: "act-challenge-1",
-          title: "Challenger Action",
+          title: "Działanie testowe",
           actionType: "warsztat",
           date: "2026-09-05",
           facilityName: "SP 1",

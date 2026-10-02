@@ -9,7 +9,7 @@ export function matchActionDistributions(existing: OzipzDistribution[], desired:
     ? old.materialId === next.materialId
     : !next.materialId && old.materialTitle === (next.title || "Materiał oświatowy");
 
-  // ponytail: two small scans preserve duplicate rows; use keyed queues if forms reach hundreds of materials.
+  // Dwa krótkie przebiegi zachowują zdublowane wiersze; przy setkach materiałów warto przejść na kolejki według klucza.
   // Exact quantities first keep the right record when the same material appears twice.
   for (const exactQuantity of [true, false]) {
     desired.forEach((item, index) => {

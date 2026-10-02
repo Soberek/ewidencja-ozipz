@@ -1,6 +1,5 @@
 /**
  * Moduł adnotacji urzędowych i metryk harmonogramu
- * Port i adaptacja z better-oz.
  */
 
 export const POLISH_MONTHS_GENITIVE: readonly string[] = [

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { MIGRATED_FIREBASE_DATA } from "../../../../test/fixtures/migratedData";
 
-describe("Ewidencja OZiPZ - Harmonogram & Plan Pracy edu-report", () => {
+describe("Ewidencja OZiPZ - Harmonogram i plan pracy", () => {
   it("contains 94 authentic schedule items migrated from Firebase", () => {
     expect(MIGRATED_FIREBASE_DATA.schedules).toBeDefined();
     expect(MIGRATED_FIREBASE_DATA.schedules.length).toBe(94);

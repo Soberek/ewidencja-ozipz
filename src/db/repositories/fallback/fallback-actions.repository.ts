@@ -16,7 +16,7 @@ function assertMonthOpen(date: string): void {
   if (isMonthClosed(date, getStoredClosedMonths())) throw new Error("Miesiąc jest zamknięty.");
 }
 
-// ponytail: localStorage has no multi-key transaction; use SQLite for crash-safe writes.
+// localStorage nie ma transakcji na wiele kluczy; zapisy odporne na awarię zapewnia SQLite.
 async function withActionStorageRollback<T>(operation: () => Promise<T>): Promise<T> {
   return withStorageRollback(["actions", "jrwaCases", "schedules", "distributions", "publications"], operation);
 }

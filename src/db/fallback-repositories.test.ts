@@ -14,7 +14,7 @@ import { loadFromStorage, saveToStorage } from "./repositories/fallback/storage"
 import type { IJrwaRepository, IScheduleRepository, IMaterialsRepository } from "./repositories/interfaces";
 import { seedFallbackStorage } from "../test/fixtures/seedFallbackStorage";
 
-describe("Adversarial Fallback Storage & Repositories Suite", () => {
+describe("Tryb przeglądarkowy: magazyn i repozytoria", () => {
   beforeEach(() => {
     localStorage.clear(); seedFallbackStorage();
   });

@@ -16,7 +16,7 @@ import { JrwaSection } from "./components/jrwa/JrwaSection";
 import type { OzipzFacility, OzipzJrwaCase } from "./types/ozipz.types";
 import type { EnrichedScheduleEvent } from "./utils/scheduleExecutionUtils";
 
-describe("Challenger 1 — Empirical Verification & Stress Test", () => {
+describe("Odporność interfejsu: zdarzenia, długie teksty, pamięć przeglądarki", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });

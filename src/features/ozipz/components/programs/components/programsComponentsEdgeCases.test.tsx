@@ -76,7 +76,7 @@ const mockParticipations: OzipzSchoolParticipation[] = [
   },
 ];
 
-describe("Challenger 1 — Empirical Stress Tests & Adversarial Verification", () => {
+describe("Komponenty programów: przypadki brzegowe", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.restoreAllMocks();
@@ -85,7 +85,7 @@ describe("Challenger 1 — Empirical Stress Tests & Adversarial Verification", (
   // =========================================================================
   // 1. EVENT BUBBLING & ACTION ISOLATION
   // =========================================================================
-  describe("Adversarial: Event Bubbling & Action Isolation", () => {
+  describe("Event Bubbling & Action Isolation", () => {
     it("safely isolates nested SVG icon clicks inside Edit and Delete buttons from row click", () => {
       const handleEdit = vi.fn();
       const handleDelete = vi.fn();
@@ -188,9 +188,9 @@ describe("Challenger 1 — Empirical Stress Tests & Adversarial Verification", (
   });
 
   // =========================================================================
-  // 2. LOCALSTORAGE RESILIENCE & ADVERSARIAL STORAGE STATES
+  // 2. PAMIĘĆ PRZEGLĄDARKI: BŁĘDY I USZKODZONE WARTOŚCI
   // =========================================================================
-  describe("Adversarial: LocalStorage Resilience", () => {
+  describe("LocalStorage Resilience", () => {
     it(
       "handles corrupt, unexpected, or non-boolean strings in localStorage without crashing",
       () => {
@@ -253,7 +253,7 @@ describe("Challenger 1 — Empirical Stress Tests & Adversarial Verification", (
   // =========================================================================
   // 3. MULTI-LINE TEXT WRAPPING & EXTREME STRINGS
   // =========================================================================
-  describe("Adversarial: Multi-line Text Wrapping & Extreme Strings", () => {
+  describe("Multi-line Text Wrapping & Extreme Strings", () => {
     it("safely handles 500-character unbroken string in facility name without layout explosion", () => {
       const extremeParticipation: OzipzSchoolParticipation = {
         ...mockParticipations[0],
@@ -348,7 +348,7 @@ describe("Challenger 1 — Empirical Stress Tests & Adversarial Verification", (
   // =========================================================================
   // 4. COMPLEX FILTER COMBINATIONS & EDGE CASES
   // =========================================================================
-  describe("Adversarial: Complex Filter Combinations", () => {
+  describe("Complex Filter Combinations", () => {
     it("handles regex metacharacters in search query without throwing", () => {
       render(
         <SchoolParticipationsTab

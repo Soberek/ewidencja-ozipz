@@ -77,7 +77,7 @@ describe("Actions Module - Comprehensive Integration Tests", () => {
     });
   });
 
-  describe("3. Audience Breakdown & Age Ranges Parsing (P0 Bug Fix)", () => {
+  describe("3. Audience Breakdown & Age Ranges Parsing", () => {
     it("parseAudienceEntryTokens preserves age ranges like '13-14 lat' without splitting them", () => {
       const tokens = parseAudienceEntryTokens("Młodzież 13-14 lat - 25 os., Dorośli - 10 os.", 35);
       expect(tokens).toEqual([
@@ -137,7 +137,7 @@ describe("Actions Module - Comprehensive Integration Tests", () => {
     });
   });
 
-  describe("4. SQLite Mapper Graceful Fallback (P1 Robustness)", () => {
+  describe("4. SQLite Mapper Graceful Fallback", () => {
     it("toAction safely parses valid SQLite rows into Action domains", () => {
       const rawRow: ActionSqlRow = {
         id: "act-1",
