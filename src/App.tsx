@@ -115,7 +115,7 @@ function ViewErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 function AppContent() {
   const [databaseInfo, setDatabaseInfo] = useState<DatabaseInfo | null>(null);
   const [fallbackAccepted, setFallbackAccepted] = useState(false);
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const isActionEditor = pathname === "/dzialania/nowe" || /^\/dzialania\/[^/]+\/edytuj$/.test(pathname);
   const loadError = useOzipzDbStore((state) => state.loadError);
   const isInitialized = useOzipzDbStore((state) => state.isInitialized);
@@ -160,6 +160,7 @@ function AppContent() {
         )}
 
         <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-3 md:p-4 bg-muted/20">
+          <ErrorBoundary FallbackComponent={ViewErrorFallback} resetKeys={[pathname]}>
           {pathname === "/ustawienia" ? (
             <Suspense fallback={<ViewLoadingFallback />}><SettingsSection /></Suspense>
           ) : lockConflict ? (
@@ -183,7 +184,6 @@ function AppContent() {
           ) : !isInitialized || !databaseInfo ? (
             <ViewLoadingFallback />
           ) : (
-            <ErrorBoundary FallbackComponent={ViewErrorFallback}>
             <Suspense fallback={<ViewLoadingFallback />}>
               <Routes>
                 {/* Pulpit */}
@@ -214,7 +214,7 @@ function AppContent() {
                 <Route path="/rejestry" element={<RegistersSection />} />
                 <Route path="/materialy" element={<MaterialsSection defaultTab="catalog" />} />
                 <Route path="/rozdzielniki" element={<MaterialsSection defaultTab="distributions" />} />
-                <Route path="/skany" element={<ScansSection />} />
+                <Route path="/skany" element={<ScansSection initialScanId={new URLSearchParams(search).get("skan") || undefined} />} />
                 <Route path="/publikacje" element={<PublicationsSection />} />
 
                 {/* Baza Placówek, Szkoły, Kontakty i Programy */}
@@ -235,8 +235,8 @@ function AppContent() {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>
-            </ErrorBoundary>
           )}
+          </ErrorBoundary>
         </main>
       </div>
 

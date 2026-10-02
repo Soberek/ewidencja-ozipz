@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { OzipzScan } from "../../types/ozipz.types";
 import { useScans } from "../../store/useOzipzDbStore";
@@ -7,12 +7,14 @@ import { toast } from "sonner";
 import { ScansStatsHeader } from "./components/ScansStatsHeader";
 import { ScansFilterBar } from "./components/ScansFilterBar";
 import { ScansTableView } from "./components/ScansTableView";
+import { ScanFilePreviewDialog } from "./components/ScanFilePreviewDialog";
 import { useKpiVisibility } from "@/hooks/usePersistentToggle";
 
 export interface ScansSectionProps {
   scans?: OzipzScan[];
   onOpenAdd?: () => void;
   onDelete?: (id: string) => void;
+  initialScanId?: string;
 }
 
 export function ScansSection(props: ScansSectionProps) {
@@ -33,6 +35,13 @@ export function ScansSection(props: ScansSectionProps) {
     });
 
   const [search, setSearch] = useState("");
+  const [previewScan, setPreviewScan] = useState<OzipzScan | null>(null);
+  const openedScanId = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!props.initialScanId || openedScanId.current === props.initialScanId) return;
+    const scan = scans.find((item) => item.id === props.initialScanId);
+    if (scan) { openedScanId.current = scan.id; setPreviewScan(scan); }
+  }, [props.initialScanId, scans]);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const { isKpiVisible: showKpiSummary, toggleKpi: toggleKpiSummary } = useKpiVisibility("scans");
 
@@ -90,9 +99,11 @@ export function ScansSection(props: ScansSectionProps) {
           scans={filteredScans}
           totalCount={scans.length}
           onDelete={onDelete}
+          onOpen={setPreviewScan}
           onClearFilters={handleClearFilters}
           isFiltered={!!search.trim() || typeFilter !== "all"}
         />
+        <ScanFilePreviewDialog scan={previewScan} onClose={() => setPreviewScan(null)} />
       </div>
     </TooltipProvider>
   );

@@ -1,6 +1,6 @@
 import type {
   OzipzAction, OzipzContact, OzipzDistribution, OzipzFacility, OzipzJrwaCase, OzipzLetter, OzipzMaterial,
-  OzipzProgram, OzipzPublication, OzipzRegisterItem, OzipzScheduleEvent, OzipzSchoolParticipation, OzipzStaff,
+  OzipzProgram, OzipzPublication, OzipzRegisterItem, OzipzScan, OzipzScheduleEvent, OzipzSchoolParticipation, OzipzStaff, OzipzTemplate,
 } from "../types/ozipz.types";
 import type { ModalPayloadMap, ModalType } from "../store/useModalStore";
 import { normalizeNavQuery } from "../components/layout/navigation";
@@ -20,6 +20,8 @@ export interface SearchSources {
   publications: OzipzPublication[];
   registers: OzipzRegisterItem[];
   staff: OzipzStaff[];
+  scans: OzipzScan[];
+  templates: OzipzTemplate[];
 }
 
 /** Rekord w wynikach wyszukiwania wraz z tym, jak go otworzyć. */
@@ -109,6 +111,16 @@ export function buildSearchIndex(sources: SearchSources): SearchEntry[] {
       subtitle: joinParts(item.role, item.phone),
       path: "/osoby", modal: { type: "staff", payload: { item } },
     }, item.email)),
+    ...sources.scans.map((item) => entry({
+      key: `scan-${item.id}`, group: "Skany", title: item.title,
+      subtitle: joinParts(item.documentType, formatDatePl(item.scanDate), item.fileName),
+      path: `/skany?skan=${encodeURIComponent(item.id)}`,
+    }, item.facilityName, item.programName, item.notes)),
+    ...sources.templates.map((item) => entry({
+      key: `template-${item.id}`, group: "Szablony zadań", title: item.title,
+      subtitle: joinParts(item.actionType, item.topic),
+      path: "/opisy-zadan", modal: { type: "template", payload: { item } },
+    }, item.descriptionTemplate, item.defaultAudience, item.suggestedMaterials)),
   ];
 }
 

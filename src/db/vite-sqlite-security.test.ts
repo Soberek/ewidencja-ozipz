@@ -18,8 +18,8 @@ function setup() {
   let middleware!: (req: IncomingMessage, res: ServerResponse, next: () => void) => void;
   (plugin.configureServer as (server: ViteDevServer) => void)({ middlewares: { use: (handler: typeof middleware) => { middleware = handler; } } } as unknown as ViteDevServer);
   let token = "";
-  const request = (url: string, options: { query?: string; session?: string; address?: string; headers?: Record<string, string>; method?: string } = {}) => new Promise<{ status: number; data: unknown }>((resolve) => {
-    const body = options.query ? Buffer.from(JSON.stringify({ query: options.query })) : null;
+  const request = (url: string, options: { query?: string; body?: Buffer; session?: string; address?: string; headers?: Record<string, string>; method?: string } = {}) => new Promise<{ status: number; data: unknown }>((resolve) => {
+    const body = options.body ?? (options.query ? Buffer.from(JSON.stringify({ query: options.query })) : null);
     const req = Readable.from(body ? [body] : []) as unknown as IncomingMessage;
     req.url = url; req.method = options.method || (body ? "POST" : "GET");
     req.headers = { host: "127.0.0.1:1421", "x-ozipz-client": "local-app", "x-ozipz-token": token, "x-ozipz-session": options.session || "one", ...options.headers };
@@ -54,6 +54,38 @@ it("prevents a second tab from reading, committing or joining an active transact
   expect((await request("/api/db/query", { query: "SELECT * FROM probe", session: "two" })).data).toEqual([]);
   expect((await request("/api/db/execute", { query: "BEGIN IMMEDIATE", session: "two" })).status).toBe(200);
   expect((await request("/api/db/execute", { query: "COMMIT", session: "two" })).status).toBe(200);
+});
+
+it("keeps the query endpoint read-only so transaction tracking cannot be bypassed", async () => {
+  const { request, authorize } = setup(); await authorize();
+  for (const query of [
+    "BEGIN IMMEDIATE",
+    "INSERT INTO ozipz_meta(key, value) VALUES ('unsafe', '1') RETURNING key",
+    "PRAGMA user_version = 999",
+    "WITH value AS (SELECT 1) INSERT INTO ozipz_meta(key, value) VALUES ('unsafe', '1') RETURNING key",
+  ]) {
+    expect((await request("/api/db/query", { query })).status).toBe(400);
+  }
+  expect((await request("/api/db/query", { query: "SELECT value FROM ozipz_meta WHERE key = 'unsafe'" })).data).toEqual([]);
+  expect((await request("/api/db/query", { query: "PRAGMA user_version" })).status).toBe(200);
+});
+
+it("stores scans larger than the generic SQL request limit and validates upload credentials", async () => {
+  const { request, authorize } = setup();
+  const dataUrl = `data:application/pdf;base64,${Buffer.alloc(2 * 1024 * 1024, 1).toString("base64")}`;
+  const body = Buffer.from(JSON.stringify({ path: "scan:file-large", dataUrl }));
+  expect(body.length).toBeGreaterThan(2 * 1024 * 1024);
+  expect((await request("/api/db/scan-file", { body })).status).toBe(403);
+  await authorize();
+  expect((await request("/api/db/scan-file", { body, headers: { "x-ozipz-token": "" } })).status).toBe(403);
+  expect((await request("/api/db/scan-file", { body: Buffer.from(JSON.stringify({ path: "scan:../escape", dataUrl })) })).status).toBe(400);
+  expect((await request("/api/db/scan-file", { body: Buffer.from(JSON.stringify({ path: "scan:bad-mime", dataUrl: "data:text/html;base64,PHNjcmlwdD4=" })) })).status).toBe(400);
+  expect((await request("/api/db/scan-file", { body })).status).toBe(200);
+  expect((await request("/api/db/query", { query: "SELECT length(data_url) AS bytes FROM ozipz_scan_files WHERE path = 'scan:file-large'" })).data)
+    .toEqual([{ bytes: dataUrl.length }]);
+  expect((await request("/api/db/execute", { query: "BEGIN IMMEDIATE" })).status).toBe(200);
+  expect((await request("/api/db/scan-file", { body: Buffer.from(JSON.stringify({ path: "scan:other", dataUrl })), session: "two" })).status).toBe(409);
+  expect((await request("/api/db/execute", { query: "ROLLBACK" })).status).toBe(200);
 });
 
 it("rejects late writes after transaction timeout until the caller acknowledges rollback", async () => {

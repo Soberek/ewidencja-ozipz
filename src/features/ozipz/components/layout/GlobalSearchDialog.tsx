@@ -26,7 +26,7 @@ export function GlobalSearchDialog() {
     actions: state.actions, letters: state.letters, jrwaCases: state.jrwaCases, scheduleEvents: state.scheduleEvents,
     facilities: state.facilities, contacts: state.contacts, programs: state.programs, participations: state.participations,
     materials: state.materials, distributions: state.distributions, publications: state.publications,
-    registers: state.registers, staff: state.staff,
+    registers: state.registers, staff: state.staff, scans: state.scans, templates: state.templates,
   })));
   // Indeks budujemy tylko przy otwartym oknie.
   const index = useMemo(() => isOpen ? buildSearchIndex(sources) : [], [isOpen, sources]);

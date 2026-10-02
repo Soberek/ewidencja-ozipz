@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, Trash2 } from "lucide-react";
+import { FileText, FileSearch, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { executeConfirmedAction } from "@/components/ui/confirmHelper";
@@ -9,10 +9,12 @@ import { RowActionButton } from "@/components/ui/row-action-button";
 
 interface CreateScanColumnsOptions {
   onDelete: (id: string) => void;
+  onOpen?: (scan: OzipzScan) => void;
 }
 
 export function createScanColumns({
   onDelete,
+  onOpen,
 }: CreateScanColumnsOptions): ColumnDef<OzipzScan>[] {
   return [
     {
@@ -70,8 +72,8 @@ export function createScanColumns({
       id: "actions",
       header: "Akcje",
       align: "right",
-      width: "80px",
-      cell: ({ row }) => <ScanActionCell row={row} onDelete={onDelete} />,
+      width: "100px",
+      cell: ({ row }) => <ScanActionCell row={row} onDelete={onDelete} onOpen={onOpen} />,
     },
   ];
 }
@@ -79,15 +81,18 @@ export function createScanColumns({
 function ScanActionCell({
   row,
   onDelete,
+  onOpen,
 }: {
   row: OzipzScan;
   onDelete: (id: string) => void;
+  onOpen?: (scan: OzipzScan) => void;
 }) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   return (
     <>
       <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
+        {onOpen && <RowActionButton label="Otwórz skan" icon={FileSearch} onClick={() => onOpen(row)} tone="primary" />}
         <RowActionButton
           label="Usuń skan"
           icon={Trash2}

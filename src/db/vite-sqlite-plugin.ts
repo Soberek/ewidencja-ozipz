@@ -5,6 +5,7 @@ import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { pipeline } from "node:stream/promises";
 import { migrateDatabase, staleMigrationBackups } from "./sqlite-migrations";
 import { fetchAllowedWebPage } from "./vite-web-fetch";
 
@@ -16,6 +17,23 @@ const isOzipzLanAddress = (address: string | undefined) => {
   if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
   return parts[0] === 192 && parts[1] === 168 && parts[2] === 1;
 };
+
+const isReadOnlyQuery = (query: string) => /^\s*SELECT\b/i.test(query) ||
+  /^\s*PRAGMA\s+(?:user_version|database_list|table_info\s*\(\s*(?:"[^"]+"|\w+)\s*\))\s*;?\s*$/i.test(query);
+
+const MAX_SCAN_FILE_BYTES = 60 * 1024 * 1024;
+const MAX_SCAN_REQUEST_BYTES = Math.ceil(MAX_SCAN_FILE_BYTES * 4 / 3) + 4096;
+const validScanPath = (value: unknown): value is string =>
+  typeof value === "string" && /^scan:[a-zA-Z0-9_-]+$/.test(value);
+
+function validScanDataUrl(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const match = /^data:(?:application\/pdf|image\/png|image\/jpeg);base64,([a-zA-Z0-9+/]*={0,2})$/i.exec(value);
+  if (!match || match[1].length % 4 !== 0) return false;
+  const padding = match[1].endsWith("==") ? 2 : match[1].endsWith("=") ? 1 : 0;
+  const decodedBytes = match[1].length / 4 * 3 - padding;
+  return decodedBytes > 0 && decodedBytes <= MAX_SCAN_FILE_BYTES;
+}
 
 /** Ten sam plik, którego używa zainstalowana aplikacja; OZIPZ_DB_PATH pozwala wskazać inny. */
 export const defaultDatabasePath = () =>
@@ -82,6 +100,18 @@ export function viteSqlitePlugin(dbPath = defaultDatabasePath()): Plugin {
     return Buffer.concat(chunks);
   }
 
+  async function stageRestoreUpload(req: IncomingMessage): Promise<string> {
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+    const stagedPath = `${dbPath}.restore-upload-${randomBytes(12).toString("hex")}`;
+    try {
+      await pipeline(req, fs.createWriteStream(stagedPath, { flags: "wx", mode: 0o600 }));
+      return stagedPath;
+    } catch (error) {
+      fs.rmSync(stagedPath, { force: true });
+      throw error;
+    }
+  }
+
   const matchesSecret = (supplied: unknown, secret: string) =>
     typeof supplied === "string" && Buffer.byteLength(supplied) === Buffer.byteLength(secret) && timingSafeEqual(Buffer.from(supplied), Buffer.from(secret));
 
@@ -144,9 +174,15 @@ export function viteSqlitePlugin(dbPath = defaultDatabasePath()): Plugin {
     }
     const session = req.headers["x-ozipz-session"];
     if (typeof session !== "string" || !session) { reply(400, { error: "Brak identyfikatora sesji" }); return; }
+    let stagedRestorePath: string | null = null;
     try {
       // Read the body before checking ownership: another request may start a transaction while it arrives.
-      const body = req.method === "POST" ? await readBody(req, url === "/api/db/restore" ? 128 * 1024 * 1024 : 2 * 1024 * 1024) : Buffer.alloc(0);
+      const bodyLimit = url === "/api/db/scan-file" ? MAX_SCAN_REQUEST_BYTES : 2 * 1024 * 1024;
+      let body: Buffer = Buffer.alloc(0);
+      if (req.method === "POST") {
+        if (url === "/api/db/restore") stagedRestorePath = await stageRestoreUpload(req);
+        else body = await readBody(req, bodyLimit);
+      }
       const database = await getDatabase();
       if (restoring) { reply(409, { error: "Trwa przywracanie kopii bazy. Poczekaj na zakończenie." }); return; }
       if (expiredSessions.has(session)) {
@@ -161,6 +197,16 @@ export function viteSqlitePlugin(dbPath = defaultDatabasePath()): Plugin {
       }
       if (transactionOwner && transactionOwner !== session) {
         reply(409, { error: "Trwa zapis w innej karcie. Ponów operację po jego zakończeniu." }); return;
+      }
+      if (url === "/api/db/scan-file" && req.method === "POST") {
+        const data = JSON.parse(body.toString());
+        if (!validScanPath(data?.path) || !validScanDataUrl(data?.dataUrl)) {
+          throw new Error("Nieprawidłowy plik skanu lub jego ścieżka");
+        }
+        database.exec("CREATE TABLE IF NOT EXISTS ozipz_scan_files (path TEXT PRIMARY KEY, data_url TEXT NOT NULL)");
+        database.prepare("INSERT INTO ozipz_scan_files (path, data_url) VALUES (?, ?)").run(data.path, data.dataUrl);
+        reply(200, { ok: true });
+        return;
       }
       if (url === "/api/db/backup" && req.method === "GET") {
         if (transactionOwner) throw new Error("Zakończ zapis przed wykonaniem kopii");
@@ -177,11 +223,14 @@ export function viteSqlitePlugin(dbPath = defaultDatabasePath()): Plugin {
       }
       if (url === "/api/db/restore" && req.method === "POST") {
         if (transactionOwner) throw new Error("Zakończ zapis przed odtworzeniem kopii");
-        if (!body.subarray(0, 16).equals(Buffer.from("SQLite format 3\0"))) throw new Error("Wybrany plik nie jest prawidłową bazą SQLite");
+        const stagedPath = stagedRestorePath;
+        if (!stagedPath) throw new Error("Nie odebrano pliku kopii bazy danych");
+        const header = Buffer.alloc(16);
+        const file = fs.openSync(stagedPath, "r");
+        try { fs.readSync(file, header, 0, header.length, 0); } finally { fs.closeSync(file); }
+        if (!header.equals(Buffer.from("SQLite format 3\0"))) throw new Error("Wybrany plik nie jest prawidłową bazą SQLite");
         restoring = true;
         try {
-        const stagedPath = `${dbPath}.restore`;
-        fs.writeFileSync(stagedPath, body);
         const validationDb = new DatabaseSync(stagedPath);
         try {
           const integrity = validationDb.prepare("PRAGMA integrity_check").all();
@@ -203,6 +252,7 @@ export function viteSqlitePlugin(dbPath = defaultDatabasePath()): Plugin {
         database.prepare("VACUUM INTO ?").run(previousPath);
         resetDatabase();
         fs.renameSync(stagedPath, dbPath);
+        stagedRestorePath = null;
         fs.rmSync(`${dbPath}-wal`, { force: true });
         fs.rmSync(`${dbPath}-shm`, { force: true });
         reply(200, { ok: true }); return;
@@ -215,6 +265,7 @@ export function viteSqlitePlugin(dbPath = defaultDatabasePath()): Plugin {
         const params = Array.isArray(data.params) ? data.params : [];
         const normalized = query.replace(/\$\d+/g, "?");
         if (url === "/api/db/query") {
+          if (!isReadOnlyQuery(query)) throw new Error("Zapytanie odczytu nie może zmieniać bazy danych");
           reply(200, database.prepare(normalized).all(...params));
         } else {
           const result = params.length ? database.prepare(normalized).run(...params) : (database.exec(query), null);
@@ -241,6 +292,8 @@ export function viteSqlitePlugin(dbPath = defaultDatabasePath()): Plugin {
       reply(404, { error: "Nieznany endpoint bazy danych" });
     } catch (error) {
       reply(400, { error: error instanceof Error ? error.message : String(error) });
+    } finally {
+      if (stagedRestorePath) fs.rmSync(stagedRestorePath, { force: true });
     }
   }
 

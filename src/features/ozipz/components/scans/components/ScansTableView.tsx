@@ -9,6 +9,7 @@ interface ScansTableViewProps {
   scans: OzipzScan[];
   totalCount: number;
   onDelete: (id: string) => void;
+  onOpen?: (scan: OzipzScan) => void;
   onClearFilters?: () => void;
   isFiltered?: boolean;
 }
@@ -17,6 +18,7 @@ export function ScansTableView({
   scans,
   totalCount,
   onDelete,
+  onOpen,
   onClearFilters,
   isFiltered,
 }: ScansTableViewProps) {
@@ -24,8 +26,9 @@ export function ScansTableView({
     () =>
       createScanColumns({
         onDelete,
+        onOpen,
       }),
-    [onDelete]
+    [onDelete, onOpen]
   );
 
   return (
