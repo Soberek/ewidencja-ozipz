@@ -61,7 +61,6 @@ describe("useOzipzDbStore & Domain Hooks", () => {
       topic: "zywienie_i_aktywnosc",
       audienceGroup: "Dzieci",
       participantsCount: 25,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
       ezdStatus: "w_ezd",
       status: "wykonane",
@@ -80,7 +79,7 @@ describe("useOzipzDbStore & Domain Hooks", () => {
     const action = await state.addAction({
       title: "Działanie do rozliczenia", actionType: "Prelekcja", date: "2026-08-20",
       facilityName: "Szkoła", municipality: "Myślibórz", topic: "Zdrowie", audienceGroup: "Uczniowie",
-      participantsCount: 20, indirectRecipientsCount: 0, materialsDistributedCount: 0,
+      participantsCount: 20, materialsDistributedCount: 0,
       ezdStatus: "w_ezd", status: "wykonane", leadEducator: "Jan",
     });
     await state.setMonthClosed("2026-08", true);
@@ -123,7 +122,6 @@ describe("useOzipzDbStore & Domain Hooks", () => {
         topic: "tyton",
         audienceGroup: "Młodzież",
         participantsCount: 30,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 50,
         ezdStatus: "w_ezd",
         status: "wykonane",
@@ -179,7 +177,6 @@ describe("useOzipzDbStore & Domain Hooks", () => {
       topic: "inne",
       audienceGroup: "Dzieci",
       participantsCount: 10,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
       ezdStatus: "w_ezd",
       status: "wykonane",

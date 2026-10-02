@@ -22,7 +22,6 @@ const action = (over: Partial<OzipzAction>): OzipzAction =>
     audienceGroup: "Internauci",
     leadEducator: "OZiPZ",
     participantsCount: 0,
-    indirectRecipientsCount: 0,
     materialsDistributedCount: 0,
     numberOfActions: 1,
     createdAt: "",

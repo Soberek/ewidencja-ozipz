@@ -81,7 +81,6 @@ export function buildActionCleanPayload(
     sourceInfo: data.sourceInfo?.trim() || undefined,
     materialId: data.materialId || undefined,
     participantsCount: isPublication ? 0 : (Number(totalDirectParticipants) || 0),
-    indirectRecipientsCount: Number(data.indirectRecipientsCount) || 0,
     materialsDistributedCount: Number(data.materialsDistributedCount) || 0,
     numberOfActions: data.numberOfActions ? Math.max(1, Number(data.numberOfActions)) : 1,
     leadEducator: data.leadEducator.trim(),

@@ -96,8 +96,6 @@ export function ActionsSection(props: ActionsSectionProps) {
     setQuickFilterEzd,
     quickFilterProgramOnly,
     setQuickFilterProgramOnly,
-    quickFilterInProgress,
-    setQuickFilterInProgress,
     materialsOnlyFilter,
     setMaterialsOnlyFilter,
     publicationsMode,
@@ -146,7 +144,6 @@ export function ActionsSection(props: ActionsSectionProps) {
     handleSelectAll,
     handleToggleSelect,
     handleBulkDelete,
-    handleBulkMarkDone,
     isAllSelected,
   } = useActionsFiltering({
     actions,
@@ -270,8 +267,6 @@ export function ActionsSection(props: ActionsSectionProps) {
           onToggleEzd={() => setQuickFilterEzd(!quickFilterEzd)}
           quickFilterProgramOnly={quickFilterProgramOnly}
           onToggleProgramOnly={() => setQuickFilterProgramOnly(!quickFilterProgramOnly)}
-          quickFilterInProgress={quickFilterInProgress}
-          onToggleInProgress={() => setQuickFilterInProgress(!quickFilterInProgress)}
           materialsOnlyFilter={materialsOnlyFilter}
           onToggleMaterialsOnly={() => setMaterialsOnlyFilter(!materialsOnlyFilter)}
           isAdvancedOpen={isAdvancedOpen}
@@ -334,7 +329,6 @@ export function ActionsSection(props: ActionsSectionProps) {
                 }
               : undefined
           }
-          onBulkMarkDone={handleBulkMarkDone}
           onBulkMarkEzd={handleBulkMarkEzd}
           onBulkExportCsv={handleBulkExportCsv}
           onBulkCopySummary={handleBulkCopySummary}

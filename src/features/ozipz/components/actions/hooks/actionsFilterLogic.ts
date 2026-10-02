@@ -13,7 +13,7 @@ export interface ActionsFilterCriteria {
   yearFilter?: string;
   statusFilter: StatusFilter;
   quickFilterEzd: boolean;
-  quickFilterProgramOnly: boolean; quickFilterInProgress: boolean;
+  quickFilterProgramOnly: boolean;
   materialsOnlyFilter: boolean; quickFilterPublications: boolean; hidePublications: boolean;
   selectedMunicipalities: string[]; selectedPrograms: string[];
   selectedActivityTypes: string[]; selectedTopics: string[];
@@ -43,10 +43,8 @@ export function filterActionsList(actions: OzipzAction[], c: ActionsFilterCriter
     .filter((a) => {
       // Aktywne = bez odwołanych i odroczonych.
       if (c.statusFilter === "aktywne" && !isActionCountedInReports(a)) return false;
-      if (c.statusFilter === "zakonczone" && a.status !== "wykonane") return false;
       if (c.quickFilterEzd && getActionEzdState(a) !== "pending") return false;
       if (c.quickFilterProgramOnly && !a.programId && !a.programName) return false;
-      if (c.quickFilterInProgress && a.status !== "w_toku" && a.status !== "planowane") return false;
       if (c.materialsOnlyFilter && (Number(a.materialsDistributedCount) || 0) <= 0) return false;
       if (c.quickFilterPublications && !isPublicationActionType(a.actionType)) return false;
       if (c.hidePublications && !hasExplicitPub && isPublicationActionType(a.actionType)) return false;
@@ -100,7 +98,7 @@ export function filterActionsList(actions: OzipzAction[], c: ActionsFilterCriter
 export interface FilterChipState {
   search: string; effectivePeriod: string; yearFilter: string;
   statusFilter: StatusFilter; publicationsMode: PublicationsMode;
-  quickFilterEzd: boolean; quickFilterProgramOnly: boolean; quickFilterInProgress: boolean; materialsOnlyFilter: boolean;
+  quickFilterEzd: boolean; quickFilterProgramOnly: boolean; materialsOnlyFilter: boolean;
   selectedMunicipalities: string[]; selectedPrograms: string[]; selectedActivityTypes: string[]; selectedTopics: string[];
   educatorFilter: string; ezdFilter: string;
 }
@@ -110,7 +108,7 @@ export interface FilterChipSetters {
   setSelectedMonth: (val: string) => void; setPeriodFilter: (val: string) => void; setYearFilter: (val: string) => void;
   setStatusFilter: (val: StatusFilter) => void; setPublicationsMode: (val: PublicationsMode) => void;
   setQuickFilterEzd: (val: boolean) => void; setQuickFilterProgramOnly: (val: boolean) => void;
-  setQuickFilterInProgress: (val: boolean) => void; setMaterialsOnlyFilter: (val: boolean) => void;
+  setMaterialsOnlyFilter: (val: boolean) => void;
   setSelectedMunicipalities: React.Dispatch<React.SetStateAction<string[]>>;
   setSelectedPrograms: React.Dispatch<React.SetStateAction<string[]>>;
   setSelectedActivityTypes: React.Dispatch<React.SetStateAction<string[]>>;
@@ -131,7 +129,7 @@ const PERIOD_LABELS: Record<string, string> = {
   "07": "Lipiec", "08": "Sierpień", "09": "Wrzesień", "10": "Październik", "11": "Listopad", "12": "Grudzień",
 };
 const EZD_LABELS: Record<string, string> = { do_ezd: "Wymaga EZD", w_ezd: "Wprowadzone w EZD", nie_dotyczy: "Nie dotyczy" };
-const STATUS_LABELS: Record<StatusFilter, string> = { aktywne: "Aktywne", wszystkie: "Wszystkie", zakonczone: "Zakończone" };
+const STATUS_LABELS: Record<StatusFilter, string> = { aktywne: "Aktywne", wszystkie: "Wszystkie" };
 const PUBLICATIONS_LABELS: Record<PublicationsMode, string> = { ukryte: "Schowane", widoczne: "Widoczne", tylko: "Tylko publikacje" };
 
 /**
@@ -165,7 +163,6 @@ export function generateActiveFilterChips(
   }
   if (f.quickFilterEzd) chips.push({ id: "quick-ezd", label: "EZD", value: "Wymaga wpisu", onRemove: () => s.setQuickFilterEzd(false) });
   if (f.quickFilterProgramOnly) chips.push({ id: "quick-program", label: "Działania", value: "Tylko programowe", onRemove: () => s.setQuickFilterProgramOnly(false) });
-  if (f.quickFilterInProgress) chips.push({ id: "quick-in-progress", label: "Status", value: "W toku / planowane", onRemove: () => s.setQuickFilterInProgress(false) });
   if (f.materialsOnlyFilter) chips.push({ id: "materials", label: "Materiały", value: "MAT > 0", onRemove: () => s.setMaterialsOnlyFilter(false) });
   f.selectedMunicipalities.forEach((m) => chips.push({ id: `muni-${m}`, label: "Gmina", value: m, onRemove: () => s.setSelectedMunicipalities((p) => p.filter((x) => x !== m)) }));
   f.selectedPrograms.forEach((p) => chips.push({ id: `prog-${p}`, label: "Program", value: p === "none" ? "Nieprogramowe (własne)" : programs.find((program) => program.id === p)?.name || p, onRemove: () => s.setSelectedPrograms((x) => x.filter((i) => i !== p)) }));

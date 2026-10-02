@@ -18,7 +18,6 @@ function action(id: string, overrides: Partial<OzipzAction>): OzipzAction {
     ezdStatus: "",
     status: "wykonane",
     participantsCount: 0,
-    indirectRecipientsCount: 0,
     materialsDistributedCount: 0,
     leadEducator: "Jan Kowalski",
     createdAt: "2026-01-01",
@@ -29,7 +28,7 @@ function action(id: string, overrides: Partial<OzipzAction>): OzipzAction {
 
 const actions = [
   action("a1", { jrwaSign: "OZiPZ.966.6.1.2026", programName: "Profilaktyka substancji psychoaktywnych", participantsCount: 25 }),
-  action("a2", { jrwaSign: "OZiPZ.966.18.1.2026", programName: "#MłodziŚwiadomi", participantsCount: 30, indirectRecipientsCount: 4 }),
+  action("a2", { jrwaSign: "OZiPZ.966.18.1.2026", programName: "#MłodziŚwiadomi", participantsCount: 30}),
   action("a3", { jrwaSign: "OZiPZ.966.16.1.2026", programName: "Promocja zdrowia psychicznego", participantsCount: 10 }),
 ];
 
@@ -63,7 +62,7 @@ describe("ReportGisTab", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: /STI/ }));
     expect(screen.getByText(/STI \(INFEKCJE PRZENOSZONE DROGĄ PŁCIOWĄ\) – PROGRAMOWE/)).toBeDefined();
-    expect(within(rowValue(/^4\. Liczba odbiorców/)).getByText("34")).toBeDefined();
+    expect(within(rowValue(/^4\. Liczba odbiorców/)).getByText("30")).toBeDefined();
   });
 
   it("uses the GIS category configured in the dictionary", () => {

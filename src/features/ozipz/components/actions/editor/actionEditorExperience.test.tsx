@@ -93,7 +93,7 @@ describe("Szkic nowego działania", () => {
     saveActionDraft(draft);
     const taken: OzipzAction = { ...ts, id: "x", title: "Inne", actionType: "Prelekcja", date: "2026-09-01", facilityName: "A", municipality: "B",
       topic: "", audienceGroup: "U - 1", participantsCount: 1, leadEducator: "L", ezdStatus: "w_ezd", status: "wykonane",
-      indirectRecipientsCount: 0, materialsDistributedCount: 0, jrwaSign: "OZiPZ.966.1.1.2026", izrzSign: "1/2026" };
+      materialsDistributedCount: 0, jrwaSign: "OZiPZ.966.1.1.2026", izrzSign: "1/2026" };
     const { result } = renderHook(() => useActionEditorState({ ...data, actions: [taken], enableDraft: true }));
     expect(result.current.pendingDraft?.values.title).toBe("Program testowy");
     act(() => result.current.restoreDraft());
@@ -219,10 +219,10 @@ describe("Gmina bez prefiksu „Gmina”", () => {
     expect(payload.municipality).toBe("Myślibórz");
     const action = (id: string, municipality: string): OzipzAction => ({ ...ts, id, title: id, actionType: "Prelekcja", date: "2026-09-01",
       facilityName: "A", municipality, topic: "", audienceGroup: "U - 1", participantsCount: 1, leadEducator: "L", ezdStatus: "do_ezd", status: "wykonane",
-      indirectRecipientsCount: 0, materialsDistributedCount: 0 });
+      materialsDistributedCount: 0 });
     const filtered = filterActionsList([action("a", "Myślibórz"), action("b", "Gmina Myślibórz"), action("c", "Dębno")], {
       search: "", effectivePeriod: "", statusFilter: "wszystkie", quickFilterEzd: false,
-      quickFilterProgramOnly: false, quickFilterInProgress: false, materialsOnlyFilter: false, quickFilterPublications: false,
+      quickFilterProgramOnly: false, materialsOnlyFilter: false, quickFilterPublications: false,
       hidePublications: false, selectedMunicipalities: ["Gmina Myślibórz"], selectedPrograms: [], selectedActivityTypes: [],
       selectedTopics: [], educatorFilter: "", ezdFilter: "all",
     });

@@ -57,7 +57,6 @@ describe("IZRZ Generator (edu-report-v3 standard)", () => {
     status: "wykonane",
     ezdStatus: "w_ezd",
     participantsCount: 42,
-    indirectRecipientsCount: 0,
     materialsDistributedCount: 42,
     leadEducator: "Krzysztof Palpuchowski",
     notes: "Przeprowadzono warsztat edukacyjny z wykorzystaniem piramidy żywienia.",
@@ -236,7 +235,6 @@ describe("IZRZ Generator (edu-report-v3 standard)", () => {
       actionType: "Prelekcja",
       date: "2026-06-10",
       participantsCount: 30,
-      indirectRecipientsCount: 50,
       audienceGroup: "Młodzież",
       materialsDistributedCount: 30,
     };

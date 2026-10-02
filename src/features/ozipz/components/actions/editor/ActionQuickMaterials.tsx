@@ -58,10 +58,5 @@ export function ActionQuickMaterials({ state: s, materials }: {
         </span>
       </label>}
     </>}
-    <div><label htmlFor="indirect-count" className={FIELD_LABEL}>Odbiorcy pośredni / zasięg</label>
-      <Input id="indirect-count" className={`${FIELD_INPUT} max-w-40 font-mono`} type="number" min={0} step={1} value={s.indirectRecipientsCount || ""} placeholder="0"
-        onChange={(e) => s.setValue("indirectRecipientsCount", Number(e.target.value))} />
-      {errors.indirectRecipientsCount && <p role="alert" className="text-sm text-destructive">{errors.indirectRecipientsCount.message}</p>}
-    </div>
   </div>;
 }

@@ -12,7 +12,7 @@ const action = (id: string, date: string, izrzSign?: string, jrwaSign?: string):
   id, date, izrzSign, jrwaSign,
   title: "Prelekcja", actionType: "Prelekcja (warsztat)", facilityName: "SP 1", municipality: "Myślibórz",
   topic: "", audienceGroup: "Uczniowie", ezdStatus: "", status: "wykonane", numberOfActions: 1,
-  participantsCount: 20, indirectRecipientsCount: 0, materialsDistributedCount: 0, leadEducator: "Jan",
+  participantsCount: 20, materialsDistributedCount: 0, leadEducator: "Jan",
   createdAt: "", updatedAt: "",
 });
 

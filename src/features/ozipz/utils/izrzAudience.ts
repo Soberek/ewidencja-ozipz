@@ -4,7 +4,7 @@
  * Wejściem jest pole `audienceGroup` działania zapisane przez edytor w formacie
  * „Grupa 1: Uczniowie - 45, Kadra pedagogiczna - 5; Grupa 2: …”. Wynik to czytelny,
  * wielowierszowy opis — jedna linia na odbiorcę, z nagłówkami przy kilku grupach.
- * Opis dotyczy wyłącznie odbiorców bezpośrednich (odbiorcy pośredni nie trafiają do IZRZ).
+ * Opis odbiorców działania.
  */
 import { shortDzialanieLabel } from "./izrzUtils";
 

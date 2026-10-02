@@ -20,8 +20,7 @@ describe("Ewidencja OZiPZ - Moduł Mierników i Sprawozdań edu-report", () => {
   it("computes authentic synthetic metrics DZ, ODB, MAT on migrated actions", () => {
     const metrics = calculateSyntheticActionMetrics(MIGRATED_FIREBASE_DATA.actions);
     expect(metrics.dzCount).toBeGreaterThanOrEqual(200);
-    expect(metrics.directRecipients).toBeGreaterThan(0);
-    expect(metrics.totalRecipients).toBeGreaterThanOrEqual(metrics.directRecipients);
+    expect(metrics.totalRecipients).toBeGreaterThan(0);
     expect(metrics.uniqueFacilitiesCount).toBeGreaterThan(0);
   });
 
@@ -30,7 +29,7 @@ describe("Ewidencja OZiPZ - Moduł Mierników i Sprawozdań edu-report", () => {
     expect(audienceGroups.length).toBeGreaterThan(0);
     const topGroup = audienceGroups[0];
     expect(topGroup.group).toBeDefined();
-    expect(topGroup.directRecipients).toBeGreaterThan(0);
+    expect(topGroup.recipients).toBeGreaterThan(0);
 
     const forms = calculateFormBreakdown(MIGRATED_FIREBASE_DATA.actions);
     expect(forms.length).toBeGreaterThan(0);
@@ -187,7 +186,7 @@ describe("Ewidencja OZiPZ - Moduł Mierników i Sprawozdań edu-report", () => {
     const metrics = calculateSyntheticActionMetrics(customActions);
     expect(metrics.tasksCount).toBe(2); // 2 wpisy
     expect(metrics.dzCount).toBe(5); // 3 + 2 = 5 działań
-    expect(metrics.directRecipients).toBe(100);
+    expect(metrics.totalRecipients).toBe(100);
 
     const monthly = calculateMonthlySummary(customActions, "2026");
     expect(monthly.totalTasks).toBe(2);
@@ -204,7 +203,7 @@ describe("Ewidencja OZiPZ - Moduł Mierników i Sprawozdań edu-report", () => {
     const metrics = calculateSyntheticActionMetrics(emptyActions);
     expect(metrics.tasksCount).toBe(0);
     expect(metrics.dzCount).toBe(0);
-    expect(metrics.directRecipients).toBe(0);
+    expect(metrics.totalRecipients).toBe(0);
     expect(metrics.uniqueFacilitiesCount).toBe(0);
 
     const monthly = calculateMonthlySummary(emptyActions, "2026");
@@ -396,7 +395,7 @@ describe("Ewidencja OZiPZ - Moduł Mierników i Sprawozdań edu-report", () => {
     const metrics = calculateSyntheticActionMetrics(augustActions);
     expect(metrics.tasksCount).toBe(14);
     expect(metrics.dzCount).toBe(14);
-    expect(metrics.directRecipients).toBe(679);
+    expect(metrics.totalRecipients).toBe(679);
 
     // 2. Podsumowanie miesięczne dla sierpnia
     const monthly = calculateMonthlySummary(augustActions, "2026");

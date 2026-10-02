@@ -33,8 +33,6 @@ describe("Actions List Components", () => {
         onToggleEzd={handleToggleEzd}
         quickFilterProgramOnly={false}
         onToggleProgramOnly={vi.fn()}
-        quickFilterInProgress={false}
-        onToggleInProgress={vi.fn()}
         materialsOnlyFilter={false}
         onToggleMaterialsOnly={handleToggleMaterials}
         publicationsMode="ukryte"
@@ -453,7 +451,7 @@ describe("Actions List Components", () => {
     expect(screen.getByText("Uczniowie SP (klasy 4-8)")).toBeDefined();
   });
 
-  it("renders participantsCount column with ODB, POŚR, and MAT (materials) metrics", () => {
+  it("renders participantsCount column with ODB and MAT (materials) metrics", () => {
     const columns = createActionColumns({
       onToggleSelect: vi.fn(),
       onSelectAll: vi.fn(),
@@ -472,13 +470,11 @@ describe("Actions List Components", () => {
     const mockAction = {
       id: "act-metrics",
       participantsCount: 86,
-      indirectRecipientsCount: 200,
       materialsDistributedCount: 45,
     } as any;
 
     render((partCol!.cell as any)({ row: mockAction }));
     expect(screen.getByText("86 os.")).toBeDefined();
-    expect(screen.getByText("+200 pośr.")).toBeDefined();
     expect(screen.getByText("45")).toBeDefined();
   });
 
@@ -517,7 +513,7 @@ describe("Actions List Components", () => {
     expect(columns.some((c) => c.id === "notes" || c.id === "leadEducator")).toBe(false);
   });
 
-  it("renders non-standard action status badge (W toku, Odwołane, Planowane) in actionType column", () => {
+  it("renders cancelled action status badge in actionType column", () => {
     const columns = createActionColumns({
       onToggleSelect: vi.fn(),
       onSelectAll: vi.fn(),
@@ -531,20 +527,6 @@ describe("Actions List Components", () => {
     });
 
     const actionCol = columns.find((c) => c.id === "actionType");
-
-    const mockInProgressAction = {
-      id: "act-in-progress",
-      actionType: "Prelekcja (warsztat)",
-      title: "Warsztaty w toku",
-      status: "w_toku",
-    } as any;
-
-    render(
-      <TooltipProvider>
-        {(actionCol!.cell as any)({ row: mockInProgressAction })}
-      </TooltipProvider>
-    );
-    expect(screen.getByText("W toku")).toBeDefined();
 
     const mockCancelledAction = {
       id: "act-cancelled",

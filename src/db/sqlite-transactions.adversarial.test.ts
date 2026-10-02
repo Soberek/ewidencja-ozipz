@@ -65,7 +65,6 @@ describe("Empirical Challenger: SQLite Multi-Table Transactions", () => {
       topic: "Zdrowie",
       audienceGroup: "Uczniowie",
       participantsCount: 20,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 20,
       leadEducator: "Jan",
       ezdStatus: "w_ezd",
@@ -101,7 +100,7 @@ describe("Empirical Challenger: SQLite Multi-Table Transactions", () => {
     const action = await service.addAction({
       title: "Działanie testowe", actionType: "Prelekcja", date: "2026-09-26",
       facilityName: "Szkoła", municipality: "Myślibórz", topic: "Zdrowie", audienceGroup: "Uczniowie",
-      participantsCount: 20, indirectRecipientsCount: 0, materialsDistributedCount: 20,
+      participantsCount: 20, materialsDistributedCount: 20,
       leadEducator: "Jan", ezdStatus: "w_ezd", status: "wykonane", scheduleEventId: first.id,
     });
     await service.updateScheduleEvent(first.id, { actionId: action.id });
@@ -134,7 +133,7 @@ describe("Empirical Challenger: SQLite Multi-Table Transactions", () => {
     const action = await service.addAction({
       title: "Działanie testowe", actionType: "Prelekcja", date: "2026-09-26",
       facilityName: "Szkoła", municipality: "Myślibórz", topic: "Zdrowie", audienceGroup: "Uczniowie",
-      participantsCount: 20, indirectRecipientsCount: 0, materialsDistributedCount: 18,
+      participantsCount: 20, materialsDistributedCount: 18,
       leadEducator: "Jan", ezdStatus: "w_ezd", status: "wykonane",
     });
     const add = (quantity: number, notes: string) => service.addDistribution({
@@ -169,7 +168,7 @@ describe("Empirical Challenger: SQLite Multi-Table Transactions", () => {
     const input = {
       title: "Działanie testowe", actionType: "Prelekcja", date: "2026-09-26",
       facilityName: "Szkoła", municipality: "Myślibórz", topic: "Zdrowie", audienceGroup: "Uczniowie",
-      participantsCount: 20, indirectRecipientsCount: 0, materialsDistributedCount: 0,
+      participantsCount: 20, materialsDistributedCount: 0,
       leadEducator: "Jan", ezdStatus: "w_ezd", status: "wykonane",
     };
     const owner = await service.addAction({ ...input, scheduleEventId: schedule.id });
@@ -213,7 +212,7 @@ describe("Empirical Challenger: SQLite Multi-Table Transactions", () => {
     const input = {
       title: "Działanie testowe", actionType: "Prelekcja", date: "2026-08-20",
       facilityName: "Szkoła", municipality: "Myślibórz", topic: "Zdrowie", audienceGroup: "Uczniowie",
-      participantsCount: 20, indirectRecipientsCount: 0, materialsDistributedCount: 0,
+      participantsCount: 20, materialsDistributedCount: 0,
       leadEducator: "Jan", ezdStatus: "w_ezd", status: "wykonane",
     };
     const lockedAction = await service.addAction(input);
@@ -267,7 +266,6 @@ describe("Empirical Challenger: SQLite Multi-Table Transactions", () => {
       topic: "Zdrowie",
       audienceGroup: "Uczniowie",
       participantsCount: 20,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
       leadEducator: "Jan",
       ezdStatus: "w_ezd",
@@ -331,7 +329,6 @@ describe("Empirical Challenger: SQLite Multi-Table Transactions", () => {
           leadEducator: "Krzysztof Palpuchowski",
           ezdStatus: "w_ezd",
           status: "wykonane",
-          indirectRecipientsCount: 0,
           materialsDistributedCount: 45,
         },
         autoCreateJrwa: {
@@ -421,7 +418,6 @@ describe("Empirical Challenger: SQLite Multi-Table Transactions", () => {
             topic: "zdrowie",
             audienceGroup: "uczniowie",
             participantsCount: 20,
-            indirectRecipientsCount: 0,
             ezdStatus: "w_ezd",
             status: "wykonane",
             scheduleEventId: sch.id,
@@ -487,7 +483,6 @@ describe("Empirical Challenger: SQLite Multi-Table Transactions", () => {
             topic: "zdrowie",
             audienceGroup: "uczniowie",
             participantsCount: 20,
-            indirectRecipientsCount: 0,
             materialsDistributedCount: 0,
             ezdStatus: "w_ezd",
             status: "wykonane",

@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertTriangle, MinusCircle, Clock } from "lucide-react";
+import { CheckCircle2, AlertTriangle, MinusCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -133,18 +133,7 @@ export function TargetsComplianceTable({ rows, viewMode, onCellChange, summary }
                 ))}
 
                 <td className="py-2 px-2 text-center font-sans">
-                  <div className="flex flex-col items-center gap-1">
-                    <ComplianceStatusBadge status={comparison.status} />
-                    {!isCumulative && r.openActionsCount > 0 && (
-                      <span
-                        className="inline-flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-400"
-                        title="Działania z tego miesiąca, które nie są oznaczone jako wykonane ani odwołane – nie są liczone do ewidencji wykonania"
-                      >
-                        <Clock className="size-3" />
-                        {r.openActionsCount} niezamkn.
-                      </span>
-                    )}
-                  </div>
+                  <ComplianceStatusBadge status={comparison.status} />
                 </td>
               </tr>
             );

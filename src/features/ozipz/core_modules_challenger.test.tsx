@@ -151,7 +151,6 @@ describe("Core Modules UX/UI Harmonization — Adversarial Challenger Test Suite
         audienceGroup: "Dzieci",
         topic: EXTREME_STRINGS.specialPunctuation,
         participantsCount: 50,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 0,
         ezdStatus: "w_ezd",
         createdAt: "2026-01-01",

@@ -218,7 +218,6 @@ export function ActionEditorSection(props: ActionEditorSectionProps) {
         ezdStatus={state.isNoJrwa ? "nie_dotyczy" : state.ezdStatus || DEFAULT_EZD_STATUS}
         numberOfActions={state.numberOfActions}
         totalDirectParticipants={state.totalDirectParticipants}
-        indirectRecipientsCount={state.indirectRecipientsCount || 0}
         materialsDistributedCount={state.materialsDistributedCount || 0}
         jrwaSign={state.jrwaSign}
         izrzSign={state.izrzSign}

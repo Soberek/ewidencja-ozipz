@@ -89,7 +89,7 @@ export function calculateMunicipalityDetailedBreakdown(
     entry.actionsCount += Number(a.numberOfActions) || 1;
     const fac = (a.facilityId || a.facilityName || "").trim();
     if (fac) entry.facilitiesSet.add(fac);
-    entry.actionsRecipients += (Number(a.participantsCount) || 0) + (Number(a.indirectRecipientsCount) || 0);
+    entry.actionsRecipients += (Number(a.participantsCount) || 0);
     entry.materialsDistributed += Number(a.materialsDistributedCount) || 0;
   }
 
@@ -132,16 +132,15 @@ export function generateSubstantiveReportNarrative(params: {
   } = params;
 
   const totalReached = actionsMetrics.totalRecipients + programsSummary.totalPupils;
-  const topGroupsText = topAudienceGroups.slice(0, 4).map((g) => `${g.group} (${g.directRecipients.toLocaleString("pl-PL")} os.)`).join(", ");
+  const topGroupsText = topAudienceGroups.slice(0, 4).map((g) => `${g.group} (${g.recipients.toLocaleString("pl-PL")} os.)`).join(", ");
 
   return `SPRAWOZDANIE OPISOWE I MIERNIKI Z DZIAŁALNOŚCI OŚWIATOWO-ZDROWOTNEJ
 Jednostka: ${stationName}
 Okres sprawozdawczy: ${periodName} (Rok ${year})
 
 1. PODSUMOWANIE MIERNIKÓW SYNTEZOWYCH (DZ / ODB / MAT):
-W analizowanym okresie sprawozdawczym Sekcja Oświaty Zdrowotnej i Promocji Zdrowia zrealizowała łącznie ${actionsMetrics.dzCount} działań i interwencji edukacyjnych (w tym ${actionsMetrics.executedCount} zrealizowanych bezpośrednio w terenie oraz ${actionsMetrics.plannedCount} zaplanowanych do kontynuacji).
-- Liczba bezpośrednich uczestników prelekcji, warsztatów i pogadanek (ODB_B): ${actionsMetrics.directRecipients.toLocaleString("pl-PL")} osób.
-- Liczba odbiorców pośrednich objętych akcjami i kampaniami (ODB_P): ${actionsMetrics.indirectRecipients.toLocaleString("pl-PL")} osób.
+W analizowanym okresie sprawozdawczym Sekcja Oświaty Zdrowotnej i Promocji Zdrowia zrealizowała łącznie ${actionsMetrics.dzCount} działań i interwencji edukacyjnych.
+- Liczba odbiorców działań (ODB): ${actionsMetrics.totalRecipients.toLocaleString("pl-PL")} osób.
 - Łączna liczba rozdystrybuowanych materiałów oświatowych (MAT): ${actionsMetrics.materialsDistributed.toLocaleString("pl-PL")} szt. (broszury, poradniki, ulotki, plakaty informacyjne).
 
 2. REALIZACJA PROGRAMÓW PROFILAKTYCZNO-EDUKACYJNYCH (MZ / GIS):

@@ -22,7 +22,6 @@ const action = (over: Partial<OzipzAction>): OzipzAction => ({
   status: "wykonane",
   numberOfActions: 1,
   participantsCount: 20,
-  indirectRecipientsCount: 0,
   materialsDistributedCount: 0,
   leadEducator: "Jan Kowalski",
   createdAt: "",
@@ -32,7 +31,7 @@ const action = (over: Partial<OzipzAction>): OzipzAction => ({
 
 const actions: OzipzAction[] = [
   action({ id: "1", date: "2026-04-09", title: "Happening", actionType: "Happening", participantsCount: 300, facilityName: "PSSE" }),
-  action({ id: "2", date: "2026-04-22", participantsCount: 70, indirectRecipientsCount: 5, materialsDistributedCount: 3 }),
+  action({ id: "2", date: "2026-04-22", participantsCount: 70, materialsDistributedCount: 3 }),
   action({ id: "3", date: "2026-05-05", participantsCount: 25, numberOfActions: 2, campaignId: "Jesień bez infekcji", campaignName: "Jesień bez infekcji" }),
   action({ id: "4", date: "2026-06-01", participantsCount: 999, status: "odwolane" }),
   action({ id: "5", date: "2026-04-15", programId: "inne", programName: "Inne zadanie", participantsCount: 10 }),
@@ -79,7 +78,7 @@ describe("buildActionBreakdown", () => {
 
   it("sums totals, months and forms without cancelled entries", () => {
     const b = buildActionBreakdown(scoped, [4, 5, 6], { distributions, materials });
-    expect(b.totals).toMatchObject({ entries: 3, actions: 4, recipients: 400, materials: 3, facilities: 2, municipalities: 1, planned: 0 });
+    expect(b.totals).toMatchObject({ entries: 3, actions: 4, recipients: 395, materials: 3, facilities: 2, municipalities: 1 });
     expect(b.byMonth.map((m) => [m.month, m.actions])).toEqual([[4, 2], [5, 2], [6, 0]]);
     expect(b.byForm[0]).toMatchObject({ label: "Wykład", actions: 3 });
     expect(b.entries.map((e) => e.id)).toEqual(["1", "2", "3"]);
@@ -102,7 +101,7 @@ describe("buildActionBreakdown", () => {
     const text = formatActionBreakdownText(b, { label: "Światowy Dzień Zdrowia", year: 2026, months: [4, 5] });
     expect(text).toContain("Rozpiska: Światowy Dzień Zdrowia");
     expect(text).toContain("Okres: kwiecień - maj 2026");
-    expect(text).toContain("Zrealizowano 4 działania (3 wpisy), docierając do 400 odbiorców w 2 placówkach na terenie 1 gminy.");
+    expect(text).toContain("Zrealizowano 4 działania (3 wpisy), docierając do 395 odbiorców w 2 placówkach na terenie 1 gminy.");
     expect(text).toContain("Kwiecień\n- 09.04.2026 – Happening (przemarsz, gra, event) – PSSE, gm. Myślibórz (1 dz., 300 odb.)");
     expect(text).toContain("Maj\n");
   });

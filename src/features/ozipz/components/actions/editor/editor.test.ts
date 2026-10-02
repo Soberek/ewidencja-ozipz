@@ -131,7 +131,6 @@ describe("Action Editor - editorUtils", () => {
       status: "wykonane",
       ezdStatus: "w_ezd",
       participantsCount: 30,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
       leadEducator: "Krzysztof Palpuchowski",
       createdAt: "2026-04-15T10:00:00Z",
@@ -210,7 +209,6 @@ describe("Action Editor - Live Summary Footer", () => {
         jrwaSign: "OZiPZ.966.1.1.2026",
         izrzSign: "IZRZ/2026/09/01",
         totalDirectParticipants: 45,
-        indirectRecipientsCount: 120,
         materialsDistributedCount: 50,
         onCancel: vi.fn(),
       })
@@ -229,7 +227,6 @@ describe("Action Editor - Live Summary Footer", () => {
     // Metrics
     expect(screen.getByText("1 DZ")).toBeDefined();
     expect(screen.getByText("45")).toBeDefined();
-    expect(screen.getByText("120")).toBeDefined();
     expect(screen.getByText("50")).toBeDefined();
 
     unmount();
@@ -386,7 +383,6 @@ describe("Action Editor - Card Components & Single JRWA Sign Placement", () => {
       topic: "Żywienie",
       audienceGroup: "Uczniowie kl. 5 (11-12 lat) - 30",
       participantsCount: 30,
-      indirectRecipientsCount: 5,
       materialsDistributedCount: 30,
       materialId: "mat-1",
       leadEducator: "Jan Kowalski",

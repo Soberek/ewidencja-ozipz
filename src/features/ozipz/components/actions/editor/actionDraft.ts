@@ -37,7 +37,7 @@ export function actionDraftKey(content: ActionDraftContent): string {
   const v = content.values;
   return JSON.stringify([
     v.title, v.actionType, v.date, v.facilityName, v.municipality, v.programId, v.campaignId,
-    v.numberOfActions, v.indirectRecipientsCount, v.jrwaSign, v.izrzSign, v.ezdStatus,
+    v.numberOfActions, v.jrwaSign, v.izrzSign, v.ezdStatus,
     content.audienceGroups.map((g) => [g.name, g.items.map((i) => [i.name, i.count, i.ageFrom, i.ageTo])]),
     content.materialItems.map((m) => [m.materialId, m.quantity]),
     content.activitiesDescription,

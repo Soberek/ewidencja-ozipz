@@ -90,8 +90,6 @@ export function useOzipzDb() {
       totalPrograms: store.programs.length,
       totalSchools: store.participations.length,
       totalRecipients: rec.total,
-      directRecipients: rec.direct,
-      indirectRecipients: rec.indirect,
       materialsDistributed: rec.materialsCount,
       totalMaterials: store.materials.length,
       totalDistributions: store.distributions.length,

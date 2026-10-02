@@ -5,7 +5,7 @@ export interface UseActionFilterStateOptions {
   defaultYear?: string;
 }
 
-export type StatusFilter = "aktywne" | "wszystkie" | "zakonczone";
+export type StatusFilter = "aktywne" | "wszystkie";
 /** Publikacje w mediach (FB, X, www): domyślnie schowane, można je pokazać razem z innymi działaniami albo same. */
 export type PublicationsMode = "ukryte" | "widoczne" | "tylko";
 
@@ -53,7 +53,6 @@ interface SavedActionFilters {
   publicationsMode: PublicationsMode;
   quickFilterEzd: boolean;
   quickFilterProgramOnly: boolean;
-  quickFilterInProgress: boolean;
   materialsOnlyFilter: boolean;
   selectedMunicipalities: string[];
   selectedPrograms: string[];
@@ -73,14 +72,14 @@ function readSavedFilters(): Partial<SavedActionFilters> {
     for (const key of ["educatorFilter", "ezdFilter"] as const) {
       if (typeof raw[key] === "string") result[key] = raw[key];
     }
-    for (const key of ["quickFilterEzd", "quickFilterProgramOnly", "quickFilterInProgress", "materialsOnlyFilter"] as const) {
+    for (const key of ["quickFilterEzd", "quickFilterProgramOnly", "materialsOnlyFilter"] as const) {
       if (typeof raw[key] === "boolean") result[key] = raw[key];
     }
     for (const key of ["selectedMunicipalities", "selectedPrograms", "selectedActivityTypes", "selectedTopics"] as const) {
       const value = raw[key];
       if (Array.isArray(value)) result[key] = value.filter((item): item is string => typeof item === "string");
     }
-    if (raw.statusFilter === "aktywne" || raw.statusFilter === "wszystkie" || raw.statusFilter === "zakonczone") {
+    if (raw.statusFilter === "aktywne" || raw.statusFilter === "wszystkie") {
       result.statusFilter = raw.statusFilter;
     }
     if (raw.publicationsMode === "ukryte" || raw.publicationsMode === "widoczne" || raw.publicationsMode === "tylko") {
@@ -105,7 +104,6 @@ export function useActionFilterState(options: UseActionFilterStateOptions = {}) 
   const [publicationsMode, setPublicationsMode] = useState<PublicationsMode>(saved.publicationsMode ?? DEFAULT_PUBLICATIONS_MODE);
   const [quickFilterEzd, setQuickFilterEzd] = useState(saved.quickFilterEzd ?? false);
   const [quickFilterProgramOnly, setQuickFilterProgramOnly] = useState(saved.quickFilterProgramOnly ?? false);
-  const [quickFilterInProgress, setQuickFilterInProgress] = useState(saved.quickFilterInProgress ?? false);
   const [materialsOnlyFilter, setMaterialsOnlyFilter] = useState(saved.materialsOnlyFilter ?? false);
   const [selectedMunicipalities, setSelectedMunicipalities] = useState<string[]>(saved.selectedMunicipalities ?? []);
   const [selectedPrograms, setSelectedPrograms] = useState<string[]>(saved.selectedPrograms ?? []);
@@ -125,14 +123,14 @@ export function useActionFilterState(options: UseActionFilterStateOptions = {}) 
   const handleClearFilters = useCallback(() => {
     setSearch(""); setSelectedMonth(defaultMonth); setYearFilter(defaultYear); setPeriodFilter("");
     setStatusFilter(DEFAULT_STATUS_FILTER); setPublicationsMode(DEFAULT_PUBLICATIONS_MODE);
-    setQuickFilterEzd(false); setQuickFilterProgramOnly(false); setQuickFilterInProgress(false); setMaterialsOnlyFilter(false);
+    setQuickFilterEzd(false); setQuickFilterProgramOnly(false); setMaterialsOnlyFilter(false);
     setSelectedMunicipalities([]); setSelectedPrograms([]); setSelectedActivityTypes([]); setSelectedTopics([]);
     setEducatorFilter(""); setEzdFilter("all");
   }, [defaultMonth, defaultYear]);
 
   useEffect(() => {
     const filters: SavedActionFilters = {
-      statusFilter, publicationsMode, quickFilterEzd, quickFilterProgramOnly, quickFilterInProgress, materialsOnlyFilter,
+      statusFilter, publicationsMode, quickFilterEzd, quickFilterProgramOnly, materialsOnlyFilter,
       selectedMunicipalities, selectedPrograms, selectedActivityTypes, selectedTopics, educatorFilter, ezdFilter,
     };
     try {
@@ -140,7 +138,7 @@ export function useActionFilterState(options: UseActionFilterStateOptions = {}) 
       localStorage.removeItem(LEGACY_HIDE_PUBLICATIONS_KEY);
     } catch { /* Preferencja widoku nie jest krytyczna. */ }
   }, [
-    statusFilter, publicationsMode, quickFilterEzd, quickFilterProgramOnly, quickFilterInProgress, materialsOnlyFilter,
+    statusFilter, publicationsMode, quickFilterEzd, quickFilterProgramOnly, materialsOnlyFilter,
     selectedMunicipalities, selectedPrograms, selectedActivityTypes, selectedTopics, educatorFilter, ezdFilter,
   ]);
 
@@ -164,7 +162,6 @@ export function useActionFilterState(options: UseActionFilterStateOptions = {}) 
     quickFilterPublications: publicationsMode === "tylko",
     quickFilterEzd, setQuickFilterEzd,
     quickFilterProgramOnly, setQuickFilterProgramOnly,
-    quickFilterInProgress, setQuickFilterInProgress,
     materialsOnlyFilter, setMaterialsOnlyFilter,
     selectedMunicipalities, setSelectedMunicipalities,
     selectedPrograms, setSelectedPrograms,

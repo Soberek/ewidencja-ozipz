@@ -55,7 +55,7 @@ describe("Quick action form", () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(onSave.mock.calls[0][0]).toMatchObject({ title: "Spotkanie testowe", facilityId: "f1", municipality: "Testowo", participantsCount: 12, audienceGroup: "Uczniowie - 12" });
     expect(onCancel).toHaveBeenCalledTimes(1);
-    expect(disclosure("Materiały i zasięg")).not.toHaveAttribute("open");
+    expect(disclosure("Materiały")).not.toHaveAttribute("open");
   });
 
   it("adds a new place to the facility base without leaving the form and selects it", async () => {
@@ -112,7 +112,7 @@ describe("Quick action form", () => {
     render(<Harness {...data} editingAction={{ ...validAction, audienceGroup: "Klasa A: Uczniowie (10-12 lat) - 12", notes: "Opis spotkania", materialsDistributedCount: 3 }} />);
     expect(screen.getByLabelText("Wiek od")).toHaveValue(10);
     expect(disclosure("Opis i dodatkowe informacje")).toHaveAttribute("open");
-    expect(disclosure("Materiały i zasięg")).toHaveAttribute("open");
+    expect(disclosure("Materiały")).toHaveAttribute("open");
     expect(disclosure("Kancelaria")).not.toHaveAttribute("open");
   });
 
@@ -144,10 +144,10 @@ describe("Quick action form", () => {
     expect(onSave).toHaveBeenCalledTimes(2);
   });
 
-  it("shows publication reach and distribution materials and restores an audience row on type change", () => {
+  it("hides materials for publications, shows them for distribution and restores an audience row on type change", () => {
     render(<Harness {...data} />);
     select("Forma działania *", "Publikacja media (Facebook)");
-    expect(disclosure("Materiały i zasięg")).toHaveAttribute("open");
+    expect(screen.queryByText("Materiały", { exact: true })).toBeNull();
     expect(screen.queryByLabelText("Kto? *")).toBeNull();
     expect(screen.queryByRole("button", { name: "Dodaj materiał" })).toBeNull();
     select("Forma działania *", "Dystrybucja");
@@ -158,7 +158,7 @@ describe("Quick action form", () => {
   it("offers a separate distribution only for a new non-distribution action with materials, switched on by default", () => {
     render(<Harness {...data} />);
     select("Forma działania *", "Prelekcja");
-    fireEvent.click(screen.getByText("Materiały i zasięg", { exact: true }));
+    fireEvent.click(screen.getByText("Materiały", { exact: true }));
     const toggleLabel = /Zapisz wydanie materiałów jako osobne działanie „Dystrybucja”/;
     expect(screen.queryByLabelText(toggleLabel)).toBeNull();
 
@@ -177,12 +177,12 @@ describe("Quick action form", () => {
   it("does not silently discard an incomplete material and opens its error section", async () => {
     const onSave = vi.fn();
     render(<Harness {...data} editingAction={validAction} onSave={onSave} />);
-    fireEvent.click(screen.getByText("Materiały i zasięg", { exact: true }));
+    fireEvent.click(screen.getByText("Materiały", { exact: true }));
     fireEvent.click(screen.getByRole("button", { name: "Dodaj materiał" }));
-    fireEvent.click(screen.getByText("Materiały i zasięg", { exact: true }));
+    fireEvent.click(screen.getByText("Materiały", { exact: true }));
     fireEvent.click(screen.getByRole("button", { name: "Zapisz działanie" }));
     await waitFor(() => expect(screen.getByText(/Wybierz materiał i podaj dodatnią/)).toBeInTheDocument());
-    await waitFor(() => expect(disclosure("Materiały i zasięg")).toHaveAttribute("open"));
+    await waitFor(() => expect(disclosure("Materiały")).toHaveAttribute("open"));
     expect(onSave).not.toHaveBeenCalled();
   });
 
@@ -228,7 +228,7 @@ describe("Quick action form", () => {
 
 describe("Shared date and material state", () => {
   it("recalculates independent JRWA sequences when selecting classifications and applying presets", () => {
-    const existingAction = { ...validAction, ...timestamps, topic: "", ezdStatus: "w_ezd", status: "zrealizowane", indirectRecipientsCount: 0, materialsDistributedCount: 0 };
+    const existingAction = { ...validAction, ...timestamps, topic: "", ezdStatus: "w_ezd", status: "zrealizowane", materialsDistributedCount: 0 };
     const { result } = renderHook(() => useActionEditorState({
       ...data,
       editingAction: validAction,

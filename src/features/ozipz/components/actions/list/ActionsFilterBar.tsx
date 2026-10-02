@@ -31,7 +31,6 @@ const PERIOD_OPTIONS = [
 const STATUS_OPTIONS = [
   { value: "aktywne", label: "Status: Aktywne", badgeVariant: "success" as const },
   { value: "wszystkie", label: "Status: Wszystkie" },
-  { value: "zakonczone", label: "Status: Zakończone", badge: "Koniec", badgeVariant: "secondary" as const },
 ];
 
 const PUBLICATIONS_OPTIONS = [
@@ -58,8 +57,6 @@ export interface ActionsFilterBarProps {
   onToggleEzd: () => void;
   quickFilterProgramOnly: boolean;
   onToggleProgramOnly: () => void;
-  quickFilterInProgress: boolean;
-  onToggleInProgress: () => void;
   materialsOnlyFilter?: boolean;
   onToggleMaterialsOnly?: () => void;
   isAdvancedOpen?: boolean;
@@ -83,8 +80,6 @@ export function ActionsFilterBar({
   onToggleEzd,
   quickFilterProgramOnly,
   onToggleProgramOnly,
-  quickFilterInProgress,
-  onToggleInProgress,
   materialsOnlyFilter = false,
   onToggleMaterialsOnly,
   isAdvancedOpen = false,
@@ -100,9 +95,6 @@ export function ActionsFilterBar({
           </Chip>
           <Chip active={quickFilterProgramOnly} onClick={onToggleProgramOnly}>
             Tylko programowe
-          </Chip>
-          <Chip active={quickFilterInProgress} onClick={onToggleInProgress}>
-            W toku / Planowane
           </Chip>
           {onToggleMaterialsOnly && (
             <Chip active={materialsOnlyFilter} onClick={onToggleMaterialsOnly}>

@@ -65,7 +65,6 @@ export interface ActionBreakdown {
     materials: number;
     facilities: number;
     municipalities: number;
-    planned: number;
   };
   byMonth: ActionBreakdownMonthRow[];
   byForm: ActionBreakdownRow[];
@@ -76,7 +75,6 @@ export interface ActionBreakdown {
   entries: ActionBreakdownEntry[];
 }
 
-const COMPLETED_STATUSES = new Set(["wykonane", "done", ""]);
 const UNKNOWN_MATERIAL = "Materiały bez wskazanego tytułu";
 
 const clean = (value: string | null | undefined) => String(value ?? "").trim();
@@ -238,7 +236,7 @@ export function buildActionBreakdown(
         municipality: clean(action.municipality),
         audience: clean(action.audienceGroup),
         actions: Number(action.numberOfActions) || 1,
-        recipients: (Number(action.participantsCount) || 0) + (Number(action.indirectRecipientsCount) || 0),
+        recipients: (Number(action.participantsCount) || 0),
         materials: Math.max(materialsCount, fromDistributions),
         materialTitles,
         educator: clean(action.leadEducator),
@@ -281,7 +279,6 @@ export function buildActionBreakdown(
       materials: sum("materials"),
       facilities: new Set(entries.map((e) => e.facility).filter(Boolean)).size,
       municipalities: new Set(entries.map((e) => e.municipality).filter(Boolean)).size,
-      planned: entries.filter((e) => !COMPLETED_STATUSES.has(e.status)).length,
     },
     byMonth,
     byForm: Array.from(formMap.values()).sort(byActionsDesc),

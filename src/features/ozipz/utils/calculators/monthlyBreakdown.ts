@@ -1,6 +1,7 @@
 import type { OzipzAction } from "../../types/ozipz.types";
 import { isProgramAction } from "./jrwaClassification";
-import { isActionCancelled } from "./actionMetrics";
+import { isActionCountedInReports } from "./actionMetrics";
+import { safeParseDate } from "../dateUtils";
 
 export interface MonthlyBreakdownRow {
   monthKey: string;
@@ -15,7 +16,6 @@ export interface MonthlyBreakdownRow {
   recipientsCount: number;
   materialsCount: number;
   doneCount: number;
-  plannedCount: number;
   percentageOfMax: number;
 }
 
@@ -52,33 +52,31 @@ export function calculateMonthlySummary(
   ];
 
   const yearActions = actions.filter((a) => {
-    if (isActionCancelled(a.status)) return false;
-    if (a.date && yearFilter !== "all" && !a.date.startsWith(yearFilter)) return false;
+    if (!isActionCountedInReports(a)) return false;
+    const date = safeParseDate(a.date);
+    if (!date || (yearFilter !== "all" && String(date.getFullYear()) !== yearFilter)) return false;
     if (categoryFilter === "program") return isProgramAction(a);
     if (categoryFilter === "non_program") return !isProgramAction(a);
     return true;
   });
   
   let maxMonthlyActions = 0;
-  const rawMonthMap = new Map<string, { tasks: number; actions: number; recipients: number; materials: number; done: number; planned: number }>();
+  const rawMonthMap = new Map<string, { tasks: number; actions: number; recipients: number; materials: number; done: number }>();
 
   for (const a of yearActions) {
-    if (!a.date) continue;
-    const mNum = a.date.slice(5, 7);
+    const date = safeParseDate(a.date);
+    if (!date) continue;
+    const mNum = String(date.getMonth() + 1).padStart(2, "0");
     if (!rawMonthMap.has(mNum)) {
-      rawMonthMap.set(mNum, { tasks: 0, actions: 0, recipients: 0, materials: 0, done: 0, planned: 0 });
+      rawMonthMap.set(mNum, { tasks: 0, actions: 0, recipients: 0, materials: 0, done: 0 });
     }
     const entry = rawMonthMap.get(mNum)!;
     entry.tasks += 1;
     const actCount = Number(a.numberOfActions) || 1;
     entry.actions += actCount;
-    entry.recipients += Number(a.participantsCount) || 0;
+    entry.recipients += (Number(a.participantsCount) || 0);
     entry.materials += Number(a.materialsDistributedCount) || 0;
-    if (a.status === "planowane" || a.status === "planned") {
-      entry.planned += 1;
-    } else {
-      entry.done += 1;
-    }
+    entry.done += 1;
   }
 
   for (const entry of rawMonthMap.values()) {
@@ -113,7 +111,6 @@ export function calculateMonthlySummary(
       recipientsCount: data.recipients,
       materialsCount: data.materials,
       doneCount: data.done,
-      plannedCount: data.planned,
       percentageOfMax,
     });
 

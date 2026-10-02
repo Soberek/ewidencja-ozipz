@@ -130,7 +130,6 @@ export function ActionTypeCell({ row, actionsById, linkedDistributionByActionId,
 
 export function ParticipantsCell({ row }: { row: OzipzAction }) {
   const odb = Number(row.participantsCount || 0);
-  const posr = Number(row.indirectRecipientsCount || 0);
   const mat = Number(row.materialsDistributedCount || 0);
   const isPub = isPublicationActionType(row.actionType);
 
@@ -139,14 +138,9 @@ export function ParticipantsCell({ row }: { row: OzipzAction }) {
       <div className="text-xs font-bold text-foreground">
         {PL_NUMBER.format(odb)} {isPub ? "wyśw." : "os."}
       </div>
-      {(posr > 0 || mat > 0) && (
+      {mat > 0 && (
         <div className="flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground flex-wrap">
-          {posr > 0 && (
-            <span title={`Odbiorcy pośredni: ${posr}`}>
-              +{PL_NUMBER.format(posr)} pośr.
-            </span>
-          )}
-          {mat > 0 && (
+          {(
             <span
               className="inline-flex items-center gap-0.5 text-amber-700 dark:text-amber-400 font-medium"
               title={`Wydane materiały (MAT): ${mat}`}

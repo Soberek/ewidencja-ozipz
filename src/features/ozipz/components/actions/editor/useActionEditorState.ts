@@ -91,7 +91,6 @@ export function useActionEditorState({
   const title = watch("title"), actionType = watch("actionType"), date = watch("date"),
     facilityId = watch("facilityId"), facilityName = watch("facilityName"), municipality = watch("municipality"),
     programId = watch("programId"), programName = watch("programName"), campaignId = watch("campaignId"),
-    indirectRecipientsCount = watch("indirectRecipientsCount"),
     materialsDistributedCount = watch("materialsDistributedCount"), numberOfActions = watch("numberOfActions") || 1, materialId = watch("materialId"),
     leadEducator = watch("leadEducator"), ezdStatus = watch("ezdStatus"),
     izrzSign = watch("izrzSign"), jrwaSign = watch("jrwaSign");
@@ -317,7 +316,7 @@ export function useActionEditorState({
       }
       if (addSimilar && !editingAction?.id) {
         reset({ ...form.getValues(), facilityId: "", facilityName: "", municipality: "",
-          audienceGroup: "", participantsCount: 0, indirectRecipientsCount: 0,
+          audienceGroup: "", participantsCount: 0,
           jrwaCaseId: "", jrwaSign: "", izrzSign: "", scheduleEventId: "",
         });
         setFacilityAddress("");
@@ -345,7 +344,7 @@ export function useActionEditorState({
 
   return {
     form, isEditMode, isSubmitting, saveError, title, actionType, isPublication, isDistribution, isNoJrwa, date, facilityId,
-    facilityName, facilityAddress, municipality, programId, programName, campaignId, indirectRecipientsCount,
+    facilityName, facilityAddress, municipality, programId, programName, campaignId,
     materialsDistributedCount, numberOfActions, materialId, materialItems: mats.materialItems, leadEducator,
     ezdStatus, izrzSign, jrwaSign, selectedMaterial: mats.selectedMaterial, activitiesDescription,
     additionalNotes, canSeparateDistribution, separateDistribution, setSeparateDistribution, distributionActionType,

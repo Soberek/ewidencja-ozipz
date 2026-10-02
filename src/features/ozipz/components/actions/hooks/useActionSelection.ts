@@ -85,16 +85,6 @@ export function useActionSelection({
   }, [selectedActionIds, onDeleteAction]);
 
 
-  const handleBulkMarkDone = useCallback(async () => {
-    if (!selectedActionIds.size) return;
-    try {
-      for (const id of selectedActionIds) await onUpdateAction(id, { status: "wykonane" });
-      setSelectedActionIds(new Set());
-      toast.success("Zaktualizowano status zaznaczonych działań");
-    } catch {
-      toast.error("Błąd podczas aktualizacji statusu");
-    }
-  }, [selectedActionIds, onUpdateAction]);
 
   const handleBulkMarkEzd = useCallback(async (status: "do_ezd" | "w_ezd") => {
     if (!selectedActionIds.size) return;
@@ -139,7 +129,6 @@ export function useActionSelection({
     handleSelectFirstN,
     handleToggleSelect,
     handleBulkDelete,
-    handleBulkMarkDone,
     handleBulkMarkEzd,
     handleBulkExportCsv,
     handleBulkCopySummary,

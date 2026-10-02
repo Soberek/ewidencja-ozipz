@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useActionEditorState } from "./useActionEditorState";
 import { duplicateActionDraft } from "./editorUtils";
+import { linkedDistributionAudience } from "../../../utils/linkedDistribution";
 import type {
   OzipzAction,
   OzipzDistribution,
@@ -149,7 +150,6 @@ describe("Action Materials Distribution - Breakdown & Persistence", () => {
         audienceGroup: "Uczniowie",
         leadEducator: "Jan Kowalski",
         participantsCount: 30,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 65,
         status: "wykonane",
         ezdStatus: "nie_dotyczy",
@@ -169,7 +169,7 @@ describe("Action Materials Distribution - Breakdown & Persistence", () => {
       actionType: "Dystrybucja",
       numberOfActions: 1,
       participantsCount: 1,
-      audienceGroup: savedAction.audienceGroup,
+      audienceGroup: linkedDistributionAudience(savedAction.audienceGroup),
       facilityName: "Szkoła Podstawowa nr 1",
       date: "2026-05-10",
       leadEducator: "Jan Kowalski",
@@ -217,7 +217,6 @@ describe("Action Materials Distribution - Breakdown & Persistence", () => {
         audienceGroup: "Uczniowie",
         leadEducator: "Jan Kowalski",
         participantsCount: 30,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 30,
         status: "wykonane",
         ezdStatus: "nie_dotyczy",
@@ -251,7 +250,7 @@ describe("Action Materials Distribution - Breakdown & Persistence", () => {
     const existing: OzipzAction = {
       id: "act-stoisko", title: "Stoisko na festynie", actionType: "Stoisko edukacyjno-informacyjne", date: "2026-06-20",
       facilityName: "Szkoła Podstawowa nr 1", municipality: "Myślibórz", topic: "zdrowie", audienceGroup: "Mieszkańcy - 80",
-      leadEducator: "Jan Kowalski", participantsCount: 80, indirectRecipientsCount: 0, materialsDistributedCount: 0,
+      leadEducator: "Jan Kowalski", participantsCount: 80, materialsDistributedCount: 0,
       status: "wykonane", ezdStatus: "do_ezd", createdAt: "2026-06-20T10:00:00Z", updatedAt: "2026-06-20T10:00:00Z",
     };
     const onUpdate = vi.fn();
@@ -303,7 +302,6 @@ describe("Action Materials Distribution - Breakdown & Persistence", () => {
         audienceGroup: "Uczniowie",
         leadEducator: "Jan Kowalski",
         participantsCount: 20,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 0,
         status: "wykonane",
         ezdStatus: "nie_dotyczy",
@@ -324,7 +322,6 @@ describe("Action Materials Distribution - Breakdown & Persistence", () => {
       audienceGroup: "Uczniowie",
       leadEducator: "Jan Kowalski",
       participantsCount: 30,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 75,
       materialId: "mat-broszura-1",
       status: "wykonane",
@@ -396,7 +393,6 @@ describe("Action Materials Distribution - Breakdown & Persistence", () => {
         audienceGroup: "Uczniowie",
         leadEducator: "Jan Kowalski",
         participantsCount: 30,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 75,
         status: "wykonane",
         ezdStatus: "nie_dotyczy",
@@ -429,7 +425,6 @@ describe("Action Materials Distribution - Breakdown & Persistence", () => {
       audienceGroup: "Uczniowie",
       leadEducator: "Jan Kowalski",
       participantsCount: 40,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 80,
       materialId: "mat-broszura-1",
       status: "wykonane",
@@ -503,7 +498,6 @@ describe("Action Materials Distribution - Breakdown & Persistence", () => {
       audienceGroup: "Uczniowie",
       leadEducator: "Jan Kowalski",
       participantsCount: 20,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 15,
       materialId: "mat-broszura-1",
       status: "wykonane",

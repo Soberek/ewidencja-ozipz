@@ -36,7 +36,7 @@ it("shows renamed facility and program immediately and after reloading stored re
     title: "Test nazw", actionType: "Prelekcja", date: "2026-09-09", facilityId: facility.id,
     facilityName: facility.name, municipality: facility.municipality, programId: program.id, programName: program.name,
     topic: "", audienceGroup: "Uczniowie", participantsCount: 10, leadEducator: "Test",
-    ezdStatus: "", status: "wykonane", indirectRecipientsCount: 0, materialsDistributedCount: 0,
+    ezdStatus: "", status: "wykonane", materialsDistributedCount: 0,
   });
   await store.updateFacility(facility.id, { name: "Nowa nazwa placówki", municipality: "Nowa gmina" });
   await store.updateProgram(program.id, { name: "Nowa nazwa programu" });

@@ -64,7 +64,6 @@ export const ActionSchema = z.object({
   materialId: z.string().optional(),
   numberOfActions: z.number().int().min(1).optional(),
   participantsCount: z.number().int().min(0, "Liczba uczestników nie może być ujemna"),
-  indirectRecipientsCount: z.number().int().min(0).optional().default(0),
   materialsDistributedCount: z.number().int().min(0).optional().default(0),
   leadEducator: z.string().min(1, "Osoba prowadząca jest wymagana"),
   notes: z.string().optional(),

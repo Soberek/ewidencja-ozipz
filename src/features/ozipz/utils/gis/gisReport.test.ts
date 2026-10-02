@@ -24,7 +24,6 @@ function action(overrides: Partial<OzipzAction>): OzipzAction {
     ezdStatus: "",
     status: "wykonane",
     participantsCount: 0,
-    indirectRecipientsCount: 0,
     materialsDistributedCount: 0,
     leadEducator: "Jan Kowalski",
     createdAt: "2026-01-01",
@@ -151,7 +150,7 @@ describe("calculateGisReports", () => {
 
   const actions = [
     // SZCZEPIENIA – nieprogramowe
-    action({ jrwaSign: "OZiPZ.966.11.1.2026", programName: "Promocja szczepień", actionType: "Prelekcja (warsztat)", numberOfActions: 2, participantsCount: 40, indirectRecipientsCount: 5, facilityId: "f-1" }),
+    action({ jrwaSign: "OZiPZ.966.11.1.2026", programName: "Promocja szczepień", actionType: "Prelekcja (warsztat)", numberOfActions: 2, participantsCount: 40, facilityId: "f-1" }),
     action({ jrwaSign: "OZiPZ.966.11.2.2026", programName: "Promocja szczepień", actionType: "Publikacja media (Facebook)", participantsCount: 120, facilityName: "PSSE Myślibórz" }),
     action({ jrwaSign: "OZiPZ.966.11.3.2026", programName: "Promocja szczepień", actionType: "Dystrybucja", facilityName: "Przychodnia Zdrowie" }),
     action({ jrwaSign: "OZiPZ.966.11.4.2026", programName: "Promocja szczepień", actionType: "Konkurs (quiz)", participantsCount: 30, status: "odwolane" }),
@@ -173,12 +172,12 @@ describe("calculateGisReports", () => {
     expect(reports.uzaleznienia.programowe.liczbaDzialan).toBe(0);
   });
 
-  it("fills form fields with direct + indirect recipients and numberOfActions", () => {
+  it("fills form fields with recipients and numberOfActions", () => {
     const report = reports.szczepienia.nieprogramowe;
     expect(report.interwencje).toEqual(["Promocja szczepień"]);
-    expect(report.liczbaOdbiorcow).toBe(40 + 5 + 120);
+    expect(report.liczbaOdbiorcow).toBe(40 + 120);
     expect(report.liczbaPrelekcji).toBe(2);
-    expect(report.liczbaOdbiorcowPrelekcji).toBe(45);
+    expect(report.liczbaOdbiorcowPrelekcji).toBe(40);
     expect(report.liczbaPostowSocialMedia).toBe(1);
     expect(report.liczbaObserwatorowSocialMedia).toBe(120);
     expect(report.liczbaMiejscDystrybucjiMateria).toBe(1);
@@ -205,7 +204,7 @@ describe("calculateGisReports", () => {
   it("reports categorisation coverage and the reason for each unclassified action", () => {
     expect(stats.categorizedActions).toBe(6);
     expect(stats.uncategorizedActions).toBe(2);
-    expect(stats.categorizedRecipients).toBe(165 + 13);
+    expect(stats.categorizedRecipients).toBe(160 + 13);
     expect(stats.categorizedPercentage).toBeCloseTo(75);
     expect(stats.unclassified.map((row) => [row.symbol, row.reason])).toEqual([
       ["0442", "poza-sprawozdaniem"],

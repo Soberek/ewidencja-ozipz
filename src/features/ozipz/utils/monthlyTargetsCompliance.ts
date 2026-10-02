@@ -1,6 +1,6 @@
 import type { OzipzAction } from "../types/ozipz.types";
 import { isProgramAction } from "./ozipzCalculations";
-import { isActionCountedInReports, isActionExecuted } from "./calculators/actionMetrics";
+import { isActionCountedInReports } from "./calculators/actionMetrics";
 import { safeParseDate } from "./dateUtils";
 import {
   MONTH_NAMES_PL,
@@ -87,22 +87,13 @@ export function calculateMonthlyComplianceMatrix(params: {
   const { actions, targets, year, customKindMap } = params;
 
   const recordedPerMonth: OzipzReportMetrics[] = Array.from({ length: 13 }, emptyReportMetrics);
-  const openPerMonth: number[] = new Array(13).fill(0);
 
   for (const a of actions) {
     if (!a.date || !isActionCountedInReports(a)) continue;
 
     const parsed = safeParseDate(a.date);
     if (!parsed || parsed.getFullYear() !== year) continue;
-    const month = parsed.getMonth() + 1;
-
-    // Do sprawozdania trafia wyłącznie wykonanie – niezamknięte wpisy tylko sygnalizujemy.
-    if (!isActionExecuted(a.status)) {
-      openPerMonth[month] += 1;
-      continue;
-    }
-
-    const bucket = recordedPerMonth[month];
+    const bucket = recordedPerMonth[parsed.getMonth() + 1];
     if (isProgramAction(a, customKindMap)) {
       bucket.programActions += getActionCount(a);
       bucket.programRecipients += getActionRecipients(a);
@@ -141,7 +132,6 @@ export function calculateMonthlyComplianceMatrix(params: {
       hasReport,
       monthly,
       cumulative: compareWithReport(cumReported, cumRecorded, hasReport),
-      openActionsCount: openPerMonth[m],
     });
   }
 

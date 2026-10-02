@@ -26,7 +26,7 @@ const registered: OzipzAction = {
   facilityName: "SP1", municipality: "Myślibórz", programId: "prog-tf", programName: "Trzymaj Formę!",
   topic: "", audienceGroup: "Klasa 5 - 20", participantsCount: 20, leadEducator: "Jan Kowalski",
   jrwaSign: "OZiPZ.966.1.3.2026", jrwaCaseId: "case-3", izrzSign: "40/2026", ezdStatus: "w_ezd", status: "wykonane",
-  numberOfActions: 1, indirectRecipientsCount: 0, materialsDistributedCount: 0,
+  numberOfActions: 1, materialsDistributedCount: 0,
 };
 const other: OzipzAction = { ...registered, id: "act-2", jrwaSign: "OZiPZ.966.1.7.2026", izrzSign: "55/2026", jrwaCaseId: "case-7" };
 const cases: OzipzJrwaCase[] = [{

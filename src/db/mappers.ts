@@ -64,7 +64,6 @@ export const Mappers = {
       materialId: row.material_id || undefined,
       numberOfActions: row.number_of_actions != null ? Number(row.number_of_actions) : 1,
       participantsCount: Number(row.participants_count) || 0,
-      indirectRecipientsCount: row.indirect_recipients_count != null ? Number(row.indirect_recipients_count) : 0,
       materialsDistributedCount: row.materials_distributed_count != null ? Number(row.materials_distributed_count) : 0,
       leadEducator: row.lead_educator,
       notes: row.notes || undefined,

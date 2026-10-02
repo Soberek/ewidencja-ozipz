@@ -68,7 +68,6 @@ export function buildImportPayloads(row: ImportRow, author: string, programs: Oz
       topic,
       audienceGroup: PUBLICATION_DEFAULTS.audienceGroup,
       participantsCount: 0,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
       leadEducator: educator,
       ezdStatus: "nie_dotyczy",

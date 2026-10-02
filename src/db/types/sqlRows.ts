@@ -33,7 +33,6 @@ export interface ActionSqlRow {
   material_id?: string | null;
   number_of_actions?: number | null;
   participants_count: number;
-  indirect_recipients_count: number | null;
   materials_distributed_count: number | null;
   lead_educator: string;
   notes: string | null;

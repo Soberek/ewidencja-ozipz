@@ -33,7 +33,6 @@ describe("Ewidencja OZiPZ - Rozliczanie Harmonogramu z Rejestru Działań (sched
     topic: "tyton",
     audienceGroup: "Uczestnicy",
     participantsCount: 25,
-    indirectRecipientsCount: 0,
     materialsDistributedCount: 0,
     leadEducator: "Krzysztof Palpuchowski",
     status: "wykonane",

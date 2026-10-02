@@ -97,7 +97,7 @@ export async function downloadFullReportWorkbook(
   ws1.addRow([`Mierniki syntetyczne OZiPZ — Rok ${year} (${monthText})`]);
   ws1.addRow([`Sporządził: ${preparedBy}`]);
   ws1.addRow([]);
-  ws1.addRow(["Miesiąc", "Zadania", "Działania", "Odbiorcy", "Materiały", "Wykonane"]);
+  ws1.addRow(["Miesiąc", "Zadania", "Działania", "Odbiorcy", "Materiały"]);
 
   for (let m = 1; m <= 12; m++) {
     if (!months.includes(m)) continue;
@@ -106,8 +106,7 @@ export async function downloadFullReportWorkbook(
     const acts = mActions.reduce((s, a) => s + (Number(a.numberOfActions) || 1), 0);
     const recs = mActions.reduce((s, a) => s + (Number(a.participantsCount) || 0), 0);
     const mats = mActions.reduce((s, a) => s + (Number(a.materialsDistributedCount) || 0), 0);
-    const done = mActions.filter((a) => a.status === "wykonane").length;
-    ws1.addRow([POLISH_MONTHS[m - 1], tasks, acts, recs, mats, done]);
+    ws1.addRow([POLISH_MONTHS[m - 1], tasks, acts, recs, mats]);
   }
 
   // 2. Arkusz: Statystyki Programowe
@@ -123,7 +122,7 @@ export async function downloadFullReportWorkbook(
     mActions.forEach((a) => {
       const isProg = isProgramAction(a);
       const acts = Number(a.numberOfActions) || 1;
-      const rec = Number(a.participantsCount) || 0;
+      const rec = (Number(a.participantsCount) || 0);
       if (isProg) { pAct += acts; pRec += rec; } else { nAct += acts; nRec += rec; }
     });
     ws2.addRow([POLISH_MONTHS[m - 1], pAct, nAct, pAct + nAct, pRec, nRec, pRec + nRec]);

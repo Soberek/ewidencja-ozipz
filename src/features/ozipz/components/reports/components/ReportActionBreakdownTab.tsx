@@ -182,10 +182,10 @@ export function ReportActionBreakdownTab({
               <MetricCard
                 title="Działania"
                 value={n(breakdown.totals.actions)}
-                subtext={`${plural(breakdown.totals.entries, ENTRY_FORMS)}${breakdown.totals.planned ? ` · ${breakdown.totals.planned} niewykonanych` : ""}`}
+                subtext={plural(breakdown.totals.entries, ENTRY_FORMS)}
                 icon={<Activity className="size-4" />}
               />
-              <MetricCard title="Odbiorcy" value={n(breakdown.totals.recipients)} subtext="bezpośredni i pośredni" icon={<Users className="size-4" />} variant="primary" />
+              <MetricCard title="Odbiorcy" value={n(breakdown.totals.recipients)} subtext="wszyscy odbiorcy działań" icon={<Users className="size-4" />} variant="primary" />
               <MetricCard title="Materiały" value={n(breakdown.totals.materials)} subtext="wydane sztuki" icon={<Package className="size-4" />} variant="amber" />
               <MetricCard
                 title="Placówki"

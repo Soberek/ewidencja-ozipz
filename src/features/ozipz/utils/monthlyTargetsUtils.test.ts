@@ -108,17 +108,6 @@ describe("Monthly Targets & Compliance Utils (monthlyTargetsUtils)", () => {
     };
 
     actions.push(
-      // Zaplanowane, niezamknięte – nie liczy się do wykonania, tylko jest sygnalizowane
-      {
-        id: "a5",
-        title: "Prelekcja zaplanowana",
-        actionType: "prelekcja",
-        date: "2026-02-20",
-        programId: "prog-1",
-        participantsCount: 25,
-        numberOfActions: 1,
-        status: "planowane",
-      } as OzipzAction,
       {
         id: "a6",
         title: "Odwołana",
@@ -153,7 +142,6 @@ describe("Monthly Targets & Compliance Utils (monthlyTargetsUtils)", () => {
     expect(feb.monthly.diff.programActions).toBe(-1);
     expect(feb.monthly.diff.programRecipients).toBe(-10);
     expect(feb.monthly.status).toBe("rozbieznosc");
-    expect(feb.openActionsCount).toBe(1);
 
     // Narastająco sty–lut
     expect(feb.cumulative.reported.programActions).toBe(4);

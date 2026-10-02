@@ -13,7 +13,7 @@ interface DashboardKpiBannerProps {
   programs: OzipzProgram[];
   participations: OzipzSchoolParticipation[];
   scheduleEvents: OzipzScheduleEvent[];
-  recipients: { total: number; direct: number; indirect: number };
+  recipients: { total: number; materialsCount: number };
   upcomingEventsCount: number;
   onNavigateTab: (tab: HealthPromotionTab) => void;
 }
@@ -104,13 +104,13 @@ export function DashboardKpiBanner({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate">
-              Zasięg Całkowity (z pośrednimi)
+              Odbiorcy
             </p>
             <p className="mt-1 font-mono text-2xl font-bold tracking-tight text-foreground">
               {recipients.total.toLocaleString("pl-PL")}
             </p>
             <p className="mt-0.5 text-[11px] text-muted-foreground truncate">
-              Łączny zasięg oddziaływania
+              Łączna liczba odbiorców działań
             </p>
           </div>
           <div className="flex size-8 shrink-0 items-center justify-center rounded-[2px] border border-border bg-muted/40 text-blue-600 dark:text-blue-400">
@@ -118,9 +118,9 @@ export function DashboardKpiBanner({
           </div>
         </div>
         <div className="mt-2.5 pt-2 border-t border-border/70 flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>Wskaźnik bezpośredni:</span>
+          <span>Wydane materiały:</span>
           <strong className="text-foreground font-mono">
-            {recipients.total > 0 ? Math.round((recipients.direct / recipients.total) * 100) : 0}%
+            {recipients.materialsCount.toLocaleString("pl-PL")} szt.
           </strong>
         </div>
         <button type="button" aria-label="Przejdź do sprawozdań" onClick={() => onNavigateTab("sprawozdania")} className="absolute inset-0 cursor-pointer rounded-[3px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />

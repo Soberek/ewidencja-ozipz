@@ -161,7 +161,7 @@ export function buildReportAnnexRows(
 
     const isVisit = actionName.toLocaleLowerCase("pl-PL") === "wizytacja";
     const numActions = Number(action.numberOfActions) || 1;
-    const count = Number(action.participantsCount) || 0;
+    const count = (Number(action.participantsCount) || 0);
 
     if (isVisit) {
       row.visits += numActions;

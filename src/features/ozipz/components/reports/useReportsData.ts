@@ -13,7 +13,6 @@ import {
   emptyMetricPlan,
   recipientCount,
   materialCount,
-  isCompletedAction,
   type MetricPlanState,
 } from "./components/reportConstants";
 import { safeParseDate } from "../../utils/dateUtils";
@@ -172,7 +171,6 @@ export function useReportsData({
       actions: filteredActions.reduce((sum, a) => sum + (Number(a.numberOfActions) || 1), 0),
       recipients: filteredActions.reduce((sum, a) => sum + recipientCount(a), 0),
       materials: filteredActions.reduce((sum, a) => sum + materialCount(a), 0),
-      completed: filteredActions.filter(isCompletedAction).length,
     };
   }, [filteredActions]);
 
@@ -184,12 +182,11 @@ export function useReportsData({
         actions: number;
         recipients: number;
         materials: number;
-        completed: number;
       }
     >();
 
     for (let m = 1; m <= 12; m++) {
-      map.set(m, { tasks: 0, actions: 0, recipients: 0, materials: 0, completed: 0 });
+      map.set(m, { tasks: 0, actions: 0, recipients: 0, materials: 0 });
     }
 
     for (const a of filteredActions) {
@@ -201,12 +198,11 @@ export function useReportsData({
         current.actions += Number(a.numberOfActions) || 1;
         current.recipients += recipientCount(a);
         current.materials += materialCount(a);
-        if (isCompletedAction(a)) current.completed += 1;
       }
     }
 
     return months.map((m) => {
-      const data = map.get(m) || { tasks: 0, actions: 0, recipients: 0, materials: 0, completed: 0 };
+      const data = map.get(m) || { tasks: 0, actions: 0, recipients: 0, materials: 0 };
       return {
         month: m,
         label: monthLabels[m - 1],

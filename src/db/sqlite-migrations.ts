@@ -1,6 +1,7 @@
 import type { ISqlDatabase } from "./types";
+import { linkedDistributionAudience } from "../features/ozipz/utils/linkedDistribution";
 
-export const SCHEMA_VERSION = 13;
+export const SCHEMA_VERSION = 14;
 
 /** Dzień w formacie ISO (RRRR-MM-DD, opcjonalnie z czasem) — na nim opiera się blokada zamkniętych miesięcy. */
 const isoDay = (column: string) => `${column} GLOB '[0-9][0-9][0-9][0-9]-[01][0-9]-[0-3][0-9]*'`;
@@ -24,7 +25,7 @@ CREATE TABLE IF NOT EXISTS ozipz_facilities (id TEXT PRIMARY KEY NOT NULL, name 
 CREATE TABLE IF NOT EXISTS ozipz_programs (id TEXT PRIMARY KEY NOT NULL, code TEXT NOT NULL, name TEXT NOT NULL, edition_year TEXT NOT NULL, jrwa_symbol TEXT CHECK (jrwa_symbol <> ''), target_audience TEXT NOT NULL, description TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'aktywny', participating_schools_count INTEGER NOT NULL DEFAULT 0 CHECK (participating_schools_count >= 0), total_pupils_reached INTEGER NOT NULL DEFAULT 0 CHECK (total_pupils_reached >= 0), created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(code, edition_year)) STRICT;
 CREATE TABLE IF NOT EXISTS ozipz_participations (id TEXT PRIMARY KEY NOT NULL, program_id TEXT NOT NULL, program_name TEXT NOT NULL, facility_id TEXT NOT NULL, facility_name TEXT NOT NULL, municipality TEXT NOT NULL, school_year TEXT NOT NULL, school_coordinator_name TEXT NOT NULL, school_coordinator_contact TEXT, school_coordinator_contact_id TEXT, second_coordinator_name TEXT, second_coordinator_contact TEXT, second_coordinator_contact_id TEXT CHECK (second_coordinator_contact_id IS NULL OR second_coordinator_contact_id IS NOT school_coordinator_contact_id), pupils_count INTEGER NOT NULL DEFAULT 0 CHECK (pupils_count >= 0), has_declaration INTEGER NOT NULL DEFAULT 1 CHECK (has_declaration IN (0, 1)), has_final_report INTEGER NOT NULL DEFAULT 0 CHECK (has_final_report IN (0, 1)), evaluation_grade TEXT, notes TEXT, application_file TEXT CHECK (application_file <> ''), created_at TEXT NOT NULL, updated_at TEXT NOT NULL, FOREIGN KEY (program_id) REFERENCES ozipz_programs(id) ON DELETE RESTRICT, FOREIGN KEY (facility_id) REFERENCES ozipz_facilities(id) ON DELETE RESTRICT, FOREIGN KEY (school_coordinator_contact_id) REFERENCES ozipz_contacts(id) ON DELETE SET NULL, FOREIGN KEY (second_coordinator_contact_id) REFERENCES ozipz_contacts(id) ON DELETE SET NULL) STRICT;
 CREATE TABLE IF NOT EXISTS ozipz_materials (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, material_type TEXT NOT NULL, topic TEXT NOT NULL, publisher TEXT NOT NULL, target_audience TEXT, notes TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL) STRICT;
-CREATE TABLE IF NOT EXISTS ozipz_actions (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, action_type TEXT NOT NULL, date TEXT NOT NULL CHECK (${isoDay("date")}), facility_id TEXT, facility_name TEXT NOT NULL, municipality TEXT NOT NULL, program_id TEXT, program_name TEXT, topic TEXT NOT NULL, audience_group TEXT NOT NULL, campaign_id TEXT, campaign_name TEXT, jrwa_sign TEXT, jrwa_case_id TEXT, izrz_sign TEXT, ezd_status TEXT, status TEXT, source_info TEXT, schedule_event_id TEXT, linked_action_id TEXT CHECK (linked_action_id <> id), material_id TEXT, number_of_actions INTEGER NOT NULL DEFAULT 1 CHECK (number_of_actions >= 1), participants_count INTEGER NOT NULL DEFAULT 0 CHECK (participants_count >= 0), indirect_recipients_count INTEGER NOT NULL DEFAULT 0 CHECK (indirect_recipients_count >= 0), materials_distributed_count INTEGER NOT NULL DEFAULT 0 CHECK (materials_distributed_count >= 0), lead_educator TEXT NOT NULL, notes TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, FOREIGN KEY (facility_id) REFERENCES ozipz_facilities(id) ON DELETE SET NULL, FOREIGN KEY (program_id) REFERENCES ozipz_programs(id) ON DELETE SET NULL, FOREIGN KEY (material_id) REFERENCES ozipz_materials(id) ON DELETE SET NULL, FOREIGN KEY (schedule_event_id) REFERENCES ozipz_schedule(id) ON DELETE SET NULL, FOREIGN KEY (jrwa_case_id) REFERENCES ozipz_jrwa_cases(id) ON DELETE SET NULL, FOREIGN KEY (linked_action_id) REFERENCES ozipz_actions(id) ON DELETE SET NULL) STRICT;
+CREATE TABLE IF NOT EXISTS ozipz_actions (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, action_type TEXT NOT NULL, date TEXT NOT NULL CHECK (${isoDay("date")}), facility_id TEXT, facility_name TEXT NOT NULL, municipality TEXT NOT NULL, program_id TEXT, program_name TEXT, topic TEXT NOT NULL, audience_group TEXT NOT NULL, campaign_id TEXT, campaign_name TEXT, jrwa_sign TEXT, jrwa_case_id TEXT, izrz_sign TEXT, ezd_status TEXT, status TEXT, source_info TEXT, schedule_event_id TEXT, linked_action_id TEXT CHECK (linked_action_id <> id), material_id TEXT, number_of_actions INTEGER NOT NULL DEFAULT 1 CHECK (number_of_actions >= 1), participants_count INTEGER NOT NULL DEFAULT 0 CHECK (participants_count >= 0), materials_distributed_count INTEGER NOT NULL DEFAULT 0 CHECK (materials_distributed_count >= 0), lead_educator TEXT NOT NULL, notes TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, FOREIGN KEY (facility_id) REFERENCES ozipz_facilities(id) ON DELETE SET NULL, FOREIGN KEY (program_id) REFERENCES ozipz_programs(id) ON DELETE SET NULL, FOREIGN KEY (material_id) REFERENCES ozipz_materials(id) ON DELETE SET NULL, FOREIGN KEY (schedule_event_id) REFERENCES ozipz_schedule(id) ON DELETE SET NULL, FOREIGN KEY (jrwa_case_id) REFERENCES ozipz_jrwa_cases(id) ON DELETE SET NULL, FOREIGN KEY (linked_action_id) REFERENCES ozipz_actions(id) ON DELETE SET NULL) STRICT;
 CREATE TABLE IF NOT EXISTS ozipz_distributions (id TEXT PRIMARY KEY NOT NULL, material_id TEXT, material_title TEXT NOT NULL, material_type TEXT, facility_id TEXT, recipient_name TEXT NOT NULL, municipality TEXT, action_id TEXT, action_title TEXT, quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity >= 1), distribution_date TEXT NOT NULL CHECK (${isoDay("distribution_date")}), assigned_educator TEXT NOT NULL, purpose TEXT NOT NULL, notes TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, FOREIGN KEY (material_id) REFERENCES ozipz_materials(id) ON DELETE SET NULL, FOREIGN KEY (facility_id) REFERENCES ozipz_facilities(id) ON DELETE SET NULL, FOREIGN KEY (action_id) REFERENCES ozipz_actions(id) ON DELETE SET NULL) STRICT;
 CREATE TABLE IF NOT EXISTS ozipz_schedule (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, activity_type_code TEXT, activity_type_name TEXT, event_date TEXT NOT NULL CHECK (${isoDay("event_date")}), end_date TEXT CHECK (${isoDay("end_date")}), category TEXT, topic TEXT, program_id TEXT, program_name TEXT, campaign_id TEXT, campaign_name TEXT, recipient_group TEXT, location TEXT NOT NULL, facility_id TEXT, action_id TEXT, status TEXT NOT NULL DEFAULT 'zaplanowane', annotation_reason_code TEXT, annotation_reason_label TEXT, annotation_text TEXT, responsible_person TEXT NOT NULL, month INTEGER CHECK (month BETWEEN 1 AND 12), month_name TEXT, year INTEGER CHECK (year >= 1), planned_count INTEGER DEFAULT 1 CHECK (planned_count >= 0), completed_count INTEGER DEFAULT 0 CHECK (completed_count >= 0), manually_completed INTEGER DEFAULT 0 CHECK (manually_completed IN (0, 1)), jrwa TEXT, notes TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, CHECK (end_date >= event_date), FOREIGN KEY (facility_id) REFERENCES ozipz_facilities(id) ON DELETE SET NULL, FOREIGN KEY (program_id) REFERENCES ozipz_programs(id) ON DELETE SET NULL, FOREIGN KEY (action_id) REFERENCES ozipz_actions(id) ON DELETE SET NULL) STRICT;
 CREATE TABLE IF NOT EXISTS ozipz_jrwa_cases (id TEXT PRIMARY KEY NOT NULL, section TEXT NOT NULL DEFAULT 'OZiPZ', jrwa_symbol TEXT NOT NULL, case_number INTEGER NOT NULL CHECK (case_number >= 1), year INTEGER NOT NULL CHECK (year >= 1), referent_initials TEXT, full_case_sign TEXT NOT NULL, title TEXT NOT NULL, facility_id TEXT, facility_name TEXT, program_id TEXT, program_name TEXT, action_id TEXT, archival_category TEXT, start_date TEXT CHECK (${isoDay("start_date")}), end_date TEXT CHECK (${isoDay("end_date")}), initiating_document TEXT, status TEXT NOT NULL DEFAULT 'w_toku', assigned_educator TEXT NOT NULL, notes TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, CHECK (end_date >= start_date), UNIQUE(section, jrwa_symbol, case_number, year), UNIQUE(full_case_sign), FOREIGN KEY (facility_id) REFERENCES ozipz_facilities(id) ON DELETE SET NULL, FOREIGN KEY (program_id) REFERENCES ozipz_programs(id) ON DELETE SET NULL, FOREIGN KEY (action_id) REFERENCES ozipz_actions(id) ON DELETE SET NULL) STRICT;
@@ -117,6 +118,8 @@ const RETIRED_OBJECTS = new Set([
  */
 const RETIRED_COLUMNS: Record<string, Set<string>> = {
   ozipz_participations: new Set(["classes_count", "parents_count"]),
+  // v14: aplikacja zna tylko odbiorców (bezpośrednich) – podziału na pośrednich nie ma.
+  ozipz_actions: new Set(["indirect_recipients_count"]),
 };
 
 /**
@@ -131,7 +134,6 @@ const COPY_EXPRESSIONS: Record<string, Record<string, string>> = {
   },
   ozipz_programs: { jrwa_symbol: "NULLIF(jrwa_symbol, '')" },
   ozipz_actions: {
-    indirect_recipients_count: "COALESCE(indirect_recipients_count, 0)",
     materials_distributed_count: "COALESCE(materials_distributed_count, 0)",
   },
   ozipz_distributions: { updated_at: "COALESCE(updated_at, created_at)" },
@@ -262,6 +264,22 @@ export async function migrateDatabase(db: ISqlDatabase): Promise<{ migrated: boo
       "SELECT id, municipality, notes, education_types, default_coordinator_name, default_coordinator_phone, default_coordinator_email FROM ozipz_facilities"
     );
     batch.push(...rows.map(facilityCleanupSql).filter((sql): sql is string => sql !== null));
+  }
+  // v14: działania nie mają stanu „planowane” ani „w toku” – zapisany wpis jest wykonany (także w zamkniętych miesiącach).
+  if ((version[0]?.user_version ?? 0) < 14 && existing.some((entry) => entry.type === "table" && entry.name === "ozipz_actions")) {
+    batch.push("UPDATE ozipz_actions SET status = 'wykonane' WHERE lower(trim(status)) IN ('planowane', 'zaplanowane', 'planned', 'w_toku', 'w_trakcie', 'in_progress', 'in-progress')");
+    // Dystrybucja zapisana razem z działaniem liczy 1 odbiorcę; edycja przepisywała jej liczbę odbiorców działania głównego.
+    const actionColumns = await db.select<Array<{ name: string }>>("PRAGMA table_info(ozipz_actions)");
+    const distributions = actionColumns.some(({ name }) => name === "linked_action_id")
+      ? await db.select<Array<{ id: string; audience_group: string | null }>>(
+        "SELECT id, audience_group FROM ozipz_actions WHERE linked_action_id IS NOT NULL AND linked_action_id <> '' AND participants_count <> 1"
+      )
+      : [];
+    const literal = (value: string) => `'${value.replace(/'/g, "''")}'`;
+    for (const row of distributions) {
+      const audience = linkedDistributionAudience(row.audience_group ?? undefined) ?? "";
+      batch.push(`UPDATE ozipz_actions SET participants_count = 1, audience_group = ${literal(audience)} WHERE id = ${literal(row.id)}`);
+    }
   }
   batch.push(...generated);
   batch.push(...lockTriggers);

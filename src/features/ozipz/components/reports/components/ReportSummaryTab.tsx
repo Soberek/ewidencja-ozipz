@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { OzipzAction } from "../../../types/ozipz.types";
 import { ClipboardList, Activity, Users, Package } from "lucide-react";
@@ -17,7 +16,6 @@ export interface MonthlyBreakdownItem {
   actions: number;
   recipients: number;
   materials: number;
-  completed: number;
 }
 
 export interface ProgramStatisticsItem {
@@ -44,7 +42,6 @@ interface ReportSummaryTabProps {
     actions: number;
     recipients: number;
     materials: number;
-    completed: number;
   };
   showKpiSummary?: boolean;
 }
@@ -64,7 +61,7 @@ export function ReportSummaryTab({
       {/* 1. KPI Cards */}
       {showKpiSummary && (
         <StatsGrid>
-          <MetricCard title="Zadania w planie" value={summary.tasks.toLocaleString("pl-PL")} subtext={`${summary.completed} wykonanych`} icon={<ClipboardList className="size-4" />} />
+          <MetricCard title="Wpisy w rejestrze" value={summary.tasks.toLocaleString("pl-PL")} subtext="bez odwołanych i odroczonych" icon={<ClipboardList className="size-4" />} />
           <MetricCard
             title="Działania edukacyjne"
             value={summary.actions.toLocaleString("pl-PL")}
@@ -72,7 +69,7 @@ export function ReportSummaryTab({
             icon={<Activity className="size-4" />}
             variant="primary"
           />
-          <MetricCard title="Łączna liczba odbiorców" value={summary.recipients.toLocaleString("pl-PL")} subtext="uczestnicy bezpośredni i pośredni" icon={<Users className="size-4" />} variant="purple" />
+          <MetricCard title="Łączna liczba odbiorców" value={summary.recipients.toLocaleString("pl-PL")} subtext="wszyscy odbiorcy działań" icon={<Users className="size-4" />} variant="purple" />
           <MetricCard title="Wydane materiały" value={summary.materials.toLocaleString("pl-PL")} subtext="broszury, ulotki, plakaty" icon={<Package className="size-4" />} variant="amber" />
         </StatsGrid>
       )}
@@ -86,14 +83,14 @@ export function ReportSummaryTab({
                 Podsumowanie miesięczne
               </h3>
               <p className="text-[11px] text-muted-foreground">
-                Zestawienie liczby zadań, działań, odbiorców i materiałów w poszczególnych miesiącach.
+                Zestawienie liczby wpisów, działań, odbiorców i materiałów w poszczególnych miesiącach.
               </p>
             </div>
           </div>
 
           <ReportGridTable
-            minWidth={700}
-            headers={["Miesiąc", "Planowane", "Wykonane", "Działania", "Odbiorcy", "Materiały", "Status"]}
+            minWidth={560}
+            headers={["Miesiąc", "Wpisy", "Działania", "Odbiorcy", "Materiały"]}
             rows={monthlyRows
               .filter((row) => months.includes(row.month))
               .map((row) => [
@@ -109,9 +106,6 @@ export function ReportSummaryTab({
                 <span key="tasks" className="font-mono text-xs text-foreground">
                   {row.tasks}
                 </span>,
-                <span key="comp" className="font-mono text-xs font-semibold text-emerald-700">
-                  {row.completed}
-                </span>,
                 <strong key="act" className="font-mono text-xs text-primary">
                   {row.actions}
                 </strong>,
@@ -121,13 +115,6 @@ export function ReportSummaryTab({
                 <span key="mat" className="font-mono text-xs text-foreground">
                   {row.materials.toLocaleString("pl-PL")}
                 </span>,
-                <Badge
-                  key="st"
-                  variant="outline"
-                  className="h-5 rounded-[2px] font-mono text-[9px] font-bold border-border text-muted-foreground"
-                >
-                  {row.tasks > 0 ? `${Math.round((row.completed / row.tasks) * 100)}%` : "0%"}
-                </Badge>,
               ])}
           />
         </CardContent>

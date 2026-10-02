@@ -82,7 +82,6 @@ describe("Ewidencja OZiPZ - Rejestr Działań i System Znaków JRWA edu-report",
       topic: "tyton" as const,
       audienceGroup: "uczniowie_sp",
       participantsCount: 28,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 28,
       leadEducator: "Krzysztof Palpuchowski",
       status: "wykonane",
@@ -124,7 +123,6 @@ describe("Ewidencja OZiPZ - Rejestr Działań i System Znaków JRWA edu-report",
 
   it("prawidłowo wykrywa zadania z zamkniętych miesięcy i blokuje edycję (read-only)", () => {
     const closedMonths = new Set(["2026-07", "2026-06"]);
-    
     const actionJuly = { id: "act-1", date: "2026-07-15", title: "Akcja Lipiec" };
     const actionAugust = { id: "act-2", date: "2026-08-20", title: "Akcja Sierpień" };
 

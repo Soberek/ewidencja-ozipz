@@ -41,55 +41,45 @@ describe("ozipzCalculations", () => {
   describe("calculateTotalRecipients", () => {
     it("calculates total recipients accurately", () => {
       const mockActions: Partial<OzipzAction>[] = [
-        { participantsCount: 30, indirectRecipientsCount: 10, materialsDistributedCount: 30 },
-        { participantsCount: 50, indirectRecipientsCount: 20, materialsDistributedCount: 50 },
+        { participantsCount: 30, materialsDistributedCount: 30 },
+        { participantsCount: 50, materialsDistributedCount: 50 },
       ];
 
       const stats = calculateTotalRecipients(mockActions as OzipzAction[]);
-      expect(stats.direct).toBe(80);
-      expect(stats.indirect).toBe(30);
-      expect(stats.total).toBe(110);
+      expect(stats.total).toBe(80);
       expect(stats.materialsCount).toBe(80);
     });
 
     it("handles empty or missing recipient counts cleanly", () => {
       const stats = calculateTotalRecipients([{} as OzipzAction]);
-      expect(stats.direct).toBe(0);
-      expect(stats.indirect).toBe(0);
       expect(stats.total).toBe(0);
       expect(stats.materialsCount).toBe(0);
     });
   });
 
   describe("calculateSyntheticActionMetrics", () => {
-    it("calculates synthetic action metrics (DZ, ODB_B, ODB_P, MAT)", () => {
+    it("calculates synthetic action metrics (DZ, ODB, MAT)", () => {
       const mockActions: Partial<OzipzAction>[] = [
-        { id: "1", title: "Prelekcja", participantsCount: 25, indirectRecipientsCount: 0, materialsDistributedCount: 25, status: "wykonane", facilityName: "SP 1", topic: "zywienie_i_aktywnosc" },
-        { id: "2", title: "Warsztat", participantsCount: 15, indirectRecipientsCount: 50, materialsDistributedCount: 30, status: "wykonane", facilityName: "LO 1", topic: "zdrowie_psychiczne" },
-        { id: "3", title: "Stoisko", participantsCount: 100, indirectRecipientsCount: 200, materialsDistributedCount: 150, status: "planowane", facilityName: "Rynek", topic: "narkotyki" },
+        { id: "1", title: "Prelekcja", participantsCount: 25, materialsDistributedCount: 25, status: "wykonane", facilityName: "SP 1", topic: "zywienie_i_aktywnosc" },
+        { id: "2", title: "Warsztat", participantsCount: 15, materialsDistributedCount: 30, status: "wykonane", facilityName: "LO 1", topic: "zdrowie_psychiczne" },
+        { id: "3", title: "Stoisko", participantsCount: 100, materialsDistributedCount: 150, status: "wykonane", facilityName: "Rynek", topic: "narkotyki" },
       ];
 
       const metrics = calculateSyntheticActionMetrics(mockActions as OzipzAction[]);
       expect(metrics.tasksCount).toBe(3);
       expect(metrics.dzCount).toBe(3);
-      expect(metrics.directRecipients).toBe(140);
-      expect(metrics.indirectRecipients).toBe(250);
-      expect(metrics.totalRecipients).toBe(390);
+      expect(metrics.totalRecipients).toBe(140);
       expect(metrics.materialsDistributed).toBe(205);
-      expect(metrics.executedCount).toBe(2);
-      expect(metrics.plannedCount).toBe(1);
       expect(metrics.uniqueFacilitiesCount).toBe(3);
       expect(metrics.uniqueTopicsCount).toBe(3);
     });
 
     it("respects custom numberOfActions and facilityId over facilityName", () => {
       const mockActions: Partial<OzipzAction>[] = [
-        { id: "1", numberOfActions: 4, participantsCount: 80, facilityId: "fac-100", facilityName: "Szkoła", status: "planned" },
+        { id: "1", numberOfActions: 4, participantsCount: 80, facilityId: "fac-100", facilityName: "Szkoła", status: "wykonane" },
       ];
       const metrics = calculateSyntheticActionMetrics(mockActions as OzipzAction[]);
       expect(metrics.dzCount).toBe(4);
-      expect(metrics.plannedCount).toBe(1);
-      expect(metrics.executedCount).toBe(0);
       expect(metrics.uniqueFacilitiesCount).toBe(1);
     });
   });
@@ -256,7 +246,7 @@ describe("ozipzCalculations", () => {
       const breakdown = calculateAudienceGroupBreakdown(mockActions as OzipzAction[]);
       expect(breakdown).toHaveLength(3);
       expect(breakdown[0].group).toBe("Uczniowie szkoły podstawowej");
-      expect(breakdown[0].directRecipients).toBe(55);
+      expect(breakdown[0].recipients).toBe(55);
       expect(breakdown[0].actionsCount).toBe(2);
       expect(breakdown[1].group).toBe("Dzieci w wieku przedszkolnym");
       expect(breakdown[2].group).toBe("Inni odbiorcy");
@@ -286,7 +276,7 @@ describe("ozipzCalculations", () => {
       expect(breakdown).toHaveLength(2);
       expect(breakdown[0].form).toBe("Prelekcja (warsztat)");
       expect(breakdown[0].actionsCount).toBe(2);
-      expect(breakdown[0].directRecipients).toBe(35);
+      expect(breakdown[0].recipients).toBe(35);
       expect(breakdown[0].materialsDistributed).toBe(35);
     });
   });
@@ -457,12 +447,8 @@ describe("ozipzCalculations", () => {
         actionsMetrics: {
           dzCount: 15,
           tasksCount: 15,
-          directRecipients: 450,
-          indirectRecipients: 1200,
-          totalRecipients: 1650,
+          totalRecipients: 450,
           materialsDistributed: 500,
-          executedCount: 15,
-          plannedCount: 0,
           uniqueFacilitiesCount: 8,
           uniqueTopicsCount: 5,
         },
@@ -475,7 +461,7 @@ describe("ozipzCalculations", () => {
         },
         activeProgramsCount: 6,
         topAudienceGroups: [
-          { group: "Uczniowie szkoły podstawowej", actionsCount: 8, directRecipients: 250 },
+          { group: "Uczniowie szkoły podstawowej", actionsCount: 8, recipients: 250 },
         ],
         municipalitiesSummary: [
           {
@@ -494,13 +480,25 @@ describe("ozipzCalculations", () => {
 
       expect(narrative).toContain("SPRAWOZDANIE OPISOWE");
       expect(narrative).toContain("Okres sprawozdawczy: I Półrocze (Rok 2026)");
-      expect(narrative).toContain("Liczba bezpośrednich uczestników prelekcji, warsztatów i pogadanek (ODB_B): 450 osób.");
+      expect(narrative).toContain("Liczba odbiorców działań (ODB): 450 osób.");
       expect(narrative).toContain("Łączna liczba objętych dzieci i młodzieży szkolnej: 850 uczniów.");
       expect(narrative).toContain("Wskaźnik kompletności nadesłanych sprawozdań końcowych z placówek: 83%");
     });
   });
 
   describe("calculateMonthlySummary & reconcileMonthlySummary", () => {
+    it("uses report status and localized date in monthly totals", () => {
+      const actions = [
+        { id: "done", date: "10.05.2026", status: "wykonane", participantsCount: 10},
+        { id: "postponed", date: "2026-05-11", status: "odroczone", participantsCount: 100 },
+        { id: "cancelled", date: "2026-05-12", status: "odwolane", participantsCount: 100 },
+      ] as OzipzAction[];
+      const monthly = calculateMonthlySummary(actions, "2026");
+      expect(monthly.totalTasks).toBe(1);
+      expect(monthly.totalRecipients).toBe(10);
+      expect(monthly.rows[0].monthNumber).toBe(5);
+    });
+
     it("calculates accurate monthly breakdown matching numbers", () => {
       const sampleActions: Partial<OzipzAction>[] = [
         { id: "1", date: "2026-01-10", numberOfActions: 2, participantsCount: 40, materialsDistributedCount: 0, status: "wykonane" },

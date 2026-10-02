@@ -19,7 +19,6 @@ export interface ActionEditorFooterProps {
   ezdStatus?: string;
   numberOfActions?: number;
   totalDirectParticipants: number;
-  indirectRecipientsCount?: number;
   materialsDistributedCount?: number;
   groupsCount?: number;
   jrwaSign?: string;
@@ -46,7 +45,6 @@ export function ActionEditorFooter({
   ezdStatus,
   numberOfActions = 1,
   totalDirectParticipants,
-  indirectRecipientsCount = 0,
   materialsDistributedCount = 0,
   jrwaSign,
   izrzSign,
@@ -111,12 +109,8 @@ export function ActionEditorFooter({
             {Number(numberOfActions || 1)} DZ
           </span>
           <span>•</span>
-          <span title="Odbiorcy Bezpośredni">
+          <span title="Odbiorcy">
             ODB: <strong>{Number.isFinite(totalDirectParticipants) ? totalDirectParticipants : 0}</strong>
-          </span>
-          <span>•</span>
-          <span title="Odbiorcy Pośredni">
-            POŚR: <strong>{Number.isFinite(indirectRecipientsCount) ? indirectRecipientsCount : 0}</strong>
           </span>
           <span>•</span>
           <span title="Rozdane Materiały">

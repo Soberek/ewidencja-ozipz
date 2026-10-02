@@ -52,7 +52,6 @@ describe("Relational Integrity & Cascades (FallbackDatabaseService)", () => {
       leadEducator: "Jan",
       ezdStatus: "w_ezd",
       status: "wykonane",
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
     });
 
@@ -150,7 +149,6 @@ describe("Relational Integrity & Cascades (FallbackDatabaseService)", () => {
       leadEducator: "Jan",
       ezdStatus: "w_ezd",
       status: "wykonane",
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
     });
 
@@ -214,7 +212,6 @@ describe("Relational Integrity & Cascades (FallbackDatabaseService)", () => {
       leadEducator: "Jan",
       ezdStatus: "w_ezd",
       status: "wykonane",
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
     });
 
@@ -242,7 +239,6 @@ describe("Relational Integrity & Cascades (FallbackDatabaseService)", () => {
       leadEducator: "Jan",
       ezdStatus: "w_ezd",
       status: "wykonane",
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
     });
 
@@ -311,7 +307,6 @@ describe("Relational Integrity & Cascades (FallbackDatabaseService)", () => {
         scheduleEventId: sch.id,
         ezdStatus: "w_ezd",
         status: "wykonane",
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 0,
       },
       autoCreateJrwa: {
@@ -400,7 +395,6 @@ describe("Relational Integrity & Cascades (FallbackDatabaseService)", () => {
         topic: "higiena",
         audienceGroup: "uczniowie_sp",
         participantsCount: 40,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 65,
         leadEducator: "Krzysztof Palpuchowski",
         ezdStatus: "w_ezd",

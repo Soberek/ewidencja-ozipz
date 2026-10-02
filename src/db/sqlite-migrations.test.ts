@@ -171,6 +171,57 @@ describe("versioned database migration", () => {
     expect(() => raw.exec("DELETE FROM ozipz_actions WHERE id='v1-action'")).toThrow(/zamknięt/);
   });
 
+  it("marks planned and in-progress actions as done, also in closed months", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "ozipz-v13-status-")); directories.push(directory);
+    const raw = new DatabaseSync(join(directory, "v13.db")); databases.push(raw);
+    raw.exec(SCHEMA_SQL);
+    raw.exec("PRAGMA user_version = 13");
+    insert(raw, "ozipz_actions", { id: "planned", title: "Planowane", date: "2026-08-20", status: "zaplanowane" });
+    insert(raw, "ozipz_actions", { id: "in-progress", title: "W toku", date: "2026-09-20", status: "w_toku" });
+    insert(raw, "ozipz_actions", { id: "cancelled", title: "Odwołane", date: "2026-09-21", status: "odwolane" });
+    insert(raw, "ozipz_actions", { id: "postponed", title: "Odroczone", date: "2026-09-22", status: "odroczone" });
+    await new SqliteDatabaseService(adapter(raw)).setMonthClosed("2026-08", true);
+
+    expect((await migrateDatabase(adapter(raw))).migrated).toBe(true);
+    expect(raw.prepare("SELECT id, status FROM ozipz_actions ORDER BY id").all()).toEqual([
+      { id: "cancelled", status: "odwolane" },
+      { id: "in-progress", status: "wykonane" },
+      { id: "planned", status: "wykonane" },
+      { id: "postponed", status: "odroczone" },
+    ]);
+    expect(() => raw.exec("DELETE FROM ozipz_actions WHERE id='planned'")).toThrow(/zamknięt/);
+  });
+
+  it("drops indirect recipients – the app counts only recipients", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "ozipz-v13-indirect-")); directories.push(directory);
+    const raw = new DatabaseSync(join(directory, "v13.db")); databases.push(raw);
+    raw.exec(SCHEMA_SQL);
+    raw.exec("ALTER TABLE ozipz_actions ADD COLUMN indirect_recipients_count INTEGER NOT NULL DEFAULT 0");
+    raw.exec("PRAGMA user_version = 13");
+    insert(raw, "ozipz_actions", { id: "stand", title: "Stoisko", date: "2026-09-21", participants_count: 300, indirect_recipients_count: 1 });
+
+    expect((await migrateDatabase(adapter(raw))).migrated).toBe(true);
+    expect(raw.prepare("PRAGMA table_info(ozipz_actions)").all().map((column) => column.name)).not.toContain("indirect_recipients_count");
+    expect(raw.prepare("SELECT participants_count p FROM ozipz_actions WHERE id = 'stand'").get()).toEqual({ p: 300 });
+  });
+
+  it("restores 1 recipient on distributions saved together with another action", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "ozipz-v13-distribution-")); directories.push(directory);
+    const raw = new DatabaseSync(join(directory, "v13.db")); databases.push(raw);
+    raw.exec(SCHEMA_SQL);
+    raw.exec("PRAGMA user_version = 13");
+    insert(raw, "ozipz_actions", { id: "stand", title: "Stoisko", date: "2026-09-21", participants_count: 300, audience_group: "Dzieci przedszkolne (3-6 lat) - 300" });
+    insert(raw, "ozipz_actions", { id: "dist", title: "Dystrybucja", date: "2026-09-21", linked_action_id: "stand", participants_count: 300, audience_group: "Dzieci przedszkolne (6 lat) - 300" });
+    insert(raw, "ozipz_actions", { id: "own-dist", title: "Dystrybucja", date: "2026-09-22", participants_count: 50, audience_group: "Rodzice - 50" });
+
+    expect((await migrateDatabase(adapter(raw))).migrated).toBe(true);
+    expect(raw.prepare("SELECT id, participants_count p, audience_group a FROM ozipz_actions ORDER BY id").all()).toEqual([
+      { id: "dist", p: 1, a: "Dzieci przedszkolne (6 lat) - 1" },
+      { id: "own-dist", p: 50, a: "Rodzice - 50" },
+      { id: "stand", p: 300, a: "Dzieci przedszkolne (3-6 lat) - 300" },
+    ]);
+  });
+
   it("persists month locks across reopening and allows unlocking", async () => {
     const directory = mkdtempSync(join(tmpdir(), "ozipz-month-lock-")); directories.push(directory);
     const file = join(directory, "locks.db");
@@ -462,20 +513,20 @@ describe("schema v6 integrity", () => {
 
   it("normalizes equivalent legacy values while upgrading from v5", async () => {
     const raw = new DatabaseSync(":memory:"); databases.push(raw);
-    raw.exec(SCHEMA_SQL.replace(/(indirect_recipients_count|materials_distributed_count) INTEGER NOT NULL/g, "$1 INTEGER"));
+    raw.exec(SCHEMA_SQL.replace(/materials_distributed_count INTEGER NOT NULL/g, "materials_distributed_count INTEGER"));
     raw.exec("CREATE TABLE ozipz_closed_months_import (id INTEGER PRIMARY KEY CHECK (id = 1)); INSERT INTO ozipz_closed_months_import VALUES (1); PRAGMA user_version = 5");
     // Stary schemat pozwalał na puste teksty, NULL w licznikach i listę typów po przecinku.
     raw.exec("PRAGMA ignore_check_constraints = ON");
     insert(raw, "ozipz_facilities", { id: "f", education_types: "Szkoła podstawowa, Przedszkole" });
     insert(raw, "ozipz_contacts", { id: "c", phone: "", email: "" });
-    insert(raw, "ozipz_actions", { id: "a", indirect_recipients_count: null, materials_distributed_count: null });
+    insert(raw, "ozipz_actions", { id: "a", materials_distributed_count: null });
     raw.exec("PRAGMA ignore_check_constraints = OFF");
 
     await migrateDatabase(adapter(raw));
 
     expect(JSON.parse(String(raw.prepare("SELECT education_types FROM ozipz_facilities").get()?.education_types))).toEqual(["Szkoła podstawowa", "Przedszkole"]);
     expect(raw.prepare("SELECT phone, email FROM ozipz_contacts").get()).toEqual({ phone: null, email: null });
-    expect(raw.prepare("SELECT indirect_recipients_count AS i, materials_distributed_count AS m FROM ozipz_actions").get()).toEqual({ i: 0, m: 0 });
+    expect(raw.prepare("SELECT materials_distributed_count AS m FROM ozipz_actions").get()).toEqual({ m: 0 });
     expect(raw.prepare("SELECT value FROM ozipz_meta WHERE key = 'closed_months_imported'").get()?.value).toBe("1");
     expect(raw.prepare("SELECT name FROM sqlite_master WHERE name IN ('ozipz_closed_months_import', 'idx_jrwa_cases_sign')").all()).toEqual([]);
   });

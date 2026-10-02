@@ -305,9 +305,49 @@ describe("reportAnnex (Better-OZ Parity & Excel Export Engine)", () => {
       expect(res.allActions).toBe(1);
       expect(res.allPeople).toBe(20);
     });
+
+    it("uses the same counted actions and recipients in hierarchy rows", () => {
+      const actions = [
+        { id: "done", title: "Prelekcja", actionType: "Prelekcja", status: "wykonane", participantsCount: 10},
+        { id: "cancelled", title: "Prelekcja", actionType: "Prelekcja", status: "odwolane", participantsCount: 100 },
+        { id: "postponed", title: "Prelekcja", actionType: "Prelekcja", status: "odroczone", participantsCount: 100 },
+      ] as OzipzAction[];
+      const rows = buildReportAnnexRows(actions);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ actions: 1, people: 10 });
+      expect(aggregateActionsToProgramsData(actions).allPeople).toBe(10);
+    });
   });
 
   describe("Excel export functions", () => {
+    it("keeps localized dates, recipients, and excluded statuses consistent across workbook sheets", async () => {
+      const { default: ExcelJS } = await import("exceljs");
+      let downloaded: Blob | undefined;
+      const downloadBlobSpy = vi.spyOn(downloadHelper, "downloadBlob").mockImplementation((blob) => { downloaded = blob; });
+      const actions = [
+        { id: "done", title: "Prelekcja", actionType: "Prelekcja", date: "10.05.2026", status: "wykonane", numberOfActions: 2, participantsCount: 10},
+        { id: "cancelled", title: "Prelekcja", actionType: "Prelekcja", date: "2026-05-11", status: "odwolane", numberOfActions: 3, participantsCount: 100 },
+        { id: "postponed", title: "Prelekcja", actionType: "Prelekcja", date: "2026-05-12", status: "odroczone", numberOfActions: 4, participantsCount: 100 },
+      ] as OzipzAction[];
+
+      await downloadFullReportWorkbook(actions, 2026, [5], "Test");
+      expect(downloaded).toBeDefined();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(await downloaded!.arrayBuffer());
+      expect(workbook.getWorksheet("Mierniki Miesięczne")?.getRow(5).values).toEqual([, "Maj", 1, 2, 10, 0]);
+      expect(workbook.getWorksheet("Statystyki Programowe")?.getRow(4).getCell(7).value).toBe(10);
+      expect(workbook.getWorksheet("Wykaz Programów i Działań")?.getColumn(4).values).toContain(10);
+      downloadBlobSpy.mockRestore();
+    });
+
+    it("propagates failed annex downloads", async () => {
+      const downloadBlobSpy = vi.spyOn(downloadHelper, "downloadBlob").mockImplementation(() => { throw new Error("download failed"); });
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      await expect(downloadAnnexReportExcel([{ kind: "programowe", programName: "Test", jrwa: "", actionName: "Prelekcja", actions: 1, visits: 0, people: 1 }], 1, 2026, [5])).rejects.toThrow("Nie udało się wygenerować Załącznika nr 1");
+      consoleErrorSpy.mockRestore();
+      downloadBlobSpy.mockRestore();
+    });
+
     it("exports data to Excel successfully with downloadBlob", async () => {
       const downloadBlobSpy = vi.spyOn(downloadHelper, "downloadBlob").mockImplementation(() => {});
 

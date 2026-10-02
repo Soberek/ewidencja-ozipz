@@ -17,7 +17,6 @@ describe("Mappers", () => {
       topic: "tyton",
       audience_group: "uczniowie_sp",
       participants_count: 45,
-      indirect_recipients_count: 10,
       materials_distributed_count: 45,
       lead_educator: "Sekcja OZiPZ",
       notes: "Bardzo aktywna dyskusja",
@@ -467,7 +466,6 @@ describe("Mappers", () => {
       topic: "",
       audience_group: "młodzież",
       participants_count: 0,
-      indirect_recipients_count: 0,
       materials_distributed_count: 0,
       lead_educator: "Jan",
       notes: null,
@@ -475,7 +473,6 @@ describe("Mappers", () => {
       updated_at: "2026-06-01T00:00:00Z",
     });
     expect(action.participantsCount).toBe(0);
-    expect(action.indirectRecipientsCount).toBe(0);
     expect(action.materialsDistributedCount).toBe(0);
 
     const pub = Mappers.toPublication({

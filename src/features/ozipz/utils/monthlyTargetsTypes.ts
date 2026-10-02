@@ -42,8 +42,6 @@ export interface OzipzMonthlyComplianceRow {
   monthly: OzipzReportComparison;
   /** Od stycznia do tego miesiąca włącznie. */
   cumulative: OzipzReportComparison;
-  /** Działania z tego miesiąca, które nie są odwołane ani oznaczone jako wykonane. */
-  openActionsCount: number;
 }
 
 export interface OzipzAnnualComplianceSummary {

@@ -43,7 +43,6 @@ describe("useReportsData Hook", () => {
       topic: "zdrowy_styl_zycia",
       audienceGroup: "Dzieci",
       participantsCount: 30,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 15,
       status: "wykonane",
       ezdStatus: "w_ezd",
@@ -61,7 +60,6 @@ describe("useReportsData Hook", () => {
       topic: "tyton",
       audienceGroup: "Mieszkańcy",
       participantsCount: 50,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 50,
       status: "wykonane",
       ezdStatus: "w_ezd",
@@ -79,7 +77,6 @@ describe("useReportsData Hook", () => {
       topic: "higiena",
       audienceGroup: "Dzieci",
       participantsCount: 20,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
       status: "wykonane",
       ezdStatus: "w_ezd",
@@ -97,7 +94,6 @@ describe("useReportsData Hook", () => {
       topic: "alkohol",
       audienceGroup: "Młodzież",
       participantsCount: 40,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
       status: "zaplanowane",
       ezdStatus: "w_ezd",
@@ -121,7 +117,28 @@ describe("useReportsData Hook", () => {
     expect(result.current.summary.tasks).toBe(2);
     expect(result.current.summary.recipients).toBe(80); // 30 + 50
     expect(result.current.summary.materials).toBe(65); // 15 + 50
-    expect(result.current.summary.completed).toBe(2);
+  });
+
+  it("excludes cancelled and postponed actions from report totals", () => {
+    const actions = [
+      { ...mockActions[0], id: "done", numberOfActions: 2},
+      { ...mockActions[0], id: "cancelled", status: "odwolane", participantsCount: 100 },
+      { ...mockActions[0], id: "postponed", status: "odroczone", participantsCount: 100 },
+    ];
+    const { result } = renderHook(() => useReportsData({ allActions: actions, year: 2026, months: [5] }));
+
+    expect(result.current.yearActions).toHaveLength(3);
+    expect(result.current.filteredActions.map((action) => action.id)).toEqual(["done"]);
+    expect(result.current.summary).toEqual({ tasks: 1, actions: 2, recipients: 30, materials: 15 });
+    expect(result.current.monthlyRows[0].recipients).toBe(30);
+    expect(result.current.metricSummary.totalPeople).toBe(30);
+  });
+
+  it("uses localized dates for the same year and month scope", () => {
+    const actions = [{ ...mockActions[0], date: "10.05.2026" }];
+    const { result } = renderHook(() => useReportsData({ allActions: actions, year: 2026, months: [5] }));
+    expect(result.current.filteredActions).toHaveLength(1);
+    expect(result.current.summary.recipients).toBe(30);
   });
 
   it("computes monthlyRows and maxMonthlyActions properly", () => {

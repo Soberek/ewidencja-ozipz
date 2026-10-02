@@ -104,14 +104,6 @@ export function EzdBadge({ state }: { state: ReturnType<typeof getActionEzdState
 }
 
 export const ACTION_STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  w_toku: {
-    label: "W toku",
-    className: "bg-sky-50 text-sky-700 border-sky-300 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800",
-  },
-  planowane: {
-    label: "Planowane",
-    className: "bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800",
-  },
   odroczone: {
     label: "Odroczone",
     className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800",

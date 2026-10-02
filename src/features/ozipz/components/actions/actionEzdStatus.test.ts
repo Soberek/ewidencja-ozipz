@@ -13,7 +13,6 @@ function action(overrides: Partial<OzipzAction>): OzipzAction {
     topic: "Zdrowie",
     audienceGroup: "Dorośli",
     participantsCount: 1,
-    indirectRecipientsCount: 0,
     materialsDistributedCount: 0,
     status: "wykonane",
     ezdStatus: "do_ezd",

@@ -30,7 +30,6 @@ describe("Ewidencja OZiPZ - Walidacja Globalnych Schematów Zod", () => {
     expect(parsed.success).toBe(true);
     if (parsed.success) {
       expect(parsed.data.participantsCount).toBe(45);
-      expect(parsed.data.indirectRecipientsCount).toBe(0);
       expect(parsed.data.materialsDistributedCount).toBe(0);
     }
   });

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   Trash2,
-  CheckCircle2,
   X,
   Download,
   Copy,
@@ -23,7 +22,6 @@ export interface ActionsBulkToolbarProps {
   onSelectFirstN?: (count: number) => void;
   onClearSelection: () => void;
   onBulkDelete: () => void | Promise<void>;
-  onBulkMarkDone?: () => void;
   onBulkMarkEzd?: (status: "do_ezd" | "w_ezd") => void;
   onBulkExportCsv?: () => void;
   onBulkCopySummary?: () => void;
@@ -41,7 +39,6 @@ export function ActionsBulkToolbar({
   onSelectFirstN,
   onClearSelection,
   onBulkDelete,
-  onBulkMarkDone,
   onBulkMarkEzd,
   onBulkExportCsv,
   onBulkCopySummary,
@@ -166,19 +163,6 @@ export function ActionsBulkToolbar({
           >
             <FileCheck className="size-3" />
             <span>Wprowadzone w EZD</span>
-          </Button>
-        )}
-
-        {onBulkMarkDone && (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={mutationsDisabled}
-            onClick={onBulkMarkDone}
-            className="h-7 text-xs bg-card gap-1 cursor-pointer text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 dark:text-emerald-400 font-medium"
-          >
-            <CheckCircle2 className="size-3" />
-            <span>Wykonane</span>
           </Button>
         )}
 

@@ -64,7 +64,6 @@ export interface ActionCardPreset {
   jrwaSymbol: string;
   facilityType?: string;
   audienceGroups: AudienceGroupBlock[];
-  indirectRecipientsCount?: number;
   materialsDistributedCount?: number;
   materialItems?: ActionDistributedMaterialItem[];
   programKeyword?: string;

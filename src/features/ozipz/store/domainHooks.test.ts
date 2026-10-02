@@ -138,7 +138,6 @@ describe("Empirical Challenge: Domain Hooks (domainHooks.ts)", () => {
           topic: "tyton",
           audienceGroup: "Dzieci",
           participantsCount: 20,
-          indirectRecipientsCount: 0,
           materialsDistributedCount: 10,
           ezdStatus: "w_ezd",
           status: "wykonane",

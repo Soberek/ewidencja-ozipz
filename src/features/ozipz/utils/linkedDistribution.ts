@@ -1,4 +1,5 @@
 import type { OzipzAction } from "../types/ozipz.types";
+import { formatAudienceString, parseAudienceGroups } from "../components/actions/editor/audienceUtils";
 
 type ActionPayload = Omit<OzipzAction, "id" | "createdAt" | "updatedAt">;
 type CompanionPayload = Omit<ActionPayload, "linkedActionId">;
@@ -8,6 +9,25 @@ export const DEFAULT_DISTRIBUTION_ACTION_TYPE = "Dystrybucja";
 
 export function linkedDistributionTitle(actionTitle: string): string {
   return `Dystrybucja materiałów – ${actionTitle.trim()}`;
+}
+
+/**
+ * Grupa odbiorców dystrybucji: te same grupy co w działaniu głównym, ale łącznie 1 odbiorca (placówka).
+ * Formularz liczy uczestników z grupy odbiorców, więc liczba musi być zapisana także tutaj –
+ * inaczej edycja dystrybucji przepisałaby uczestników działania głównego i zdublowała odbiorców.
+ */
+export function linkedDistributionAudience(audienceGroup: string | undefined): string | undefined {
+  if (!audienceGroup?.trim()) return audienceGroup;
+  const groups = parseAudienceGroups(audienceGroup);
+  let remaining = 1;
+  for (const group of groups) {
+    for (const item of group.items) {
+      if (!item.name.trim()) continue;
+      item.count = remaining;
+      remaining = 0;
+    }
+  }
+  return formatAudienceString(groups);
 }
 
 /**
@@ -37,14 +57,13 @@ export function buildLinkedDistribution(
     campaignId: action.campaignId,
     campaignName: action.campaignName,
     topic: action.topic,
-    audienceGroup: action.audienceGroup,
+    audienceGroup: linkedDistributionAudience(action.audienceGroup) ?? "",
     jrwaSign: classificationSymbol?.trim() || undefined,
     ezdStatus: "nie_dotyczy",
     status: action.status,
     materialId,
     numberOfActions: 1,
     participantsCount: 1,
-    indirectRecipientsCount: 0,
     materialsDistributedCount: materialsCount,
     leadEducator: action.leadEducator,
   };
@@ -66,8 +85,9 @@ export function linkedDistributionUpdates(
   ] as const;
   const updates: Partial<OzipzAction> = {};
   for (const key of shared) {
-    if (previous[key] !== next[key] && distribution[key] !== next[key]) {
-      (updates as Record<string, unknown>)[key] = next[key];
+    const value = key === "audienceGroup" ? linkedDistributionAudience(next.audienceGroup) : next[key];
+    if (previous[key] !== next[key] && distribution[key] !== value) {
+      (updates as Record<string, unknown>)[key] = value;
     }
   }
   if (previous.title !== next.title && distribution.title === linkedDistributionTitle(previous.title)) {

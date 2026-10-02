@@ -34,7 +34,7 @@ export function useActionsFiltering({ actions, programs, onDeleteAction, onUpdat
       programs,
       search: deferredSearch, effectivePeriod: filterState.effectivePeriod, yearFilter: filterState.yearFilter, statusFilter: filterState.statusFilter,
       quickFilterEzd: filterState.quickFilterEzd,
-      quickFilterProgramOnly: filterState.quickFilterProgramOnly, quickFilterInProgress: filterState.quickFilterInProgress,
+      quickFilterProgramOnly: filterState.quickFilterProgramOnly,
       materialsOnlyFilter: filterState.materialsOnlyFilter, quickFilterPublications: filterState.quickFilterPublications,
       hidePublications: filterState.hidePublications, selectedMunicipalities: filterState.selectedMunicipalities,
       selectedPrograms: filterState.selectedPrograms, selectedActivityTypes: filterState.selectedActivityTypes,
@@ -44,7 +44,7 @@ export function useActionsFiltering({ actions, programs, onDeleteAction, onUpdat
   }, [
     actions, programs, deferredSearch, filterState.effectivePeriod, filterState.yearFilter, filterState.statusFilter,
     filterState.quickFilterEzd, filterState.quickFilterProgramOnly,
-    filterState.quickFilterInProgress, filterState.materialsOnlyFilter, filterState.quickFilterPublications,
+    filterState.materialsOnlyFilter, filterState.quickFilterPublications,
     filterState.hidePublications, filterState.selectedMunicipalities, filterState.selectedPrograms,
     filterState.selectedActivityTypes, filterState.selectedTopics, filterState.educatorFilter,
     filterState.ezdFilter,
@@ -56,7 +56,7 @@ export function useActionsFiltering({ actions, programs, onDeleteAction, onUpdat
       search: filterState.search, effectivePeriod: filterState.effectivePeriod, yearFilter: filterState.yearFilter,
       statusFilter: filterState.statusFilter, publicationsMode: filterState.publicationsMode,
       quickFilterEzd: filterState.quickFilterEzd, quickFilterProgramOnly: filterState.quickFilterProgramOnly,
-      quickFilterInProgress: filterState.quickFilterInProgress, materialsOnlyFilter: filterState.materialsOnlyFilter,
+      materialsOnlyFilter: filterState.materialsOnlyFilter,
       selectedMunicipalities: filterState.selectedMunicipalities, selectedPrograms: filterState.selectedPrograms,
       selectedActivityTypes: filterState.selectedActivityTypes, selectedTopics: filterState.selectedTopics,
       educatorFilter: filterState.educatorFilter, ezdFilter: filterState.ezdFilter,
@@ -67,7 +67,7 @@ export function useActionsFiltering({ actions, programs, onDeleteAction, onUpdat
   ), [
     filterState.search, filterState.effectivePeriod, filterState.yearFilter, filterState.statusFilter,
     filterState.publicationsMode, filterState.quickFilterEzd, filterState.quickFilterProgramOnly,
-    filterState.quickFilterInProgress, filterState.materialsOnlyFilter, filterState.selectedMunicipalities,
+    filterState.materialsOnlyFilter, filterState.selectedMunicipalities,
     filterState.selectedPrograms, filterState.selectedActivityTypes, filterState.selectedTopics,
     filterState.educatorFilter, filterState.ezdFilter, filterState.defaultMonth, filterState.defaultYear, programs,
   ]);

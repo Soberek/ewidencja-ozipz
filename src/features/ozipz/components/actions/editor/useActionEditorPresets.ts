@@ -40,9 +40,6 @@ export function useActionEditorPresets({
     setValue("actionType", preset.actionType);
     if (preset.topic) setValue("topic", preset.topic);
     if (preset.audienceGroups) setAudienceGroups(preset.audienceGroups);
-    if (preset.indirectRecipientsCount !== undefined) {
-      setValue("indirectRecipientsCount", preset.indirectRecipientsCount);
-    }
     if (preset.materialsDistributedCount !== undefined) {
       setValue("materialsDistributedCount", preset.materialsDistributedCount);
     }

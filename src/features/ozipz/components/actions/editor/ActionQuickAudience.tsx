@@ -18,7 +18,7 @@ interface Props {
 const groupLabel = (group: AudienceGroupBlock, index: number) => group.name.trim() || `Grupa ${index + 1}`;
 
 /**
- * Odbiorcy bezpośredni. W typowym przypadku (jedna grupa) widać tylko wiersze "Kto? / Ile osób?";
+ * Odbiorcy działania. W typowym przypadku (jedna grupa) widać tylko wiersze "Kto? / Ile osób?";
  * nagłówki grup z nazwami pojawiają się dopiero przy podziale na kilka grup (np. klas).
  */
 export function ActionQuickAudience({ state: s, suggestions }: Props) {
@@ -29,13 +29,13 @@ export function ActionQuickAudience({ state: s, suggestions }: Props) {
     s.audienceGroups.some((g) => g.name.trim() && !/^grupa\s*1$/i.test(g.name.trim()));
 
   if (s.isPublication) {
-    return <p className="text-sm text-muted-foreground">Publikacja internetowa: 0 odbiorców bezpośrednich. Zasięg podaj w sekcji „Materiały i zasięg”.</p>;
+    return <p className="text-sm text-muted-foreground">Publikacja internetowa: bez odbiorców.</p>;
   }
 
   const { errors } = s.form.formState;
   return <section className="space-y-3" aria-label="Odbiorcy">
     <div className="flex items-center justify-between gap-2">
-      <h2 className="font-semibold">Odbiorcy bezpośredni</h2>
+      <h2 className="font-semibold">Odbiorcy</h2>
       <Badge variant="outline" className="font-mono text-xs">Łącznie: <strong className="ml-1 text-primary">{s.totalDirectParticipants} os.</strong></Badge>
     </div>
 

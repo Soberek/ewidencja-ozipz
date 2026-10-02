@@ -113,7 +113,6 @@ const mockAction: OzipzAction = {
   updatedAt: "2026-05-18",
   ezdStatus: "w_ezd",
   status: "wykonane",
-  indirectRecipientsCount: 0,
   materialsDistributedCount: 45,
 };
 

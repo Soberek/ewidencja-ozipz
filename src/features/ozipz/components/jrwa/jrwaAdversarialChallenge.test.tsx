@@ -259,7 +259,6 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
         ezdStatus: "do_ezd",
         status: "wykonane",
         participantsCount: 20,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 0,
         createdAt: "2026-03-01",
         updatedAt: "2026-03-01",
@@ -297,7 +296,6 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
         ezdStatus: undefined as any, // Missing
         status: "wykonane",
         participantsCount: 25,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 0,
         createdAt: "2026-03-02",
         updatedAt: "2026-03-02",
@@ -333,7 +331,6 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
         ezdStatus: undefined as any, // Missing but media publication doesn't require EZD
         status: "wykonane",
         participantsCount: 0,
-        indirectRecipientsCount: 500,
         materialsDistributedCount: 0,
         createdAt: "2026-03-03",
         updatedAt: "2026-03-03",
@@ -376,7 +373,6 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
         ezdStatus: "w_ezd",
         status: "wykonane",
         participantsCount: 30,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 0,
         createdAt: "2026-03-04",
         updatedAt: "2026-03-04",
@@ -397,7 +393,6 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
         ezdStatus: "do_ezd",
         status: "wykonane",
         participantsCount: 30,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 0,
         createdAt: "2026-03-04",
         updatedAt: "2026-03-04",
@@ -441,8 +436,6 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
           onToggleEzd={vi.fn()}
           quickFilterProgramOnly={false}
           onToggleProgramOnly={vi.fn()}
-          quickFilterInProgress={false}
-          onToggleInProgress={vi.fn()}
           materialsOnlyFilter={false}
           onToggleMaterialsOnly={vi.fn()}
           publicationsMode="ukryte"
@@ -477,8 +470,6 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
           onToggleEzd={vi.fn()}
           quickFilterProgramOnly={true}
           onToggleProgramOnly={vi.fn()}
-          quickFilterInProgress={false}
-          onToggleInProgress={vi.fn()}
           materialsOnlyFilter={false}
           onToggleMaterialsOnly={vi.fn()}
           publicationsMode="ukryte"
@@ -698,7 +689,6 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
         ezdStatus: "do_ezd",
         status: "wykonane",
         participantsCount: 15,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 0,
         createdAt: "2026-03-01",
         updatedAt: "2026-03-01",
@@ -719,7 +709,6 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
         ezdStatus: "w_ezd",
         status: "wykonane",
         participantsCount: 20,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 0,
         createdAt: "2026-03-02",
         updatedAt: "2026-03-02",
@@ -759,7 +748,6 @@ describe("Challenger 2 — Adversarial Stress Test Suite", () => {
         ezdStatus: "w_ezd",
         status: "wykonane",
         participantsCount: 15,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 0,
         createdAt: "2026-03-01",
         updatedAt: "2026-03-01",

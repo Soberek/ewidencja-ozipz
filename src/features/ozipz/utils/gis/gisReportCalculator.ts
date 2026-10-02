@@ -20,9 +20,9 @@ export function gisActionsCount(action: OzipzAction): number {
   return Math.max(1, Number(action.numberOfActions) || 1);
 }
 
-/** Odbiorcy bezpośredni + pośredni */
+/** Odbiorcy działania */
 export function gisRecipientsCount(action: OzipzAction): number {
-  return (Number(action.participantsCount) || 0) + (Number(action.indirectRecipientsCount) || 0);
+  return (Number(action.participantsCount) || 0);
 }
 
 export function createEmptyGisReportData(): GisReportData {

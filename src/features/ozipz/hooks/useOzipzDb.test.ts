@@ -72,7 +72,7 @@ describe("useOzipzDb Hook - Relational Selectors and Memos", () => {
       expect(stats.totalPrograms).toBe(MIGRATED_FIREBASE_DATA.programs.length);
       expect(stats.totalSchools).toBe(MIGRATED_FIREBASE_DATA.participations.length);
       expect(stats.totalRecipients).toBeGreaterThan(0);
-      expect(stats.directRecipients).toBeGreaterThan(0);
+      expect(stats.totalRecipients).toBeGreaterThan(0);
       expect(stats.materialsDistributed).toBeGreaterThanOrEqual(0);
       expect(stats.totalFacilities).toBe(MIGRATED_FIREBASE_DATA.facilities.length);
     });

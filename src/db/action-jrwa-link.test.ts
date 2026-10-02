@@ -24,7 +24,7 @@ async function createService() {
 
 const baseAction = {
   title: "Stoisko", actionType: "Stoisko edukacyjno-informacyjne", date: "2026-08-29", facilityName: "Park", municipality: "Myślibórz",
-  topic: "", audienceGroup: "Mieszkańcy", participantsCount: 50, indirectRecipientsCount: 0, materialsDistributedCount: 0,
+  topic: "", audienceGroup: "Mieszkańcy", participantsCount: 50, materialsDistributedCount: 0,
   leadEducator: "Jan", ezdStatus: "w_ezd", status: "wykonane",
 };
 

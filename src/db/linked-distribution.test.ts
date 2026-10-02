@@ -30,7 +30,6 @@ const lecture: Omit<OzipzAction, "id" | "createdAt" | "updatedAt"> = {
   topic: "",
   audienceGroup: "Uczniowie kl. 4 (25)",
   participantsCount: 25,
-  indirectRecipientsCount: 0,
   materialsDistributedCount: 0,
   numberOfActions: 1,
   leadEducator: "Jan",
@@ -79,7 +78,7 @@ describe.each(backends)("działanie zapisane razem z dystrybucją (%s)", (_name,
       linkedActionId: res.action.id,
       numberOfActions: 1,
       participantsCount: 1,
-      audienceGroup: lecture.audienceGroup,
+      audienceGroup: "Uczniowie kl. 4 - 1",
       materialsDistributedCount: 25,
       ezdStatus: "nie_dotyczy",
     });
@@ -108,7 +107,7 @@ describe.each(backends)("działanie zapisane razem z dystrybucją (%s)", (_name,
       title: "Dystrybucja materiałów – Zdrowe odżywianie – klasy 4",
       date: "2026-09-11",
       facilityName: "SP 2",
-      audienceGroup: "Uczniowie kl. 4 (28)",
+      audienceGroup: "Uczniowie kl. 4 - 1",
       participantsCount: 1,
       linkedActionId: res.action.id,
     });
@@ -177,5 +176,27 @@ describe.each(backends)("działanie zapisane razem z dystrybucją (%s)", (_name,
     expect(companion).toBeDefined();
     expect(companion?.linkedActionId).toBeUndefined();
     expect(await distributionsOf(res.companionAction!.id)).toHaveLength(1);
+  });
+});
+
+describe("odbiorcy dystrybucji zapisanej razem z działaniem", () => {
+  it("ta sama grupa odbiorców, ale łącznie 1 odbiorca – edycja dystrybucji nie przepisze uczestników działania", async () => {
+    const { linkedDistributionAudience } = await import("../features/ozipz/utils/linkedDistribution");
+    const { calculateTotalParticipants, parseAudienceGroups } = await import("../features/ozipz/components/actions/editor/audienceUtils");
+    const audience = linkedDistributionAudience("Dzieci przedszkolne (3-6 lat) - 300");
+    expect(audience).toBe("Dzieci przedszkolne (3-6 lat) - 1");
+    expect(calculateTotalParticipants(parseAudienceGroups(audience))).toBe(1);
+
+    const companion = buildLinkedDistribution(lecture, { actionType: "Dystrybucja", materialsCount: 40 });
+    expect(companion.participantsCount).toBe(1);
+    expect(calculateTotalParticipants(parseAudienceGroups(companion.audienceGroup))).toBe(1);
+  });
+
+  it("zmiana grupy odbiorców w działaniu przechodzi na dystrybucję z 1 odbiorcą", async () => {
+    const { linkedDistributionUpdates } = await import("../features/ozipz/utils/linkedDistribution");
+    const previous = { ...lecture, id: "a", createdAt: "", updatedAt: "" } as OzipzAction;
+    const distribution = { ...buildLinkedDistribution(lecture, { actionType: "Dystrybucja", materialsCount: 40 }), id: "d", linkedActionId: "a", createdAt: "", updatedAt: "" } as OzipzAction;
+    const updates = linkedDistributionUpdates(previous, { ...previous, audienceGroup: "Uczniowie kl. 5 - 30", participantsCount: 30 }, distribution);
+    expect(updates).toEqual({ audienceGroup: "Uczniowie kl. 5 - 1" });
   });
 });

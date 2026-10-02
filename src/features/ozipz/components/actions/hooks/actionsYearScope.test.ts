@@ -9,14 +9,14 @@ import type { OzipzAction } from "../../../types/ozipz.types";
 const action = (id: string, date: string, participantsCount = 10): OzipzAction => ({
   id, title: `Działanie ${id}`, actionType: "Prelekcja (warsztat)", date, facilityName: "SP1", municipality: "Myślibórz",
   topic: "", audienceGroup: "Uczniowie", participantsCount, leadEducator: "Jan Kowalski", ezdStatus: "do_ezd",
-  status: "wykonane", numberOfActions: 1, indirectRecipientsCount: 0, materialsDistributedCount: 0,
+  status: "wykonane", numberOfActions: 1, materialsDistributedCount: 0,
   createdAt: "2026-01-01", updatedAt: "2026-01-01",
 });
 const actions = [action("a1", "2025-09-15", 5), action("a2", "2026-09-10", 20), action("a3", "2026-03-02", 30)];
 
 const baseCriteria = {
   search: "", effectivePeriod: "", statusFilter: "wszystkie" as const, quickFilterEzd: false,
-  quickFilterProgramOnly: false, quickFilterInProgress: false, materialsOnlyFilter: false, quickFilterPublications: false,
+  quickFilterProgramOnly: false, materialsOnlyFilter: false, quickFilterPublications: false,
   hidePublications: false, selectedMunicipalities: [], selectedPrograms: [], selectedActivityTypes: [], selectedTopics: [],
   educatorFilter: "", ezdFilter: "all",
 };
@@ -44,7 +44,7 @@ describe("Filtr roku w rejestrze działań", () => {
     const defaults = { period: "10", year: "2026" };
     const state: FilterChipState = {
       search: "", effectivePeriod: "10", yearFilter: "2026", statusFilter: "aktywne", publicationsMode: "ukryte",
-      quickFilterEzd: false, quickFilterProgramOnly: false, quickFilterInProgress: false, materialsOnlyFilter: false,
+      quickFilterEzd: false, quickFilterProgramOnly: false, materialsOnlyFilter: false,
       selectedMunicipalities: [], selectedPrograms: [], selectedActivityTypes: [], selectedTopics: [], educatorFilter: "", ezdFilter: "all",
     };
     const setYearFilter = vi.fn();

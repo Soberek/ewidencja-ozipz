@@ -83,8 +83,7 @@ export function ActionQuickForm({ state: s, data }: {
     EZD_STATUS_LABELS[s.ezdStatus || DEFAULT_EZD_STATUS] || s.ezdStatus].filter(Boolean).join(" · ");
   const materialsSummary = [Number(s.materialsDistributedCount) > 0 && `MAT: ${s.materialsDistributedCount} szt.`,
     Number(s.materialsDistributedCount) > 0 && s.canSeparateDistribution && s.separateDistribution && "+ osobna dystrybucja",
-    s.linkedDistribution && "materiały w powiązanej dystrybucji",
-    Number(s.indirectRecipientsCount) > 0 && `zasięg: ${s.indirectRecipientsCount}`].filter(Boolean).join(" · ");
+    s.linkedDistribution && "materiały w powiązanej dystrybucji"].filter(Boolean).join(" · ");
   const campaign = findCampaign(s.campaignDict, s.campaignId);
   const descriptionSummary = [s.activitiesDescription.trim() && "opis", s.additionalNotes.trim() && "uwagi"].filter(Boolean).join(" · ");
   const selectFacility = (f: OzipzFacility) => {
@@ -165,12 +164,12 @@ export function ActionQuickForm({ state: s, data }: {
           onJrwaSignChange={s.handleJrwaSignChange} onIzrzSignChange={(v) => s.setValue("izrzSign", v)}
           onEzdStatusChange={(v) => s.setValue("ezdStatus", v)} onGenerateJrwaSign={s.handleGenerateJrwaSign} />
       </Disclosure>
-      <Disclosure title="Materiały i zasięg" summary={materialsSummary} reveal={s.isPublication || s.isDistribution || Boolean(s.linkedDistribution) || s.materialItems.length > 0 || Boolean(s.materialsDistributedCount || s.indirectRecipientsCount)}>
-        <div data-field-error={Boolean(errors.materialsDistributedCount || errors.indirectRecipientsCount || errors.materialId)}>
+      {!s.isPublication && <Disclosure title="Materiały" summary={materialsSummary} reveal={s.isDistribution || Boolean(s.linkedDistribution) || s.materialItems.length > 0 || Boolean(s.materialsDistributedCount)}>
+        <div data-field-error={Boolean(errors.materialsDistributedCount || errors.materialId)}>
           <ActionQuickMaterials state={s} materials={data.materials ?? []} />
           {errors.materialId && <p role="alert" className="text-sm text-destructive">{errors.materialId.message}</p>}
         </div>
-      </Disclosure>
+      </Disclosure>}
       <Disclosure title="Opis i dodatkowe informacje" summary={descriptionSummary} reveal={Boolean(s.activitiesDescription || s.additionalNotes)}>
         <div className="space-y-3">
           <div><label htmlFor="action-description" className={FIELD_LABEL}>Opis czynności</label>

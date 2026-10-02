@@ -4,7 +4,7 @@ import { downloadBlob } from "./downloadHelper";
 import { downloadFullReportWorkbook } from "./reportAnnex";
 
 function recipientCount(action: OzipzAction) {
-  return (Number(action.participantsCount) || 0) + (Number(action.indirectRecipientsCount) || 0);
+  return (Number(action.participantsCount) || 0);
 }
 
 function materialCount(action: OzipzAction) {

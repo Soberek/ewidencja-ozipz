@@ -27,7 +27,7 @@ const entry = (over: Partial<ActionBreakdownEntry>): ActionBreakdownEntry => ({
 });
 
 const breakdownOf = (entries: ActionBreakdownEntry[], materials: ActionBreakdown["materials"] = []): ActionBreakdown => ({
-  totals: { entries: 0, actions: 0, recipients: 0, materials: 0, facilities: 0, municipalities: 0, planned: 0 },
+  totals: { entries: 0, actions: 0, recipients: 0, materials: 0, facilities: 0, municipalities: 0 },
   byMonth: [],
   byForm: [],
   byFacility: [],

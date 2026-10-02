@@ -14,7 +14,6 @@ const action = (overrides: Partial<OzipzAction>): OzipzAction => ({
   ezdStatus: "",
   status: "",
   participantsCount: 20,
-  indirectRecipientsCount: 0,
   materialsDistributedCount: 0,
   leadEducator: "Jan",
   createdAt: "",
