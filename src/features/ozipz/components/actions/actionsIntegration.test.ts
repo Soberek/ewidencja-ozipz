@@ -64,7 +64,6 @@ describe("Actions Module - Comprehensive Integration Tests", () => {
           audienceGroup: "",
           leadEducator: "Jan Kowalski",
           participantsCount: 0,
-          indirectRecipientsCount: 1500,
           materialsDistributedCount: 0,
           status: "wykonane",
           ezdStatus: "nie_dotyczy",
@@ -75,7 +74,6 @@ describe("Actions Module - Comprehensive Integration Tests", () => {
       const savedAction = onSaveMock.mock.calls[0][0];
       expect(savedAction.actionType).toBe("Publikacja w mediach społecznościowych");
       expect(savedAction.audienceGroup).toBe("Społeczność lokalna / Internauci");
-      expect(savedAction.indirectRecipientsCount).toBe(1500);
     });
   });
 
@@ -85,6 +83,22 @@ describe("Actions Module - Comprehensive Integration Tests", () => {
       expect(tokens).toEqual([
         { group: "Młodzież 13-14 lat", count: 25 },
         { group: "Dorośli", count: 10 },
+      ]);
+    });
+
+    it("parseAudienceEntryTokens does not multiply recipients for comma lists without counts", () => {
+      expect(parseAudienceEntryTokens("Dzieci, młodzież, dorośli, seniorzy - 150", 150)).toEqual([
+        { group: "Dzieci, młodzież, dorośli, seniorzy", count: 150 },
+      ]);
+      // Opis niezgodny z zapisaną liczbą – liczy się zapisana liczba, przy całym opisie.
+      expect(parseAudienceEntryTokens("Dzieci, młodzież, dorośli, seniorzy - 150", 250)).toEqual([
+        { group: "Dzieci, młodzież, dorośli, seniorzy - 150", count: 250 },
+      ]);
+      expect(parseAudienceEntryTokens("Mieszkańcy powiatu / społeczność lokalna", 120)).toEqual([
+        { group: "Mieszkańcy powiatu / społeczność lokalna", count: 120 },
+      ]);
+      expect(parseAudienceEntryTokens("Grupa I:\nUczniowie - 21\nOpiekunowie - 1\nGrupa II:\nUczniowie - 22", 44)).toEqual([
+        { group: "Uczniowie", count: 21 }, { group: "Opiekunowie", count: 1 }, { group: "Uczniowie", count: 22 },
       ]);
     });
 
@@ -100,7 +114,6 @@ describe("Actions Module - Comprehensive Integration Tests", () => {
           facilityName: "SP 1",
           leadEducator: "Anna Nowak",
           ezdStatus: "w_ezd",
-          indirectRecipientsCount: 0,
           materialsDistributedCount: 0,
           audienceGroup: "Grupa 1: Młodzież 13-14 lat - 25 os., Nauczyciele - 2 os.",
           participantsCount: 27,
@@ -115,11 +128,11 @@ describe("Actions Module - Comprehensive Integration Tests", () => {
       const teacherItem = breakdown.find((b) => b.group === "Nauczyciele");
 
       expect(youthItem).toBeDefined();
-      expect(youthItem?.directRecipients).toBe(25);
+      expect(youthItem?.recipients).toBe(25);
       expect(youthItem?.actionsCount).toBe(1);
 
       expect(teacherItem).toBeDefined();
-      expect(teacherItem?.directRecipients).toBe(2);
+      expect(teacherItem?.recipients).toBe(2);
       expect(teacherItem?.actionsCount).toBe(1);
     });
   });
@@ -145,7 +158,6 @@ describe("Actions Module - Comprehensive Integration Tests", () => {
         notes: "Wszystko zgodnie z planem",
         number_of_actions: 1,
         participants_count: 30,
-        indirect_recipients_count: 0,
         materials_distributed_count: 0,
         audience_group: "Dzieci i młodzież",
         created_at: "2026-04-12T10:00:00Z",
@@ -181,7 +193,6 @@ describe("Actions Module - Comprehensive Integration Tests", () => {
         notes: null,
         number_of_actions: 1,
         participants_count: -10, // ujemna liczba uczestników
-        indirect_recipients_count: 0,
         materials_distributed_count: 0,
         audience_group: "Dorośli",
         created_at: "2026-04-12T10:00:00Z",
@@ -233,7 +244,6 @@ describe("Actions Module - Comprehensive Integration Tests", () => {
         ezdStatus: "w_ezd",
         status: "wykonane",
         participantsCount: 20,
-        indirectRecipientsCount: 0,
         materialsDistributedCount: 20,
         audienceGroup: "Uczniowie",
         numberOfActions: 1,

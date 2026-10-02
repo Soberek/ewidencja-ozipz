@@ -5,66 +5,80 @@ import type {
   OzipzActionType,
 } from "../../types/ozipz.types";
 import { safeParseDate } from "../dateUtils";
-import { isActionCancelled } from "./actionMetrics";
+import { isActionCountedInReports } from "./actionMetrics";
 import { resolveActivityFormLabel } from "../actionFormUtils";
 
 export interface AudienceGroupStatItem {
   group: string;
   actionsCount: number;
-  directRecipients: number;
+  recipients: number;
 }
 
+const ENTRY_COUNT = /^(.+?)\s+[-–—:]\s*(\d+)\s*(?:os|os\.|osób|osoby|szt|szt\.|)?$/i;
+
+/**
+ * Odbiorcy z opisu grupy: „Uczniowie - 25 os., Opiekunowie - 2”. Przecinek lub nowa linia rozdziela pozycje
+ * tylko wtedy, gdy pozycja ma własną liczbę – „Dzieci, młodzież, dorośli - 150” to jedna pozycja.
+ * Liczba zapisana przy działaniu trafia tylko do pozycji bez liczby i tylko raz (to, czego opis nie rozpisał).
+ */
 export function parseAudienceEntryTokens(raw: string, fallbackTotal: number): Array<{ group: string; count: number }> {
   if (!raw || !raw.trim()) {
     return [{ group: "Inni odbiorcy", count: fallbackTotal }];
   }
 
-  const chunks = raw.split(";").map((s) => s.trim()).filter(Boolean);
   const results: Array<{ group: string; count: number }> = [];
+  const uncounted: string[] = [];
 
-  for (const chunk of chunks) {
-    let content = chunk;
-    const groupPrefixMatch = chunk.match(/^(?:Grupa\s*\d+|[^:]+):\s*(.+)$/i);
-    if (groupPrefixMatch && groupPrefixMatch[1]) {
+  for (const chunk of raw.split(";").map((s) => s.trim()).filter(Boolean)) {
+    const lines = chunk.split("\n").map((l) => l.trim()).filter((l) => l && !/^[^:]+:$/.test(l));
+    let content = lines.join("\n");
+    const groupPrefixMatch = content.match(/^(?:Grupa\s*\d+|[^:\n]+):\s*([\s\S]+)$/i);
+    if (groupPrefixMatch && !/^\d+\s*(?:os\.?|osób|osoby)?$/i.test(groupPrefixMatch[1].trim())) {
       content = groupPrefixMatch[1].trim();
     }
 
-    const itemTokens = content.split(",").map((s) => s.trim()).filter(Boolean);
-    for (const itemToken of itemTokens) {
-      let count = fallbackTotal;
-      let groupName = itemToken;
-
-      const countMatch = itemToken.match(/^(.+?)\s+[-–—:]\s*(\d+)\s*(?:os|os\.|osób|osoby|szt|szt\.|)?$/i);
-      if (countMatch && countMatch[1] && countMatch[2]) {
-        groupName = countMatch[1].trim();
-        count = parseInt(countMatch[2], 10);
-      }
-
-      if (groupName) {
-        results.push({ group: groupName, count: isNaN(count) ? fallbackTotal : count });
+    let pending = "";
+    for (const token of content.split(/,|\n/).map((s) => s.trim()).filter(Boolean)) {
+      pending = pending ? `${pending}, ${token}` : token;
+      const countMatch = pending.match(ENTRY_COUNT);
+      if (countMatch) {
+        results.push({ group: countMatch[1].trim(), count: parseInt(countMatch[2], 10) });
+        pending = "";
       }
     }
+    if (pending) uncounted.push(pending);
+  }
+
+  if (uncounted.length > 0) {
+    const counted = results.reduce((sum, entry) => sum + entry.count, 0);
+    const rest = Math.max(0, fallbackTotal - counted);
+    uncounted.forEach((group, index) => results.push({ group, count: index === 0 ? rest : 0 }));
   }
 
   if (results.length === 0) {
     return [{ group: "Inni odbiorcy", count: fallbackTotal }];
   }
 
+  // Opis niezgodny z zapisaną liczbą: liczy się zapisana liczba, przy całym opisie (suma grup = suma odbiorców).
+  if (fallbackTotal > 0 && results.reduce((sum, entry) => sum + entry.count, 0) !== fallbackTotal) {
+    return [{ group: raw.replace(/\s+/g, " ").trim(), count: fallbackTotal }];
+  }
+
   return results;
 }
 
 export function calculateAudienceGroupBreakdown(actions: OzipzAction[]): AudienceGroupStatItem[] {
-  const map = new Map<string, { actionsCount: number; directRecipients: number }>();
+  const map = new Map<string, { actionsCount: number; recipients: number }>();
 
   for (const a of actions) {
-    if (isActionCancelled(a.status)) continue;
+    if (!isActionCountedInReports(a)) continue;
     const totalRecipients = Number(a.participantsCount) || 0;
     const entries = parseAudienceEntryTokens(a.audienceGroup || "", totalRecipients);
 
     for (const entry of entries) {
-      const existing = map.get(entry.group) || { actionsCount: 0, directRecipients: 0 };
+      const existing = map.get(entry.group) || { actionsCount: 0, recipients: 0 };
       existing.actionsCount += 1;
-      existing.directRecipients += entry.count;
+      existing.recipients += entry.count;
       map.set(entry.group, existing);
     }
   }
@@ -73,16 +87,15 @@ export function calculateAudienceGroupBreakdown(actions: OzipzAction[]): Audienc
     .map(([group, stat]) => ({
       group,
       actionsCount: stat.actionsCount,
-      directRecipients: stat.directRecipients,
+      recipients: stat.recipients,
     }))
-    .sort((a, b) => b.directRecipients - a.directRecipients || b.actionsCount - a.actionsCount);
+    .sort((a, b) => b.recipients - a.recipients || b.actionsCount - a.actionsCount);
 }
 
 export interface FormBreakdownItem {
   form: string;
   actionsCount: number;
-  directRecipients: number;
-  indirectRecipients: number;
+  recipients: number;
   materialsDistributed: number;
 }
 
@@ -90,23 +103,21 @@ export function calculateFormBreakdown(actions: OzipzAction[]): FormBreakdownIte
   const map = new Map<string, FormBreakdownItem>();
 
   for (const a of actions) {
-    if (isActionCancelled(a.status)) continue;
+    if (!isActionCountedInReports(a)) continue;
     const form = resolveActivityFormLabel(a);
     const existing = map.get(form) || {
       form,
       actionsCount: 0,
-      directRecipients: 0,
-      indirectRecipients: 0,
+      recipients: 0,
       materialsDistributed: 0,
     };
     existing.actionsCount += 1;
-    existing.directRecipients += Number(a.participantsCount) || 0;
-    existing.indirectRecipients += Number(a.indirectRecipientsCount) || 0;
+    existing.recipients += Number(a.participantsCount) || 0;
     existing.materialsDistributed += Number(a.materialsDistributedCount) || 0;
     map.set(form, existing);
   }
 
-  return Array.from(map.values()).sort((a, b) => b.actionsCount - a.actionsCount || b.directRecipients - a.directRecipients);
+  return Array.from(map.values()).sort((a, b) => b.actionsCount - a.actionsCount || b.recipients - a.recipients);
 }
 
 export function filterActionsByPeriod(

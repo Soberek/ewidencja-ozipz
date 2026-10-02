@@ -122,6 +122,11 @@ export function resolveInterventionName(
   return isProg ? "Program profilaktyczny" : "Promocja zdrowego stylu życia i edukacja zdrowotna";
 }
 
+/** Wizytacja nieprogramowa nie wchodzi do miernika – szablon ma kolumnę wizytacji tylko przy programach. */
+export function isOutsideMiernik(isProg: boolean, actionName: string): boolean {
+  return !isProg && actionName.toLocaleLowerCase("pl-PL") === "wizytacja";
+}
+
 /**
  * Agreguje działania w strukturę załączników sprawozdawczych identyczną z Better-OZ.
  */
@@ -143,6 +148,7 @@ export function buildReportAnnexRows(
     const kind: ReportAnnexKind = isProg ? "programowe" : "nieprogramowe";
     const programName = resolveInterventionName(action, isProg, interventionNames);
     const actionName = getNormalizedActionType(action);
+    if (isOutsideMiernik(isProg, actionName)) return;
     const cleanJrwa = extractCleanJrwaSymbol(action, knownSymbols) || "";
     const key = `${kind}|${programName}|${actionName}`;
 
@@ -276,11 +282,9 @@ export function aggregateActionsToProgramsData(
     const programName = resolveInterventionName(action, isProg, interventionNames);
     const actionName = getNormalizedActionType(action);
 
-    if (!isProg && actionName.toLowerCase() === "wizytacja") {
-      return;
-    }
+    if (isOutsideMiernik(isProg, actionName)) return;
 
-    const peopleCount = Math.max(0, Number(action.participantsCount) || 0);
+    const peopleCount = Math.max(0, (Number(action.participantsCount) || 0));
     const actionCount = Math.max(1, Number(action.numberOfActions) || 1);
 
     aggregated[programType] ??= {};

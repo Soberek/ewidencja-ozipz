@@ -9,7 +9,8 @@ vi.mock("../../utils/reportExport", () => ({
   downloadHealthPromotionReportWorkbook: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("../../utils/reportAnnex", () => ({
+vi.mock("../../utils/reportAnnex", async () => ({
+  aggregateActionsToProgramsData: (await vi.importActual<typeof import("../../utils/annex/annexAggregation")>("../../utils/annex/annexAggregation")).aggregateActionsToProgramsData,
   buildReportAnnexRows: vi.fn().mockReturnValue([]),
   buildReportHierarchy: vi.fn().mockReturnValue({ categories: [] }),
   downloadAnnexReportExcel: vi.fn().mockResolvedValue(undefined),

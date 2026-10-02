@@ -124,8 +124,9 @@ export function extractCleanJrwaSymbol(
   // 2. jrwaCaseId: relacja do ozipz_jrwa_cases lub starszy zapis będący symbolem
   if (action.jrwaCaseId && action.jrwaCaseId.trim()) {
     const trimmed = action.jrwaCaseId.trim();
+    // Sprawa z symbolem spoza słownika (np. 0444) nie rozstrzyga – decyduje wtedy symbol programu.
     const caseSym = getStoreCaseJrwaSymbol(trimmed);
-    if (caseSym) return caseSym;
+    if (caseSym && customList.includes(caseSym)) return caseSym;
     if (customList.includes(trimmed)) return trimmed;
     const found = findIn(trimmed);
     if (found) return found;

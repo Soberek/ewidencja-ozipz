@@ -117,6 +117,30 @@ function createFallbackAnnexWorkbook(
   return wb;
 }
 
+/** Wiersze danych w szablonach: od 7. do wiersza nad „RAZEM” (wzory sum obejmują tylko ten zakres). */
+const TEMPLATE_LAST_DATA_ROW: Record<string, number> = {
+  "/generate-templates/zalnr1.xlsx": 121,
+  "/generate-templates/zalnr2.xlsx": 149,
+};
+
+const sectionRowCount = (programs: Record<string, Record<string, unknown>> = {}) =>
+  Object.values(programs).reduce((rows, actions) => rows + 1 + Object.keys(actions).length, 0);
+
+/**
+ * Sekcja dłuższa niż miejsce w szablonie nadpisałaby wiersz „RAZEM” i wzory sum – wtedy eksport się zatrzymuje.
+ */
+export function assertAnnexFitsTemplate(data: AggregatedMiernikData, templatePath: string): void {
+  const lastRow = TEMPLATE_LAST_DATA_ROW[templatePath];
+  if (!lastRow) return;
+  const capacity = lastRow - 7 + 1;
+  for (const [section, label] of [["PROGRAMOWE", "programowych"], ["NIEPROGRAMOWE", "nieprogramowych"]] as const) {
+    const needed = sectionRowCount(data.aggregated[section]);
+    if (needed > capacity) {
+      throw new Error(`Część działań ${label} zajmuje ${needed} wierszy, a szablon załącznika mieści ${capacity}. Wybierz krótszy okres albo poszerz szablon.`);
+    }
+  }
+}
+
 async function exportToTemplateGeneric(
   data: AggregatedMiernikData,
   templatePath: string,
@@ -126,6 +150,7 @@ async function exportToTemplateGeneric(
   preparedBy: string = "",
   headerTitle?: string
 ): Promise<boolean> {
+  assertAnnexFitsTemplate(data, templatePath);
   try {
     if (!data.aggregated || Object.keys(data.aggregated).length === 0) {
       console.warn("Brak danych do eksportu miernika.");

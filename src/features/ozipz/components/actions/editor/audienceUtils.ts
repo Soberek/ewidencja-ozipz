@@ -1,13 +1,17 @@
 import type { AudienceGroupBlock, RecipientSubItem } from "./editor.types";
 
+const hasAudienceCount = (token: string) => parseAudienceItem(token).count > 0 || /(?:[:–-]\s*0|\(\s*0\s*\))$/.test(token.trim());
+
 // Pomocnicza funkcja parsująca pojedynczy element odbiorcy z ewentualnym wiekiem i liczbą
 export function parseAudienceItem(token: string, totalFallback = 0): RecipientSubItem {
   let count = 0;
   let remaining = token.trim();
-  const countMatch = remaining.match(/^(.+?)(?:[\s:(–-]+(\d+)(?:\s*(?:os|os\.|osób|osoby|szt|szt\.|))?\)?)$/i);
-  if (countMatch && countMatch[1] && countMatch[2]) {
+  // Liczba tylko po jawnym separatorze („ - 25”, „: 25”, „(25)”) – „kl. 7” to opis, nie liczba osób.
+  const unit = "(?:\\s*(?:os\\.?|osób|osoby|szt\\.?))?";
+  const countMatch = remaining.match(new RegExp(`^(.+?)\\s*(?:[:–-]\\s*(\\d+)${unit}|\\(\\s*(\\d+)${unit}\\s*\\))$`, "i"));
+  if (countMatch && countMatch[1] && (countMatch[2] || countMatch[3])) {
     remaining = countMatch[1].trim();
-    count = parseInt(countMatch[2], 10);
+    count = parseInt(countMatch[2] || countMatch[3], 10);
   } else {
     count = totalFallback;
   }
@@ -70,9 +74,12 @@ export function parseAudienceGroups(raw?: string, totalFallback?: number): Audie
     ];
   }
 
-  const groupChunks = raw.includes(";")
-    ? raw.split(";").map((s) => s.trim()).filter(Boolean)
-    : [raw.trim()];
+  // Starszy zapis wieloliniowy: „Grupa I:” w osobnej linii, pod nim po jednej pozycji w linii.
+  const groupChunks = raw.includes("\n") && !raw.includes(";")
+    ? multilineAudienceChunks(raw)
+    : raw.includes(";")
+      ? raw.split(";").map((s) => s.trim()).filter(Boolean)
+      : [raw.trim()];
 
   const parsedGroups: AudienceGroupBlock[] = [];
 
@@ -81,18 +88,30 @@ export function parseAudienceGroups(raw?: string, totalFallback?: number): Audie
     let groupName = `Grupa ${gIdx + 1}`;
     let itemsPart = chunk;
 
-    const colonMatch = chunk.match(/^([^:]+):\s*(.+)$/);
-    if (colonMatch) {
+    // Nagłówek grupy: „Grupa I:” w osobnej linii albo „Grupa I: pozycje…” w jednej linii.
+    // „Uczniowie 1-3: 43” to pozycja z liczbą, a nie grupa „Uczniowie 1-3”.
+    const lines = chunk.split("\n");
+    const colonMatch = chunk.includes("\n")
+      ? (/^[^:]+:$/.test(lines[0].trim()) ? [chunk, lines[0].trim().slice(0, -1), lines.slice(1).join("\n")] : null)
+      : chunk.match(/^([^:]+):\s*(.+)$/);
+    if (colonMatch && colonMatch[2].trim() && !/^\d+\s*(?:os\.?|osób|osoby)?$/i.test(colonMatch[2].trim())) {
       groupName = colonMatch[1].trim();
       itemsPart = colonMatch[2].trim();
     }
 
-    const itemTokens = itemsPart.split(",").map((s) => s.trim()).filter(Boolean);
-    const items: RecipientSubItem[] = [];
-
-    for (let iIdx = 0; iIdx < itemTokens.length; iIdx++) {
-      items.push(parseAudienceItem(itemTokens[iIdx], iIdx === 0 && totalFallback ? totalFallback : 0));
+    // Przecinek (lub nowa linia) oddziela pozycje tylko wtedy, gdy pozycja kończy się liczbą osób;
+    // „Dzieci, młodzież, dorośli - 150” to jedna pozycja ze 150 osobami.
+    const itemTokens: string[] = [];
+    let pending = "";
+    for (const token of itemsPart.split(/,|\n/).map((s) => s.trim()).filter(Boolean)) {
+      pending = pending ? `${pending}, ${token}` : token;
+      if (hasAudienceCount(pending)) {
+        itemTokens.push(pending);
+        pending = "";
+      }
     }
+    if (pending) itemTokens.push(pending);
+    const items: RecipientSubItem[] = itemTokens.map((token) => parseAudienceItem(token, 0));
 
     if (items.length === 0) {
       items.push({
@@ -109,6 +128,18 @@ export function parseAudienceGroups(raw?: string, totalFallback?: number): Audie
       name: groupName,
       items,
     });
+  }
+
+  const parsedTotal = calculateTotalParticipants(parsedGroups);
+  if (totalFallback && totalFallback > 0 && parsedTotal === 0) {
+    parsedGroups[0].items[0].count = totalFallback;
+  } else if (totalFallback && totalFallback > 0 && parsedTotal !== totalFallback) {
+    // Opisu nie da się jednoznacznie rozpisać na liczby – zostaje w całości, z zapisaną liczbą odbiorców.
+    return [{
+      id: "grp-1",
+      name: "Grupa 1",
+      items: [{ id: "item-1-1", name: raw.replace(/\s+/g, " ").trim(), count: totalFallback, ageFrom: null, ageTo: null }],
+    }];
   }
 
   if (parsedGroups.length === 0) {
@@ -130,6 +161,21 @@ export function parseAudienceGroups(raw?: string, totalFallback?: number): Audie
   }
 
   return parsedGroups;
+}
+
+/** Dzieli wieloliniowy opis na grupy: linia „Nazwa:” zaczyna grupę, kolejne linie to jej pozycje. */
+function multilineAudienceChunks(raw: string): string[] {
+  const chunks: string[] = [];
+  let current: string[] = [];
+  for (const line of raw.split("\n").map((l) => l.trim()).filter(Boolean)) {
+    if (/^[^:]+:$/.test(line) && current.length > 0) {
+      chunks.push(current.join("\n"));
+      current = [];
+    }
+    current.push(line);
+  }
+  if (current.length > 0) chunks.push(current.join("\n"));
+  return chunks;
 }
 
 // Sformatowany opis grup odbiorców z uwzględnieniem wieku do bazy i IZRZ
@@ -163,7 +209,7 @@ export function formatAudienceString(audienceGroups: AudienceGroupBlock[]): stri
   return groupStrs.join("; ");
 }
 
-// Sumaryczna liczba odbiorców bezpośrednich ze wszystkich grup
+// Sumaryczna liczba odbiorców ze wszystkich grup
 export function calculateTotalParticipants(audienceGroups: AudienceGroupBlock[]): number {
   return audienceGroups.reduce((acc, grp) => {
     const grpSum = grp.items.reduce((subAcc, item) => subAcc + (Number(item.count) || 0), 0);

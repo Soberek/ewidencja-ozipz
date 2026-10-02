@@ -4,6 +4,7 @@ import { OzipzDbService } from "../../../../db/client";
 import type { OzipzAction } from "../../types/ozipz.types";
 import { isProgramAction } from "../../utils/ozipzCalculations";
 import {
+  aggregateActionsToProgramsData,
   buildReportAnnexRows,
   buildReportHierarchy,
 } from "../../utils/reportAnnex";
@@ -278,21 +279,16 @@ export function useReportsData({
     });
   }, [filteredActions, months, effectiveKindMap]);
 
-  // Miernik Summary
+  // Miernik – te same reguły co w pliku załącznika (jedna funkcja agregująca).
   const metricSummary = useMemo(() => {
+    const { aggregated, allActions: totalActions, allPeople: totalPeople } =
+      aggregateActionsToProgramsData(filteredActions, undefined, effectiveKindMap, effectiveNamesMap);
     let programoweActions = 0;
     let programowePeople = 0;
-    let totalActions = 0;
-    let totalPeople = 0;
-
-    for (const a of filteredActions) {
-      const rec = recipientCount(a);
-      const actCount = Number(a.numberOfActions) || 1;
-      totalActions += actCount;
-      totalPeople += rec;
-      if (isProgramAction(a, effectiveKindMap)) {
-        programoweActions += actCount;
-        programowePeople += rec;
+    for (const actions of Object.values(aggregated.PROGRAMOWE ?? {})) {
+      for (const { actionNumber, people } of Object.values(actions)) {
+        programoweActions += actionNumber;
+        programowePeople += people;
       }
     }
 
@@ -313,7 +309,7 @@ export function useReportsData({
       programActionsPercent: calcPct(programoweActions, metricPlan.programyDzialania),
       programPeoplePercent: calcPct(programowePeople, metricPlan.programyUczestnicy),
     };
-  }, [filteredActions, metricPlan, effectiveKindMap]);
+  }, [filteredActions, metricPlan, effectiveKindMap, effectiveNamesMap]);
 
   // Annex Data
   const annexRows = useMemo(() => {

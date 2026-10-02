@@ -442,3 +442,34 @@ describe("Action Editor - Card Components & Single JRWA Sign Placement", () => {
     unmount();
   });
 });
+
+describe("opis odbiorców ze starszych wpisów", () => {
+  const total = (raw: string, stored?: number) => calculateTotalParticipants(parseAudienceGroups(raw, stored));
+
+  it("przecinki w opisie nie mnożą odbiorców", () => {
+    expect(total("Dzieci, młodzież, dorośli, seniorzy - 150")).toBe(150);
+    expect(total("Uczniowie kl. 4bc,5ac,6bc,7cb,8ab - 180")).toBe(180);
+    expect(total("Uczniowie kl. 4,5,6,7 - 28")).toBe(28);
+    expect(total("Uczniowie przedszkolni (3, 4 lat) - 28, Opiekunowie - 6")).toBe(34);
+    expect(total("Uczniowie - 20, Opiekunowie - 2")).toBe(22);
+  });
+
+  it("czyta zapis wieloliniowy z nagłówkami grup", () => {
+    const groups = parseAudienceGroups("Grupa I:\nUczniowie - 21\nOpiekunowie - 1\nGrupa II:\nUczniowie - 22\nOpiekunowie - 1");
+    expect(groups.map((g) => g.name)).toEqual(["Grupa I", "Grupa II"]);
+    expect(calculateTotalParticipants(groups)).toBe(45);
+    expect(total("Uczniowie kl. 5-8: 35\nOpiekunowie - 4")).toBe(39);
+  });
+
+  it("opis niezgodny z zapisaną liczbą zostaje w całości, a liczba odbiorców się nie zmienia", () => {
+    const groups = parseAudienceGroups("Dzieci, młodzież, dorośli, seniorzy - 150", 250);
+    expect(calculateTotalParticipants(groups)).toBe(250);
+    expect(groups[0].items[0].name).toBe("Dzieci, młodzież, dorośli, seniorzy - 150");
+  });
+
+  it("liczba tylko po jawnym separatorze", () => {
+    expect(parseAudienceItem("Uczniowie kl. 7").count).toBe(0);
+    expect(parseAudienceItem("Uczniowie kl. 4 (25)").count).toBe(25);
+    expect(parseAudienceItem("Uczniowie 1-3: 43")).toMatchObject({ count: 43 });
+  });
+});

@@ -327,6 +327,28 @@ describe("useActionEditorState Hook", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
+  it("saving an older entry without touching recipients keeps its description and count", async () => {
+    const onUpdate = vi.fn();
+    const legacy: OzipzAction = {
+      id: "act-legacy", title: "Stoisko", actionType: "Prelekcja (warsztat)", date: "2026-06-27",
+      facilityName: "Szkoła Podstawowa nr 1", municipality: "Myślibórz", topic: "", status: "wykonane", ezdStatus: "w_ezd",
+      audienceGroup: "Dzieci, młodzież, dorośli, seniorzy - 150", participantsCount: 250,
+      materialsDistributedCount: 0, numberOfActions: 1, leadEducator: "Jan Kowalski", createdAt: "", updatedAt: "",
+    };
+    const { result } = renderHook(() =>
+      useActionEditorState({
+        editingAction: legacy, programs: mockPrograms, facilities: mockFacilities, dictionaryItems: mockDictItems,
+        staff: mockStaff, materials: mockMaterials, templates: mockTemplates, onSave: vi.fn(), onUpdate, onCancel: vi.fn(),
+      })
+    );
+    expect(result.current.totalDirectParticipants).toBe(250);
+    await act(async () => {
+      await result.current.onSubmit({ ...legacy, participantsCount: 250 } as never);
+    });
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    expect(onUpdate.mock.calls[0][1]).toMatchObject({ audienceGroup: "Dzieci, młodzież, dorośli, seniorzy - 150", participantsCount: 250 });
+  });
+
   it("strictly prevents generating or assigning jrwaSign when actionType is a publication", async () => {
     const onSave = vi.fn();
     const { result } = renderHook(() =>

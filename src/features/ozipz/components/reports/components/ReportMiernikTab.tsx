@@ -113,6 +113,8 @@ export function ReportMiernikTab({
       );
       if (ok) toast.success("Pobrano plik Załącznika nr 1 (.xlsx)");
       else toast.error("Błąd podczas generowania Załącznika nr 1");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Błąd podczas generowania Załącznika nr 1");
     } finally {
       setIsExporting(null);
     }
@@ -129,6 +131,8 @@ export function ReportMiernikTab({
       );
       if (ok) toast.success("Pobrano plik Załącznika nr 2 (.xlsx)");
       else toast.error("Błąd podczas generowania Załącznika nr 2");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Błąd podczas generowania Załącznika nr 2");
     } finally {
       setIsExporting(null);
     }

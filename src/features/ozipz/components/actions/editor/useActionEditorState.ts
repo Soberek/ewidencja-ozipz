@@ -7,7 +7,7 @@ import {
   type ActionFormOutput,
   type ActionEditorSectionProps,
 } from "./editor.types";
-import { parseAudienceGroups } from "./audienceUtils";
+import { formatAudienceString, parseAudienceGroups } from "./audienceUtils";
 import {
   getDefaultActionFormValues,
   mapActionToFormValues,
@@ -65,7 +65,14 @@ export function useActionEditorState({
 
   const audience = useAudienceGroups();
   const { setAudienceGroups, totalDirectParticipants, formattedAudienceString } = audience;
+  /** Opis i liczba odbiorców wczytane z edytowanego wpisu (formatted – ten sam opis po przejściu przez formularz). */
+  const loadedAudienceRef = useRef<{ text: string; count: number; formatted: string } | null>(null);
   const hasNamedAudience = audience.audienceGroups.some((g) => g.items.some((i) => i.name.trim()));
+  // Odbiorcy nieruszeni w edycji: zapisujemy wczytany opis i liczbę dosłownie – starszy opis nie jest przepisywany.
+  const loadedAudience = loadedAudienceRef.current;
+  const audienceUntouched = Boolean(loadedAudience && loadedAudience.formatted === formattedAudienceString);
+  const savedAudienceText = audienceUntouched ? loadedAudience!.text : formattedAudienceString;
+  const savedParticipants = audienceUntouched ? loadedAudience!.count : totalDirectParticipants;
 
   const activityTypeDict = useMemo(
     () => dictionaryItems.filter((d) => d.dictType === "activityType" || d.dictType === "formy_dzialan"),
@@ -184,11 +191,11 @@ export function useActionEditorState({
   useEffect(() => {
     if (!isPublication) {
       if (audience.audienceGroups.length === 0) setAudienceGroups(parseAudienceGroups(""));
-      const description = hasNamedAudience ? formattedAudienceString : "";
+      const description = audienceUntouched ? savedAudienceText : hasNamedAudience ? formattedAudienceString : "";
       if (watch("audienceGroup") !== description) setValue("audienceGroup", description);
-      if (watch("participantsCount") !== totalDirectParticipants) setValue("participantsCount", totalDirectParticipants);
+      if (watch("participantsCount") !== savedParticipants) setValue("participantsCount", savedParticipants);
     }
-  }, [formattedAudienceString, hasNamedAudience, audience.audienceGroups.length, setAudienceGroups, totalDirectParticipants, setValue, isPublication, watch]);
+  }, [formattedAudienceString, hasNamedAudience, audience.audienceGroups.length, setAudienceGroups, savedParticipants, savedAudienceText, audienceUntouched, setValue, isPublication, watch]);
 
   const actionKey = editingAction
     ? editingAction.id || `prefill:${editingAction.scheduleEventId || editingAction.title || "custom"}`
@@ -204,7 +211,11 @@ export function useActionEditorState({
       setSeparateDistribution(!editingAction?.id || (initialMaterials.length === 0 && !(Number(editingAction.materialsDistributedCount) > 0)));
       if (editingAction) {
         reset(mapActionToFormValues(editingAction, staffRef.current));
-        setAudienceGroups(parseAudienceGroups(editingAction.audienceGroup, editingAction.participantsCount));
+        const loadedGroups = parseAudienceGroups(editingAction.audienceGroup, editingAction.participantsCount);
+        loadedAudienceRef.current = editingAction.audienceGroup?.trim()
+          ? { text: editingAction.audienceGroup, count: Number(editingAction.participantsCount) || 0, formatted: formatAudienceString(loadedGroups) }
+          : null;
+        setAudienceGroups(loadedGroups);
         setActivitiesDescription(editingAction.notes || "");
         setAdditionalNotes("");
         presets.setSelectedTemplateId("");
@@ -224,6 +235,7 @@ export function useActionEditorState({
         mats.setMaterialItems(initialMaterials);
       } else {
         reset(getDefaultActionFormValues(activityTypeDictRef.current, staffRef.current));
+        loadedAudienceRef.current = null;
         setFacilityAddress("");
         setAudienceGroups(parseAudienceGroups(""));
         setSaveError(null);
@@ -270,8 +282,8 @@ export function useActionEditorState({
       additionalNotes,
       isPublication,
       isNoJrwa,
-      formattedAudienceString,
-      totalDirectParticipants,
+      formattedAudienceString: savedAudienceText,
+      totalDirectParticipants: savedParticipants,
       // Program sam klasyfikuje działanie; symbol JRWA zapisujemy tylko dla klasyfikacji bez programu.
       classificationSymbol: programId ? undefined : jrwa.selectedJrwaSymbol,
     });
@@ -321,6 +333,7 @@ export function useActionEditorState({
         });
         setFacilityAddress("");
         const freshGroups = parseAudienceGroups("");
+        loadedAudienceRef.current = null;
         setAudienceGroups(freshGroups);
         jrwa.prepareSignForNextSimilar(cleanPayload);
         duplicateWarningRef.current = null;

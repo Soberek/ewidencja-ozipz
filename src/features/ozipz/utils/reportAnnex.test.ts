@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import type { OzipzAction, OzipzProgram } from "../types/ozipz.types";
 import { useOzipzDbStore } from "../store/useOzipzDbStore";
-import {
+import { assertAnnexFitsTemplate,
   buildReportAnnexRows,
   buildReportHierarchy,
   formatReportMonthLabel,
@@ -452,5 +452,22 @@ describe("reportAnnex (Better-OZ Parity & Excel Export Engine)", () => {
 
       downloadBlobSpy.mockRestore();
     });
+  });
+});
+
+describe("pojemność szablonu załącznika", () => {
+  const withPrograms = (count: number) => ({
+    aggregated: {
+      PROGRAMOWE: {},
+      NIEPROGRAMOWE: Object.fromEntries(Array.from({ length: count }, (_, i) => [`Interwencja ${i}`, { Prelekcja: { people: 1, actionNumber: 1 } }])),
+    },
+    allPeople: count, allActions: count, warnings: [],
+  });
+
+  it("przepuszcza sekcję mieszczącą się w szablonie, zatrzymuje dłuższą zamiast nadpisać sumy", () => {
+    // każda interwencja = wiersz nazwy + wiersz formy działania
+    expect(() => assertAnnexFitsTemplate(withPrograms(57), "/generate-templates/zalnr1.xlsx")).not.toThrow();
+    expect(() => assertAnnexFitsTemplate(withPrograms(58), "/generate-templates/zalnr1.xlsx")).toThrow(/116 wierszy.*mieści 115/);
+    expect(() => assertAnnexFitsTemplate(withPrograms(58), "/generate-templates/zalnr2.xlsx")).not.toThrow();
   });
 });

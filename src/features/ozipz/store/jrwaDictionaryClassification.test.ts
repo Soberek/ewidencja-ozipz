@@ -28,7 +28,6 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       ezdStatus: "Robocze",
       status: "Zrealizowane",
       participantsCount: 45,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
       numberOfActions: 1,
       leadEducator: "Jan Kowalski",
@@ -91,7 +90,6 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       ezdStatus: "Robocze",
       status: "wykonane",
       participantsCount: 50,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
       numberOfActions: 1,
       leadEducator: "Anna Nowak",
@@ -136,7 +134,6 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       ezdStatus: "Robocze",
       status: "wykonane",
       participantsCount: 30,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
       numberOfActions: 1,
       leadEducator: "Jan Kowalski",
@@ -178,7 +175,6 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       ezdStatus: "Robocze",
       status: "wykonane",
       participantsCount: 25,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
       numberOfActions: 1,
       leadEducator: "Jan Kowalski",
@@ -201,7 +197,6 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       ezdStatus: "Robocze",
       status: "wykonane",
       participantsCount: 40,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
       numberOfActions: 1,
       leadEducator: "Jan Kowalski",
@@ -323,7 +318,6 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       ezdStatus: "Robocze",
       status: "wykonane",
       participantsCount: 100,
-      indirectRecipientsCount: 0,
       materialsDistributedCount: 0,
       numberOfActions: 2,
       leadEducator: "Jan Kowalski",
@@ -354,5 +348,21 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
     expect(result.current.metricSummary.programoweActions).toBe(2);
     expect(result.current.metricSummary.otherActions).toBe(0);
     expect(result.current.metricSummary.programowePeople).toBe(100);
+  });
+  it("a case with a symbol outside the dictionary falls back to the program's symbol, not to 'has a program'", () => {
+    useOzipzDbStore.setState({
+      dictionaryItems: [
+        { id: "d-966.6", dictType: "jrwaSymbol", code: "966.6", label: "Profilaktyka substancji psychoaktywnych", kind: "NIEPROGRAMOWE", isSystem: false, createdAt: "", updatedAt: "" },
+      ],
+      programs: [{ id: "substancje", name: "Profilaktyka substancji psychoaktywnych", jrwaSymbol: "966.6" } as OzipzProgram],
+      jrwaCases: [{ id: "case-0444", jrwaSymbol: "0444", fullCaseSign: "OZiPZ.0444.2.2026" } as never],
+    });
+    const report = {
+      id: "a", title: "Sprawozdanie", actionType: "Sprawozdanie (z programu, miernik, tytoń)", date: "2026-01-30",
+      facilityName: "PSSE", municipality: "Myślibórz", topic: "", audienceGroup: "", ezdStatus: "", status: "wykonane",
+      participantsCount: 1, leadEducator: "Jan", createdAt: "", updatedAt: "",
+      programId: "substancje", jrwaSign: "OZiPZ.0444.2.2026", jrwaCaseId: "case-0444",
+    } as OzipzAction;
+    expect(isProgramAction(report)).toBe(false);
   });
 });
