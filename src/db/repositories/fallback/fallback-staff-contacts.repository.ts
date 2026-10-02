@@ -2,7 +2,7 @@ import type { OzipzStaff, OzipzContact, OzipzSchoolParticipation } from "../../.
 import { syncCoordinatorContact, unlinkCoordinatorContact } from "../../../features/ozipz/utils/participationUtils";
 import type { IStaffContactsRepository } from "../interfaces";
 import { generateId } from "../id-generator";
-import { loadFromStorage, saveToStorage } from "./storage";
+import { loadFromStorage, saveToStorage, withStorageRollback } from "./storage";
 
 export class FallbackStaffContactsRepository implements IStaffContactsRepository {
   async getStaff(): Promise<OzipzStaff[]> {
@@ -43,18 +43,22 @@ export class FallbackStaffContactsRepository implements IStaffContactsRepository
   }
 
   async updateContact(id: string, updates: Partial<OzipzContact>): Promise<void> {
-    const list = await this.getContacts();
-    const now = new Date().toISOString();
-    const next = list.map((c) => (c.id === id ? { ...c, ...updates, updatedAt: now } : c));
-    saveToStorage("contacts", next);
-    const updated = next.find((c) => c.id === id);
-    if (updated) saveToStorage("participations", syncCoordinatorContact(this.getParticipations(), updated));
+    return withStorageRollback(["contacts", "participations"], async () => {
+      const list = await this.getContacts();
+      const now = new Date().toISOString();
+      const next = list.map((c) => (c.id === id ? { ...c, ...updates, updatedAt: now } : c));
+      saveToStorage("contacts", next);
+      const updated = next.find((c) => c.id === id);
+      if (updated) saveToStorage("participations", syncCoordinatorContact(this.getParticipations(), updated));
+    });
   }
 
   async deleteContact(id: string): Promise<void> {
-    const list = await this.getContacts();
-    saveToStorage("contacts", list.filter((c) => c.id !== id));
-    saveToStorage("participations", unlinkCoordinatorContact(this.getParticipations(), id));
+    return withStorageRollback(["contacts", "participations"], async () => {
+      const list = await this.getContacts();
+      saveToStorage("contacts", list.filter((c) => c.id !== id));
+      saveToStorage("participations", unlinkCoordinatorContact(this.getParticipations(), id));
+    });
   }
 
   private getParticipations(): OzipzSchoolParticipation[] {

@@ -5,7 +5,7 @@ import type {
 } from "../../../features/ozipz/types/ozipz.types";
 import type { IFacilitiesRepository } from "../interfaces";
 import { generateId } from "../id-generator";
-import { loadFromStorage, saveToStorage } from "./storage";
+import { assertNoClosedActionReference, loadFromStorage, saveToStorage, withStorageRollback } from "./storage";
 
 export class FallbackFacilitiesRepository implements IFacilitiesRepository {
   async getFacilities(): Promise<OzipzFacility[]> {
@@ -28,28 +28,31 @@ export class FallbackFacilitiesRepository implements IFacilitiesRepository {
   }
 
   async deleteFacility(id: string): Promise<void> {
-    const linked = loadFromStorage<OzipzSchoolParticipation[]>("participations", []);
-    if (linked.some((row) => row.facilityId === id)) throw new Error("Nie można usunąć placówki z zapisanymi udziałami. Najpierw uporządkuj zgłoszenia.");
-    const list = await this.getFacilities();
-    saveToStorage("facilities", list.filter((f) => f.id !== id).map((f) => (f.parentFacilityId === id ? { ...f, parentFacilityId: undefined } : f)));
-    const parts = loadFromStorage<OzipzSchoolParticipation[]>("participations", []);
-    saveToStorage("participations", parts.filter((part) => part.facilityId !== id));
-    const actions = loadFromStorage<OzipzAction[]>("actions", []);
-    saveToStorage("actions", actions.map((a) => (a.facilityId === id ? { ...a, facilityId: undefined } : a)));
-    const dists = loadFromStorage<OzipzDistribution[]>("distributions", []);
-    saveToStorage("distributions", dists.map((d) => (d.facilityId === id ? { ...d, facilityId: undefined } : d)));
-    const schs = loadFromStorage<OzipzScheduleEvent[]>("schedules", []);
-    saveToStorage("schedules", schs.map((s) => (s.facilityId === id ? { ...s, facilityId: undefined } : s)));
-    const jrwa = loadFromStorage<OzipzJrwaCase[]>("jrwaCases", []);
-    saveToStorage("jrwaCases", jrwa.map((j) => (j.facilityId === id ? { ...j, facilityId: undefined, facilityName: undefined } : j)));
-    const letters = loadFromStorage<OzipzLetter[]>("letters", []);
-    saveToStorage("letters", letters.map((l) => (l.facilityId === id ? { ...l, facilityId: undefined } : l)));
-    const scans = loadFromStorage<OzipzScan[]>("scans", []);
-    saveToStorage("scans", scans.map((s) => (s.facilityId === id ? { ...s, facilityId: undefined } : s)));
-    const contacts = loadFromStorage<OzipzContact[]>("contacts", []);
-    saveToStorage("contacts", contacts.map((c) => (c.facilityId === id ? { ...c, facilityId: undefined } : c)));
-    const registers = loadFromStorage<OzipzRegisterItem[]>("registers", []);
-    saveToStorage("registers", registers.map((r) => (r.facilityId === id ? { ...r, facilityId: undefined, facilityName: undefined } : r)));
+    assertNoClosedActionReference("facilityId", id);
+    return withStorageRollback(["facilities", "participations", "actions", "distributions", "schedules", "jrwaCases", "letters", "scans", "contacts", "registers"], async () => {
+      const linked = loadFromStorage<OzipzSchoolParticipation[]>("participations", []);
+      if (linked.some((row) => row.facilityId === id)) throw new Error("Nie można usunąć placówki z zapisanymi udziałami. Najpierw uporządkuj zgłoszenia.");
+      const list = await this.getFacilities();
+      saveToStorage("facilities", list.filter((f) => f.id !== id).map((f) => (f.parentFacilityId === id ? { ...f, parentFacilityId: undefined } : f)));
+      const parts = loadFromStorage<OzipzSchoolParticipation[]>("participations", []);
+      saveToStorage("participations", parts.filter((part) => part.facilityId !== id));
+      const actions = loadFromStorage<OzipzAction[]>("actions", []);
+      saveToStorage("actions", actions.map((a) => (a.facilityId === id ? { ...a, facilityId: undefined } : a)));
+      const dists = loadFromStorage<OzipzDistribution[]>("distributions", []);
+      saveToStorage("distributions", dists.map((d) => (d.facilityId === id ? { ...d, facilityId: undefined } : d)));
+      const schs = loadFromStorage<OzipzScheduleEvent[]>("schedules", []);
+      saveToStorage("schedules", schs.map((s) => (s.facilityId === id ? { ...s, facilityId: undefined } : s)));
+      const jrwa = loadFromStorage<OzipzJrwaCase[]>("jrwaCases", []);
+      saveToStorage("jrwaCases", jrwa.map((j) => (j.facilityId === id ? { ...j, facilityId: undefined, facilityName: undefined } : j)));
+      const letters = loadFromStorage<OzipzLetter[]>("letters", []);
+      saveToStorage("letters", letters.map((l) => (l.facilityId === id ? { ...l, facilityId: undefined } : l)));
+      const scans = loadFromStorage<OzipzScan[]>("scans", []);
+      saveToStorage("scans", scans.map((s) => (s.facilityId === id ? { ...s, facilityId: undefined } : s)));
+      const contacts = loadFromStorage<OzipzContact[]>("contacts", []);
+      saveToStorage("contacts", contacts.map((c) => (c.facilityId === id ? { ...c, facilityId: undefined } : c)));
+      const registers = loadFromStorage<OzipzRegisterItem[]>("registers", []);
+      saveToStorage("registers", registers.map((r) => (r.facilityId === id ? { ...r, facilityId: undefined, facilityName: undefined } : r)));
+    });
   }
 
   async batchUpsertFacilities(facilities: OzipzFacility[]): Promise<OzipzFacility[]> {

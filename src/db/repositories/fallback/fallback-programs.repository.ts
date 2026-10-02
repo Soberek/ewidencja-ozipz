@@ -10,7 +10,7 @@ import type {
 } from "../../../features/ozipz/types/ozipz.types";
 import type { IProgramsRepository } from "../interfaces";
 import { generateId } from "../id-generator";
-import { loadFromStorage, saveToStorage } from "./storage";
+import { assertNoClosedActionReference, loadFromStorage, saveToStorage, withStorageRollback } from "./storage";
 import { findDuplicateParticipation } from "../../../features/ozipz/utils/participationUtils";
 
 export class FallbackProgramsRepository implements IProgramsRepository {
@@ -40,24 +40,27 @@ export class FallbackProgramsRepository implements IProgramsRepository {
   }
 
   async deleteProgram(id: string): Promise<void> {
-    const linked = loadFromStorage<OzipzSchoolParticipation[]>("participations", []);
-    if (linked.some((row) => row.programId === id)) throw new Error("Nie można usunąć programu z zapisanymi udziałami. Najpierw uporządkuj zgłoszenia.");
-    const list = await this.getPrograms();
-    saveToStorage("programs", list.filter((p) => p.id !== id));
-    const parts = await this.getParticipations();
-    saveToStorage("participations", parts.filter((part) => part.programId !== id));
-    const actions = loadFromStorage<OzipzAction[]>("actions", []);
-    saveToStorage("actions", actions.map((a) => (a.programId === id ? { ...a, programId: undefined, programName: undefined } : a)));
-    const schs = loadFromStorage<OzipzScheduleEvent[]>("schedules", []);
-    saveToStorage("schedules", schs.map((s) => (s.programId === id ? { ...s, programId: undefined, programName: undefined } : s)));
-    const jrwa = loadFromStorage<OzipzJrwaCase[]>("jrwaCases", []);
-    saveToStorage("jrwaCases", jrwa.map((j) => (j.programId === id ? { ...j, programId: undefined, programName: undefined } : j)));
-    const letters = loadFromStorage<OzipzLetter[]>("letters", []);
-    saveToStorage("letters", letters.map((l) => (l.programId === id ? { ...l, programId: undefined } : l)));
-    const scans = loadFromStorage<OzipzScan[]>("scans", []);
-    saveToStorage("scans", scans.map((s) => (s.programId === id ? { ...s, programId: undefined, programName: undefined } : s)));
-    const registers = loadFromStorage<OzipzRegisterItem[]>("registers", []);
-    saveToStorage("registers", registers.map((r) => (r.programId === id ? { ...r, programId: undefined, programName: undefined } : r)));
+    assertNoClosedActionReference("programId", id);
+    return withStorageRollback(["programs", "participations", "actions", "schedules", "jrwaCases", "letters", "scans", "registers"], async () => {
+      const linked = loadFromStorage<OzipzSchoolParticipation[]>("participations", []);
+      if (linked.some((row) => row.programId === id)) throw new Error("Nie można usunąć programu z zapisanymi udziałami. Najpierw uporządkuj zgłoszenia.");
+      const list = await this.getPrograms();
+      saveToStorage("programs", list.filter((p) => p.id !== id));
+      const parts = await this.getParticipations();
+      saveToStorage("participations", parts.filter((part) => part.programId !== id));
+      const actions = loadFromStorage<OzipzAction[]>("actions", []);
+      saveToStorage("actions", actions.map((a) => (a.programId === id ? { ...a, programId: undefined, programName: undefined } : a)));
+      const schs = loadFromStorage<OzipzScheduleEvent[]>("schedules", []);
+      saveToStorage("schedules", schs.map((s) => (s.programId === id ? { ...s, programId: undefined, programName: undefined } : s)));
+      const jrwa = loadFromStorage<OzipzJrwaCase[]>("jrwaCases", []);
+      saveToStorage("jrwaCases", jrwa.map((j) => (j.programId === id ? { ...j, programId: undefined, programName: undefined } : j)));
+      const letters = loadFromStorage<OzipzLetter[]>("letters", []);
+      saveToStorage("letters", letters.map((l) => (l.programId === id ? { ...l, programId: undefined } : l)));
+      const scans = loadFromStorage<OzipzScan[]>("scans", []);
+      saveToStorage("scans", scans.map((s) => (s.programId === id ? { ...s, programId: undefined, programName: undefined } : s)));
+      const registers = loadFromStorage<OzipzRegisterItem[]>("registers", []);
+      saveToStorage("registers", registers.map((r) => (r.programId === id ? { ...r, programId: undefined, programName: undefined } : r)));
+    });
   }
 
   async getParticipations(): Promise<OzipzSchoolParticipation[]> {

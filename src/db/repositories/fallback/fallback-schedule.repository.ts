@@ -1,7 +1,7 @@
 import type { OzipzScheduleEvent, OzipzAction } from "../../../features/ozipz/types/ozipz.types";
 import type { IScheduleRepository } from "../interfaces";
 import { generateId } from "../id-generator";
-import { loadFromStorage, saveToStorage } from "./storage";
+import { assertNoClosedActionReference, loadFromStorage, saveToStorage, withStorageRollback } from "./storage";
 
 export class FallbackScheduleRepository implements IScheduleRepository {
   async getScheduleEvents(): Promise<OzipzScheduleEvent[]> {
@@ -24,10 +24,13 @@ export class FallbackScheduleRepository implements IScheduleRepository {
   }
 
   async deleteScheduleEvent(id: string): Promise<void> {
-    const list = await this.getScheduleEvents();
-    saveToStorage("schedules", list.filter((s) => s.id !== id));
-    const actions = loadFromStorage<OzipzAction[]>("actions", []);
-    saveToStorage("actions", actions.map((a) => (a.scheduleEventId === id ? { ...a, scheduleEventId: undefined } : a)));
+    assertNoClosedActionReference("scheduleEventId", id);
+    return withStorageRollback(["schedules", "actions"], async () => {
+      const list = await this.getScheduleEvents();
+      saveToStorage("schedules", list.filter((s) => s.id !== id));
+      const actions = loadFromStorage<OzipzAction[]>("actions", []);
+      saveToStorage("actions", actions.map((a) => (a.scheduleEventId === id ? { ...a, scheduleEventId: undefined } : a)));
+    });
   }
 
   async toggleScheduleStatus(id: string, currentStatus: string): Promise<void> {

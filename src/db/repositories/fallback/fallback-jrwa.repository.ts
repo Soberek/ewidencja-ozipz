@@ -1,7 +1,7 @@
 import type { OzipzJrwaCase, OzipzAction } from "../../../features/ozipz/types/ozipz.types";
 import type { IJrwaRepository } from "../interfaces";
 import { generateId } from "../id-generator";
-import { loadFromStorage, saveToStorage } from "./storage";
+import { assertNoClosedActionReference, loadFromStorage, saveToStorage, withStorageRollback } from "./storage";
 
 function assertUniqueCase(list: OzipzJrwaCase[], candidate: Omit<OzipzJrwaCase, "id" | "createdAt" | "updatedAt">, id?: string): void {
   if (list.some((item) => item.id !== id && (
@@ -44,9 +44,12 @@ export class FallbackJrwaRepository implements IJrwaRepository {
   }
 
   async deleteJrwaCase(id: string): Promise<void> {
-    const list = await this.getJrwaCases();
-    saveToStorage("jrwaCases", list.filter((j) => j.id !== id));
-    const actions = loadFromStorage<OzipzAction[]>("actions", []);
-    saveToStorage("actions", actions.map((a) => (a.jrwaCaseId === id ? { ...a, jrwaCaseId: undefined } : a)));
+    assertNoClosedActionReference("jrwaCaseId", id);
+    return withStorageRollback(["jrwaCases", "actions"], async () => {
+      const list = await this.getJrwaCases();
+      saveToStorage("jrwaCases", list.filter((j) => j.id !== id));
+      const actions = loadFromStorage<OzipzAction[]>("actions", []);
+      saveToStorage("actions", actions.map((a) => (a.jrwaCaseId === id ? { ...a, jrwaCaseId: undefined } : a)));
+    });
   }
 }

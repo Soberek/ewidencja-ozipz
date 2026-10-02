@@ -1,7 +1,7 @@
 import type { OzipzMaterial, OzipzDistribution, OzipzAction } from "../../../features/ozipz/types/ozipz.types";
 import type { IMaterialsRepository } from "../interfaces";
 import { generateId } from "../id-generator";
-import { loadFromStorage, saveToStorage } from "./storage";
+import { assertNoClosedActionReference, loadFromStorage, saveToStorage, withStorageRollback } from "./storage";
 
 export class FallbackMaterialsRepository implements IMaterialsRepository {
   async getMaterials(): Promise<OzipzMaterial[]> {
@@ -24,12 +24,15 @@ export class FallbackMaterialsRepository implements IMaterialsRepository {
   }
 
   async deleteMaterial(id: string): Promise<void> {
-    const list = await this.getMaterials();
-    saveToStorage("materials", list.filter((m) => m.id !== id));
-    const actions = loadFromStorage<OzipzAction[]>("actions", []);
-    saveToStorage("actions", actions.map((a) => (a.materialId === id ? { ...a, materialId: undefined } : a)));
-    const dists = await this.getDistributions();
-    saveToStorage("distributions", dists.map((d) => (d.materialId === id ? { ...d, materialId: undefined } : d)));
+    assertNoClosedActionReference("materialId", id);
+    return withStorageRollback(["materials", "actions", "distributions"], async () => {
+      const list = await this.getMaterials();
+      saveToStorage("materials", list.filter((m) => m.id !== id));
+      const actions = loadFromStorage<OzipzAction[]>("actions", []);
+      saveToStorage("actions", actions.map((a) => (a.materialId === id ? { ...a, materialId: undefined } : a)));
+      const dists = await this.getDistributions();
+      saveToStorage("distributions", dists.map((d) => (d.materialId === id ? { ...d, materialId: undefined } : d)));
+    });
   }
 
   async getDistributions(): Promise<OzipzDistribution[]> {

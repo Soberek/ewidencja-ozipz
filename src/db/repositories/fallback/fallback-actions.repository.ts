@@ -2,7 +2,7 @@ import type { OzipzAction, OzipzDistribution, OzipzJrwaCase, OzipzScheduleEvent,
 import type { IActionsRepository, IJrwaRepository, IScheduleRepository, IMaterialsRepository } from "../interfaces";
 import type { CompanionDistributionPayload, SaveActionWithRelationsParams, SaveActionWithRelationsResult } from "../../types";
 import { generateId } from "../id-generator";
-import { loadFromStorage, saveToStorage } from "./storage";
+import { loadFromStorage, saveToStorage, withStorageRollback } from "./storage";
 import { FallbackJrwaRepository } from "./fallback-jrwa.repository";
 import { FallbackScheduleRepository } from "./fallback-schedule.repository";
 import { FallbackMaterialsRepository } from "./fallback-materials.repository";
@@ -18,17 +18,7 @@ function assertMonthOpen(date: string): void {
 
 // ponytail: localStorage has no multi-key transaction; use SQLite for crash-safe writes.
 async function withActionStorageRollback<T>(operation: () => Promise<T>): Promise<T> {
-  const keys = ["actions", "jrwaCases", "schedules", "distributions", "publications"].map((key) => `ozipz_${key}`);
-  const before = keys.map((key) => localStorage.getItem(key));
-  try {
-    return await operation();
-  } catch (error) {
-    const changed = keys.map((key, index) => ({ key, index }))
-      .filter(({ key, index }) => localStorage.getItem(key) !== before[index]);
-    changed.forEach(({ key }) => localStorage.removeItem(key));
-    changed.forEach(({ key, index }) => { if (before[index] !== null) localStorage.setItem(key, before[index]!); });
-    throw error;
-  }
+  return withStorageRollback(["actions", "jrwaCases", "schedules", "distributions", "publications"], operation);
 }
 
 export class FallbackActionsRepository implements IActionsRepository {

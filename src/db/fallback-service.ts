@@ -20,7 +20,8 @@ import { FallbackRegistryRepository } from "./repositories/fallback/fallback-reg
 import { FallbackMonthlyTargetsRepository } from "./repositories/fallback/fallback-monthly-targets.repository";
 import { FallbackRozdzielnikTemplatesRepository } from "./repositories/fallback/fallback-rozdzielnik-templates.repository";
 import type { RozdzielnikTemplate } from "../features/ozipz/utils/rozdzielnikTemplates";
-import { getStoredClosedMonths } from "../features/ozipz/utils/dateUtils";
+import { getStoredClosedMonths, isMonthClosed } from "../features/ozipz/utils/dateUtils";
+import { saveToStorage, withBrowserStorageRollback } from "./repositories/fallback/storage";
 import type { ChangeLogEntry } from "./change-log";
 
 export class FallbackDatabaseService implements IOzipzDatabaseService {
@@ -53,14 +54,33 @@ export class FallbackDatabaseService implements IOzipzDatabaseService {
   async getClosedMonths(): Promise<string[]> { return [...getStoredClosedMonths()].filter((month) => typeof month === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(month)).sort(); }
   async setMonthClosed(monthKey: string, closed: boolean): Promise<void> {
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(monthKey)) throw new Error("Nieprawidłowy miesiąc.");
-    const months = new Set(await this.getClosedMonths());
-    if (closed) months.add(monthKey);
-    else months.delete(monthKey);
-    localStorage.setItem("oz.closedMonths", JSON.stringify([...months]));
+    await withBrowserStorageRollback(["ozipz_actions", "oz.closedMonths"], async () => {
+      const months = new Set(await this.getClosedMonths());
+      if (closed && !months.has(monthKey)) {
+        // Freeze the names visible on the closing day, including older fallback records whose stored names are stale.
+        const actions = await this.actionsRepo.getActions();
+        const monthActions = actions.filter((action) => action.date.startsWith(`${monthKey}-`));
+        if (monthActions.length) {
+          const resolved = resolveReferenceNames(monthActions, await this.getFacilities(), await this.getPrograms());
+          const byId = new Map(resolved.map((action) => [action.id, action]));
+          saveToStorage("actions", actions.map((action) => byId.get(action.id) ?? action));
+        }
+      }
+      if (closed) months.add(monthKey);
+      else months.delete(monthKey);
+      localStorage.setItem("oz.closedMonths", JSON.stringify([...months]));
+    });
   }
 
   // Actions
-  async getActions(): Promise<OzipzAction[]> { return resolveReferenceNames(await this.actionsRepo.getActions(), await this.getFacilities(), await this.getPrograms()); }
+  async getActions(): Promise<OzipzAction[]> {
+    const actions = await this.actionsRepo.getActions();
+    const closed = getStoredClosedMonths();
+    const open = actions.filter((action) => !isMonthClosed(action.date, closed));
+    const resolved = resolveReferenceNames(open, await this.getFacilities(), await this.getPrograms());
+    const byId = new Map(resolved.map((action) => [action.id, action]));
+    return actions.map((action) => byId.get(action.id) ?? action);
+  }
   addAction(action: Omit<OzipzAction, "id" | "createdAt" | "updatedAt">): Promise<OzipzAction> { return this.actionsRepo.addAction(action); }
   updateAction(id: string, updates: Partial<OzipzAction>): Promise<void> { return this.actionsRepo.updateAction(id, updates); }
   updateActionWithRelations(
@@ -119,6 +139,7 @@ export class FallbackDatabaseService implements IOzipzDatabaseService {
   addDictionaryItem(d: Omit<OzipzDictionaryItem, "id" | "createdAt" | "updatedAt">): Promise<OzipzDictionaryItem> { return this.dictionariesRepo.addDictionaryItem(d); }
   updateDictionaryItem(id: string, u: Partial<OzipzDictionaryItem>): Promise<void> { return this.dictionariesRepo.updateDictionaryItem(id, u); }
   deleteDictionaryItem(id: string): Promise<void> { return this.dictionariesRepo.deleteDictionaryItem(id); }
+  saveRegisterMappings(mappings: import("./types").RegisterMappingSave[]): Promise<OzipzDictionaryItem[]> { return this.dictionariesRepo.saveRegisterMappings(mappings); }
   // Letters, Scans, Templates, Registers
   getLetters(): Promise<OzipzLetter[]> { return this.registryRepo.getLetters(); }
   addLetter(l: Omit<OzipzLetter, "id" | "createdAt" | "updatedAt">): Promise<OzipzLetter> { return this.registryRepo.addLetter(l); }
