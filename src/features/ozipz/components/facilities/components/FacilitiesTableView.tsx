@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { OzipzFacility } from "../../../types/ozipz.types";
 import type { FacilityIssue } from "../../../utils/facilityUtils";
 import { formatFacilityAddress } from "../../../utils/facilityUtils";
+import { mailtoHref } from "../../../utils/emailUtils";
 
 export interface FacilitiesTableViewProps {
   facilities: OzipzFacility[];
@@ -175,7 +176,7 @@ export function FacilitiesTableView({
         const hasCoordinator = row.defaultCoordinatorName || row.defaultCoordinatorEmail || row.defaultCoordinatorPhone;
         return (
           <div className="min-w-[160px] max-w-[230px] space-y-0.5">
-            {row.email && <ContactLink href={`mailto:${row.email}`} icon={Mail}>{row.email}</ContactLink>}
+            {row.email && <ContactLink href={mailtoHref(row.email)} icon={Mail}>{row.email}</ContactLink>}
             {row.phone && <ContactLink href={`tel:${row.phone.replace(/\s+/g, "")}`} icon={Phone} mono>{row.phone}</ContactLink>}
             {!row.email && !row.phone && !hasCoordinator && <span className="text-[10px] italic text-muted-foreground">Brak danych kontaktowych</span>}
             {hasCoordinator && (
@@ -185,7 +186,7 @@ export function FacilitiesTableView({
                   <span className="truncate">{row.defaultCoordinatorName || "Koordynator"}</span>
                 </p>
                 {row.defaultCoordinatorEmail && (
-                  <ContactLink href={`mailto:${row.defaultCoordinatorEmail}`} icon={Mail}>{row.defaultCoordinatorEmail}</ContactLink>
+                  <ContactLink href={mailtoHref(row.defaultCoordinatorEmail)} icon={Mail}>{row.defaultCoordinatorEmail}</ContactLink>
                 )}
                 {row.defaultCoordinatorPhone && (
                   <ContactLink href={`tel:${row.defaultCoordinatorPhone.replace(/\s+/g, "")}`} icon={Phone} mono>{row.defaultCoordinatorPhone}</ContactLink>

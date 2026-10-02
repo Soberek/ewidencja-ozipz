@@ -530,12 +530,13 @@ describe("Contacts Module Harmonization", () => {
       expect(localStorage.getItem("oz.contactsViewMode")).toBe("grouped");
     });
 
-    it("copies e-mails of the filtered contacts separated by semicolons", async () => {
+    it("copies e-mails of the filtered contacts through the copy dialog", async () => {
       const writeText = vi.fn().mockResolvedValue(undefined);
       Object.assign(navigator, { clipboard: { writeText } });
       render(<ContactsSection contacts={mockContacts} />);
       fireEvent.click(screen.getByRole("button", { name: "Dyrektorzy" }));
       fireEvent.click(screen.getByRole("button", { name: "Kopiuj e-maile (1)" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Kopiuj do schowka" }));
       await waitFor(() => expect(writeText).toHaveBeenCalledWith("a.nowak@zsipo-mysliborz.pl"));
     });
 

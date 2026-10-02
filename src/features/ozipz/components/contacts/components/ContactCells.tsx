@@ -2,7 +2,8 @@ import { Phone, Mail, Copy, Check, Briefcase, AlertTriangle, ClipboardList } fro
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { formatPhone, getContactRole, isValidEmail, phoneHref, type ContactRole } from "../contactUtils";
+import { formatPhone, getContactRole, phoneHref, type ContactRole } from "../contactUtils";
+import { extractEmails, mailtoHref, parseEmails } from "../../../utils/emailUtils";
 
 const ROLE_BADGE_CLASS: Record<ContactRole, string> = {
   coordinator:
@@ -68,12 +69,14 @@ export function ContactEmail({ id, value, copiedId, onCopy }: ContactFieldProps)
   if (!value?.trim()) {
     return <span className="text-[11px] text-muted-foreground italic">Brak e-maila</span>;
   }
-  const valid = isValidEmail(value);
+  const parsed = parseEmails(value);
+  const valid = parsed.valid.length > 0 && parsed.invalid.length === 0;
+  const emails = extractEmails(value);
   return (
     <div className="flex items-center gap-1 text-xs min-w-0">
       <Mail className="size-3 text-muted-foreground shrink-0" />
       <a
-        href={`mailto:${value.trim()}`}
+        href={mailtoHref(value)}
         onClick={(e) => e.stopPropagation()}
         className={cn(
           "hover:underline truncate max-w-[200px]",
@@ -84,11 +87,11 @@ export function ContactEmail({ id, value, copiedId, onCopy }: ContactFieldProps)
         {value}
       </a>
       <CopyButton
-        value={value.trim()}
+        value={emails.length > 0 ? emails.join("; ") : value.trim()}
         copyKey={`email-${id}`}
         copiedId={copiedId}
         onCopy={onCopy}
-        label="Kopiuj adres e-mail"
+        label={emails.length > 1 ? "Kopiuj adresy e-mail" : "Kopiuj adres e-mail"}
       />
     </div>
   );

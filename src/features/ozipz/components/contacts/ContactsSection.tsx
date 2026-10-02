@@ -5,6 +5,8 @@ import { useContacts, useOzipzDbStore } from "../../store/useOzipzDbStore";
 import { useModalStore } from "../../store/useModalStore";
 import { downloadBlob } from "../../utils/downloadHelper";
 import { getTodayIsoDate } from "../../utils/dateUtils";
+import { copyTextToClipboard, invalidEmails } from "../../utils/emailUtils";
+import { EmailsCopyDialog } from "../modals/EmailsCopyDialog";
 import { ContactsStatsHeader } from "./components/ContactsStatsHeader";
 import { ContactsFilterBar } from "./components/ContactsFilterBar";
 import { ContactsTableView } from "./components/ContactsTableView";
@@ -90,25 +92,18 @@ export function ContactsSection(props: ContactsSectionProps) {
     writeStorage("oz.contactsViewMode", mode);
   }, []);
 
-  const copyToClipboard = useCallback(async (text: string): Promise<boolean> => {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      toast.error("Nie udało się skopiować do schowka");
-      return false;
-    }
-  }, []);
-
   const handleCopy = useCallback(
     async (text: string, id: string) => {
-      if (!(await copyToClipboard(text))) return;
+      if (!(await copyTextToClipboard(text))) {
+        toast.error("Nie udało się skopiować do schowka");
+        return;
+      }
       setCopiedId(id);
       toast.success(`Skopiowano: ${text}`);
       if (copiedTimer.current) clearTimeout(copiedTimer.current);
       copiedTimer.current = setTimeout(() => setCopiedId(null), 2000);
     },
-    [copyToClipboard]
+    []
   );
 
   // Unikalne stanowiska i gminy
@@ -157,6 +152,12 @@ export function ContactsSection(props: ContactsSectionProps) {
   }, [contacts, positionFilter, muniFilter, roleFilter, search]);
 
   const filteredEmails = useMemo(() => collectEmails(filteredContacts), [filteredContacts]);
+  const filteredInvalidEmails = useMemo(() => invalidEmails(filteredContacts.map((c) => c.email)), [filteredContacts]);
+  const withoutEmailCount = useMemo(
+    () => filteredContacts.filter((c) => collectEmails([c]).length === 0).length,
+    [filteredContacts]
+  );
+  const [isEmailsCopyOpen, setIsEmailsCopyOpen] = useState(false);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -174,14 +175,7 @@ export function ContactsSection(props: ContactsSectionProps) {
     setRoleFilter("all");
   }, []);
 
-  const handleCopyEmails = useCallback(async () => {
-    if (filteredEmails.length === 0) return;
-    if (await copyToClipboard(filteredEmails.join("; "))) {
-      toast.success(`Skopiowano ${filteredEmails.length} adresów e-mail`, {
-        description: "Wklej je w pole UDW, aby wysłać pismo do całej grupy.",
-      });
-    }
-  }, [filteredEmails, copyToClipboard]);
+  const handleCopyEmails = useCallback(() => setIsEmailsCopyOpen(true), []);
 
   const handleExportVCard = useCallback(() => {
     if (filteredContacts.length === 0) return;
@@ -266,6 +260,14 @@ export function ContactsSection(props: ContactsSectionProps) {
           isFiltered={isFiltered}
         />
       )}
+      <EmailsCopyDialog
+        open={isEmailsCopyOpen}
+        onOpenChange={setIsEmailsCopyOpen}
+        emails={filteredEmails}
+        invalid={filteredInvalidEmails}
+        description={`Adresy ${filteredContacts.length} kontaktów widocznych po filtrowaniu. Duplikaty są pomijane.`}
+        footnote={withoutEmailCount > 0 ? `${withoutEmailCount} bez adresu e-mail` : undefined}
+      />
       <ContactImportDialog isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} />
     </div>
   );

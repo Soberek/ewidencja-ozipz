@@ -46,7 +46,7 @@ export function ContactsResultsBar({
           size="sm"
           onClick={onCopyEmails}
           disabled={emailCount === 0}
-          title="Kopiuje adresy wyświetlonych kontaktów rozdzielone średnikiem – do pola UDW"
+          title="Adresy wyświetlonych kontaktów do pola DW/UDW – z wyborem separatora"
         >
           <Mail className="size-3.5" />
           <span>Kopiuj e-maile ({emailCount})</span>

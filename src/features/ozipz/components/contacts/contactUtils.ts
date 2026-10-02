@@ -1,5 +1,8 @@
 import type { OzipzContact, OzipzSchoolParticipation } from "../../types/ozipz.types";
 import { participationCoordinators } from "../../utils/participationUtils";
+import { extractEmails, isValidEmail, uniqueEmails } from "../../utils/emailUtils";
+
+export { isValidEmail };
 
 /**
  * Logika domenowa Spisu Kontaktów: normalizacja wyszukiwania, klasyfikacja ról,
@@ -46,17 +49,11 @@ export function hasEmail(c: Pick<OzipzContact, "email">): boolean {
   return Boolean(c.email && c.email.trim());
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-export function isValidEmail(value: string | null | undefined): boolean {
-  return EMAIL_RE.test((value || "").trim());
-}
-
 /** Braki w kartotece – puste pole telefonu i e-maila, niepoprawny e-mail lub brak placówki. */
 export function getContactIssues(c: OzipzContact): string[] {
   const issues: string[] = [];
   if (!hasPhone(c) && !hasEmail(c)) issues.push("Brak telefonu i e-maila");
-  if (hasEmail(c) && !isValidEmail(c.email)) issues.push("Niepoprawny adres e-mail");
+  if (hasEmail(c) && extractEmails(c.email).length === 0) issues.push("Niepoprawny adres e-mail");
   if (!(c.facilityName || "").trim()) issues.push("Brak przypisanej placówki");
   if (!(c.position || "").trim()) issues.push("Brak stanowiska");
   return issues;
@@ -168,16 +165,7 @@ export function findDuplicateContacts(
 
 /** Unikalne, poprawne adresy e-mail – gotowe do wklejenia w pole UDW / DW. */
 export function collectEmails(contacts: OzipzContact[]): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const c of contacts) {
-    const email = (c.email || "").trim();
-    const key = email.toLowerCase();
-    if (!isValidEmail(email) || seen.has(key)) continue;
-    seen.add(key);
-    out.push(email);
-  }
-  return out;
+  return uniqueEmails(contacts.map((c) => c.email));
 }
 
 /**
@@ -239,7 +227,7 @@ export function contactsToVCard(contacts: OzipzContact[]): string {
       if (c.position) lines.push(`TITLE:${escapeVCard(c.position)}`);
       const tel = phoneHref(c.phone);
       if (tel) lines.push(`TEL;TYPE=WORK,VOICE:${tel.replace("tel:", "")}`);
-      if (isValidEmail(c.email)) lines.push(`EMAIL;TYPE=INTERNET,WORK:${c.email!.trim()}`);
+      for (const email of extractEmails(c.email)) lines.push(`EMAIL;TYPE=INTERNET,WORK:${email}`);
       if (c.municipality) lines.push(`ADR;TYPE=WORK:;;;;${escapeVCard(c.municipality)};;PL`);
       const note = [c.notes, "Ewidencja OZiPZ"].filter(Boolean).join(" · ");
       lines.push(`NOTE:${escapeVCard(note)}`);

@@ -131,12 +131,29 @@ describe("collectFacilityEmails", () => {
   const rows = [
     fac({ id: "a", email: "Sekretariat@sp.pl", defaultCoordinatorEmail: "anna@sp.pl" }),
     fac({ id: "b", email: "sekretariat@sp.pl; drugi@sp.pl", defaultCoordinatorEmail: "niepoprawny" }),
+    fac({ id: "c", email: "" }),
   ];
 
   it("collects unique valid addresses from the chosen source", () => {
-    expect(collectFacilityEmails(rows, "facility")).toEqual(["Sekretariat@sp.pl", "drugi@sp.pl"]);
-    expect(collectFacilityEmails(rows, "coordinator")).toEqual(["anna@sp.pl"]);
-    expect(collectFacilityEmails(rows, "both")).toEqual(["Sekretariat@sp.pl", "anna@sp.pl", "drugi@sp.pl"]);
+    expect(collectFacilityEmails(rows, "facility").emails).toEqual(["Sekretariat@sp.pl", "drugi@sp.pl"]);
+    expect(collectFacilityEmails(rows, "coordinator").emails).toEqual(["anna@sp.pl"]);
+    expect(collectFacilityEmails(rows, "both").emails).toEqual(["Sekretariat@sp.pl", "anna@sp.pl", "drugi@sp.pl"]);
+  });
+
+  it("adds coordinators from the contact list linked by facility id", () => {
+    const coordinators = [
+      { facilityId: "b", email: "koordynator@sp.pl" },
+      { facilityId: "c", email: "ewa@sp.pl, ANNA@sp.pl" },
+      { facilityId: "spoza-listy", email: "obcy@sp.pl" },
+    ];
+    const result = collectFacilityEmails(rows, "coordinator", coordinators);
+    expect(result.emails).toEqual(["anna@sp.pl", "koordynator@sp.pl", "ewa@sp.pl"]);
+    expect(result.withoutEmail).toEqual([]);
+  });
+
+  it("reports facilities without any address in the source", () => {
+    expect(collectFacilityEmails(rows, "facility").withoutEmail.map((f) => f.id)).toEqual(["c"]);
+    expect(collectFacilityEmails(rows, "coordinator").withoutEmail.map((f) => f.id)).toEqual(["b", "c"]);
   });
 });
 

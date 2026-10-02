@@ -3,8 +3,6 @@ import {
   TYPY_KSZTALCENIA,
   mapTypyKsztalcenia,
   inferLokalizacjaTyp,
-  collectEmails,
-  emailToastCount,
 } from "./educationTypesUtils";
 
 describe("educationTypesUtils", () => {
@@ -33,25 +31,5 @@ describe("educationTypesUtils", () => {
     expect(inferLokalizacjaTyp(["Przedszkole", "Oddział przedszkolny"])).toBe("przedszkole");
     expect(inferLokalizacjaTyp(["Szkoła podstawowa", "Przedszkole"])).toBe("szkoła");
     expect(inferLokalizacjaTyp([])).toBe("szkoła");
-  });
-
-  it("should extract unique emails from list and format toast count", () => {
-    const rows = [
-      { email: "sekretariat@sp1.pl; dyrektor@sp1.pl", active: true },
-      { email: "dyrektor@sp1.pl, pedagog@sp1.pl", active: true },
-      { defaultCoordinatorEmail: "koordynator@sp2.pl", active: true },
-      { email: "nieaktywny@sp3.pl", active: false },
-    ];
-    const emails = collectEmails(rows);
-    expect(emails).toHaveLength(4);
-    expect(emails).toContain("sekretariat@sp1.pl");
-    expect(emails).toContain("dyrektor@sp1.pl");
-    expect(emails).toContain("pedagog@sp1.pl");
-    expect(emails).toContain("koordynator@sp2.pl");
-    expect(emails).not.toContain("nieaktywny@sp3.pl");
-
-    expect(emailToastCount(1)).toBe("1 e-mail");
-    expect(emailToastCount(3)).toBe("3 e-maile");
-    expect(emailToastCount(5)).toBe("5 e-maili");
   });
 });

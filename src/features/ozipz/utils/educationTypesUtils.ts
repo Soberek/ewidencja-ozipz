@@ -129,34 +129,3 @@ export function inferLokalizacjaTyp(typy: string[] | null | undefined): 'szkoła
   if (!typy?.length) return 'szkoła';
   return typy.every((t) => PRZEDSZKOLNE.has(t)) ? 'przedszkole' : 'szkoła';
 }
-
-export function collectEmails(
-  rows: Array<{ email?: string | null; defaultCoordinatorEmail?: string | null; active?: boolean }>
-): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-
-  for (const r of rows) {
-    if (r.active === false) continue;
-    const emailField = r.email || r.defaultCoordinatorEmail || '';
-    const parts = String(emailField)
-      .split(/[;,]/)
-      .map((s) => s.trim())
-      .filter((e) => e.includes('@') && !e.startsWith('@') && !e.endsWith('@'));
-
-    for (const e of parts) {
-      const key = e.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(e);
-    }
-  }
-
-  return out;
-}
-
-export function emailToastCount(n: number): string {
-  if (n === 1) return '1 e-mail';
-  if (n >= 2 && n <= 4) return `${n} e-maile`;
-  return `${n} e-maili`;
-}

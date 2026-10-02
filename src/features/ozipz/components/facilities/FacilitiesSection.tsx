@@ -27,6 +27,7 @@ export function FacilitiesSection(props: FacilitiesSectionProps) {
   const storedFacilities = useOzipzDbStore((s) => s.facilities);
   const storedParticipations = useOzipzDbStore((s) => s.participations);
   const storedActions = useOzipzDbStore((s) => s.actions);
+  const contacts = useOzipzDbStore((s) => s.contacts);
   const dictionaryItems = useOzipzDbStore((s) => s.dictionaryItems);
   const deleteFacility = useOzipzDbStore((s) => s.deleteFacility);
   const openModal = useModalStore((s) => s.openModal);
@@ -131,7 +132,7 @@ export function FacilitiesSection(props: FacilitiesSectionProps) {
         isFiltered={view.activeFiltersCount > 0}
       />
 
-      <FacilityEmailsCopyDialog open={isEmailsCopyOpen} onOpenChange={setIsEmailsCopyOpen} facilities={view.filtered} />
+      <FacilityEmailsCopyDialog open={isEmailsCopyOpen} onOpenChange={setIsEmailsCopyOpen} facilities={view.filtered} contacts={contacts} />
       <FacilityImportDialog isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} />
 
       <ConfirmDialog

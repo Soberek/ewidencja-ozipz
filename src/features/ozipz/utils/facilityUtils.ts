@@ -2,7 +2,10 @@
  * Logika domenowa Bazy Placówek: normalizacja, wyszukiwanie, filtrowanie i kontrola jakości danych.
  * Czyste funkcje — bez Reacta i bez dostępu do bazy.
  */
-import type { OzipzDictionaryItem, OzipzFacility } from "../types/ozipz.types";
+import type { OzipzContact, OzipzDictionaryItem, OzipzFacility } from "../types/ozipz.types";
+import { isValidEmail, uniqueEmails } from "./emailUtils";
+
+export { isValidEmail };
 
 export type FacilityStructureFilter = "all" | "complex" | "standalone" | "in_complex";
 
@@ -45,7 +48,6 @@ export interface FacilityIssue {
 /** Typy ze słownika `locationType`, dla których oczekujemy danych oświatowych. */
 const EDUCATION_LOCATION_TYPES = new Set(["szkola", "przedszkole"]);
 const POSTAL_CODE_RE = /^\d{2}-\d{3}$/;
-const EMAIL_RE = /^[^\s@;,]+@[^\s@;,]+\.[^\s@;,]+$/;
 
 /** Placówki przechowują gołą nazwę gminy („Myślibórz”), słownik bywa z prefiksem („Gmina Myślibórz”). */
 export function municipalityName(value: string | null | undefined): string {
@@ -76,10 +78,6 @@ export function normalizeSearchText(value: string | null | undefined): string {
 
 export function isValidPostalCode(value: string | null | undefined): boolean {
   return POSTAL_CODE_RE.test(String(value || "").trim());
-}
-
-export function isValidEmail(value: string | null | undefined): boolean {
-  return EMAIL_RE.test(String(value || "").trim());
 }
 
 export function isEducationFacility(f: OzipzFacility): boolean {
@@ -227,22 +225,50 @@ export function formatFacilityAddress(f: Pick<OzipzFacility, "address" | "postal
 
 export type FacilityEmailSource = "facility" | "coordinator" | "both";
 
-/** Unikalne adresy (bez rozróżniania wielkości liter) w kolejności listy placówek. */
-export function collectFacilityEmails(facilities: OzipzFacility[], source: FacilityEmailSource): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const f of facilities) {
-    const values = [
-      source !== "coordinator" ? f.email : undefined,
-      source !== "facility" ? f.defaultCoordinatorEmail : undefined,
-    ];
-    for (const raw of values) {
-      for (const email of String(raw || "").split(/[;,]/).map((e) => e.trim())) {
-        if (!isValidEmail(email) || seen.has(email.toLowerCase())) continue;
-        seen.add(email.toLowerCase());
-        out.push(email);
-      }
-    }
+/** Adresy placówki z wybranego źródła; koordynatorzy to pole placówki i kontakty koordynatorów do niej przypisane. */
+function facilityEmailValues(
+  f: OzipzFacility,
+  source: FacilityEmailSource,
+  coordinatorsByFacility: Map<string, string[]>
+): (string | undefined)[] {
+  return [
+    ...(source !== "coordinator" ? [f.email] : []),
+    ...(source !== "facility" ? [f.defaultCoordinatorEmail, ...(coordinatorsByFacility.get(f.id) ?? [])] : []),
+  ];
+}
+
+function groupCoordinatorEmails(coordinators: Pick<OzipzContact, "facilityId" | "email">[]): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  for (const c of coordinators) {
+    if (!c.facilityId || !c.email) continue;
+    map.set(c.facilityId, [...(map.get(c.facilityId) ?? []), c.email]);
   }
-  return out;
+  return map;
+}
+
+export interface FacilityEmailsResult {
+  /** Unikalne adresy (bez rozróżniania wielkości liter) w kolejności listy placówek. */
+  emails: string[];
+  /** Placówki bez żadnego poprawnego adresu w wybranym źródle. */
+  withoutEmail: OzipzFacility[];
+}
+
+/**
+ * Adresy do pola DW/UDW dla listy placówek. Pole może zawierać kilka adresów (średnik, przecinek, spacja).
+ * `coordinators` – kontakty koordynatorów ze Spisu kontaktów; łączone z placówką po `facilityId`.
+ */
+export function collectFacilityEmails(
+  facilities: OzipzFacility[],
+  source: FacilityEmailSource,
+  coordinators: Pick<OzipzContact, "facilityId" | "email">[] = []
+): FacilityEmailsResult {
+  const byFacility = groupCoordinatorEmails(coordinators);
+  const withoutEmail: OzipzFacility[] = [];
+  const values: (string | undefined)[] = [];
+  for (const f of facilities) {
+    const own = facilityEmailValues(f, source, byFacility);
+    if (uniqueEmails(own).length === 0) withoutEmail.push(f);
+    values.push(...own);
+  }
+  return { emails: uniqueEmails(values), withoutEmail };
 }

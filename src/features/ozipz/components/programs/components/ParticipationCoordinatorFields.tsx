@@ -4,6 +4,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import type { OzipzContact, OzipzFacility } from "../../../types/ozipz.types";
 import { hasEmail, hasPhone, phoneHref } from "../../contacts/contactUtils";
+import { mailtoHref } from "../../../utils/emailUtils";
 import {
   buildCoordinatorOptions,
   facilityCardCoordinator,
@@ -157,7 +158,7 @@ export function ParticipationCoordinatorFields({
             </a>
           )}
           {hasEmail(selected) && (
-            <a href={`mailto:${selected.email}`} className="inline-flex items-center gap-1 font-mono hover:text-primary">
+            <a href={mailtoHref(selected.email)} className="inline-flex items-center gap-1 font-mono hover:text-primary">
               <Mail className="size-3" />
               {selected.email}
             </a>
