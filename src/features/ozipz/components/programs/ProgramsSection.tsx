@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import type { OzipzProgram, OzipzSchoolParticipation } from "../../types/ozipz.types";
-import { useActions, useContacts, useFacilities, usePrograms } from "../../store/useOzipzDbStore";
+import { useActions, useContacts, useDictionaries, useFacilities, usePrograms } from "../../store/useOzipzDbStore";
 import { useModalStore } from "../../store/useModalStore";
 import { participationCoordinators } from "../../utils/participationUtils";
+import { buildJrwaInterventionKindMap } from "../../utils/ozipzCalculations";
 import { ProgramsStatsHeader } from "./components/ProgramsStatsHeader";
 import { ProgramsViewSwitcher, type ProgramsView } from "./components/ProgramsViewSwitcher";
 import { SchoolParticipationsTab } from "./components/SchoolParticipationsTab";
@@ -29,6 +30,8 @@ export function ProgramsSection(props: ProgramsSectionProps) {
   const { contacts } = useContacts();
   const { actions } = useActions();
   const { facilities } = useFacilities();
+  const { dictionaryItems } = useDictionaries();
+  const jrwaKindMap = useMemo(() => buildJrwaInterventionKindMap(dictionaryItems), [dictionaryItems]);
   const [pendingDelete, setPendingDelete] = useState<OzipzSchoolParticipation | null>(null);
   const openModal = useModalStore((s) => s.openModal);
 
@@ -112,12 +115,19 @@ export function ProgramsSection(props: ProgramsSectionProps) {
 
       {/* Aktywna zakładka */}
       {activeTab === "stats" ? (
-        <ProgramsStatisticsTab participations={participations} programs={programs} actions={actions} facilities={facilities} />
+        <ProgramsStatisticsTab
+          participations={participations}
+          programs={programs}
+          actions={actions}
+          facilities={facilities}
+          jrwaKindMap={jrwaKindMap}
+        />
       ) : activeTab === "schools" ? (
         <SchoolParticipationsTab
           participations={participations}
           programs={programs}
           contacts={contacts}
+          actions={actions}
           onOpenAdd={() => onOpenAddParticipation()}
           onEdit={onOpenEditParticipation}
           onDelete={(id) => setPendingDelete(participations.find((p) => p.id === id) || null)}

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { ModalDialog } from "@/components/ui/modal-dialog";
 import { GraduationCap, UserPlus } from "lucide-react";
 import type {
+  OzipzAction,
   OzipzSchoolParticipation,
   OzipzProgram,
   OzipzFacility,
@@ -17,8 +18,11 @@ import {
   findDuplicateParticipation,
   coordinatorContactLine,
   schoolYearOptions,
+  nonProgrammaticProgramError,
   JRWA_PROGRAM_PREFIX,
 } from "../../utils/participationUtils";
+import { buildJrwaInterventionKindMap } from "../../utils/calculators/jrwaClassification";
+import { buildLectureIndex, participationLectures } from "../../utils/participationLectures";
 import { SchoolParticipationSchema } from "../../schemas/ozipz.schemas";
 import { ParticipationProgramFacilityFields } from "./components/ParticipationProgramFacilityFields";
 import { ParticipationCoordinatorFields } from "./components/ParticipationCoordinatorFields";
@@ -70,6 +74,8 @@ interface ParticipationDialogProps {
   programs: OzipzProgram[];
   facilities: OzipzFacility[];
   participations?: OzipzSchoolParticipation[];
+  /** Rejestr działań – pokazuje prelekcje przeprowadzone w placówce w ramach programu. */
+  actions?: OzipzAction[];
   /** Słownik symboli JRWA – symbole bez programu w katalogu też można wybrać. */
   jrwaSymbols?: OzipzDictionaryItem[];
   /** Tworzy program w katalogu przy zapisie zgłoszenia do symbolu JRWA ze słownika. */
@@ -93,6 +99,7 @@ export function ParticipationDialog({
   programs,
   facilities,
   participations = [],
+  actions,
   jrwaSymbols = [],
   onCreateProgram,
   contacts = [],
@@ -136,6 +143,7 @@ export function ParticipationDialog({
       pupilsCount: Number.NaN,
       hasDeclaration: true,
       hasFinalReport: false,
+      lectureDone: false,
       evaluationGrade: "",
       notes: "",
     },
@@ -173,6 +181,7 @@ export function ParticipationDialog({
         pupilsCount: editingParticipation.pupilsCount || Number.NaN,
         hasDeclaration: editingParticipation.hasDeclaration ?? true,
         hasFinalReport: editingParticipation.hasFinalReport ?? false,
+        lectureDone: editingParticipation.lectureDone ?? false,
         evaluationGrade: editingParticipation.evaluationGrade || "",
         notes: editingParticipation.notes || "",
       });
@@ -196,6 +205,7 @@ export function ParticipationDialog({
         pupilsCount: Number.NaN,
         hasDeclaration: true,
         hasFinalReport: false,
+        lectureDone: false,
         evaluationGrade: "",
         notes: "",
       });
@@ -217,6 +227,17 @@ export function ParticipationDialog({
     const used = new Set(programs.map((p) => getProgramJrwaSymbol(p)).filter(Boolean));
     return jrwaSymbols.filter((d) => d.code && !used.has(d.code));
   }, [programs, jrwaSymbols]);
+
+  const lectureIndex = useMemo(() => buildLectureIndex(actions ?? []), [actions]);
+  const facilityName = watch("facilityName") || "";
+  const municipality = watch("municipality") || "";
+  const registerLectures = useMemo(
+    () => participationLectures({ programId: selectedProgramId, facilityId: selectedFacId, facilityName, municipality, schoolYear }, lectureIndex),
+    [selectedProgramId, selectedFacId, facilityName, municipality, schoolYear, lectureIndex]
+  );
+
+  const jrwaKindMap = useMemo(() => buildJrwaInterventionKindMap(jrwaSymbols), [jrwaSymbols]);
+  const programKindError = selectedProgramId ? nonProgrammaticProgramError(selectedProgramId, programs, jrwaKindMap) : undefined;
 
   const schoolYears = useMemo(
     () => schoolYearOptions([...participations.map((p) => p.schoolYear), ...programs.map((p) => p.editionYear)]),
@@ -294,6 +315,11 @@ export function ParticipationDialog({
   };
 
   const onSubmit = async (data: ParticipationFormOutput) => {
+    const kindError = nonProgrammaticProgramError(data.programId, programs, jrwaKindMap);
+    if (kindError) {
+      setError("programId", { message: kindError });
+      return;
+    }
     if (!isSchoolYear(data.schoolYear.trim())) {
       setError("schoolYear", { message: "Wybierz rok szkolny z listy" });
       return;
@@ -341,6 +367,7 @@ export function ParticipationDialog({
       pupilsCount: data.pupilsCount,
       hasDeclaration: Boolean(data.hasDeclaration),
       hasFinalReport: Boolean(data.hasFinalReport),
+      lectureDone: Boolean(data.lectureDone),
       evaluationGrade: data.evaluationGrade || "",
       notes: data.notes?.trim() || "",
       applicationFile: storedFile,
@@ -403,7 +430,7 @@ export function ParticipationDialog({
           ? "Edycja Zgłoszenia do Programu"
           : "Nowe Zgłoszenie Szkoły / Placówki do Programu"
       }
-      description="Udział placówki w programie profilaktycznym: koordynatorzy szkolni, liczba uczniów, deklaracja i sprawozdanie"
+      description="Udział placówki w programie profilaktycznym: koordynatorzy szkolni, liczba uczniów, deklaracja, sprawozdanie i prelekcja"
       error={errorMessage || null}
       onSubmit={handleSubmit(onSubmit)}
       isSubmitting={isSubmitting}
@@ -416,6 +443,8 @@ export function ParticipationDialog({
           selectedFacId={selectedFacId}
           programs={programs}
           jrwaWithoutProgram={jrwaWithoutProgram}
+          jrwaKindMap={jrwaKindMap}
+          programError={errors.programId?.message || programKindError}
           facilities={facilities}
           programYearEntries={programYearEntries}
           schoolYear={schoolYear}
@@ -470,7 +499,7 @@ export function ParticipationDialog({
           </button>
         )}
 
-        <ParticipationMetricsStatusFields register={register} errors={errors} />
+        <ParticipationMetricsStatusFields register={register} errors={errors} registerLectures={registerLectures} />
 
         <ParticipationApplicationFileField
           storedPath={storedFile}

@@ -4,7 +4,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import type { OzipzProgram } from "../../../types/ozipz.types";
 
-export type ParticipationReportStatusFilter = "all" | "submitted" | "pending" | "missing-declaration";
+export type ParticipationReportStatusFilter = "all" | "submitted" | "pending" | "missing-declaration" | "missing-lecture";
 
 export interface SchoolParticipationsFilterBarProps {
   searchQuery?: string;
@@ -31,6 +31,7 @@ export const REPORT_STATUS_OPTIONS: { id: ParticipationReportStatusFilter; label
   { id: "submitted", label: "Sprawozdanie złożone" },
   { id: "missing-declaration", label: "Brak deklaracji" },
   { id: "pending", label: "Oczekuje na sprawozdanie" },
+  { id: "missing-lecture", label: "Bez prelekcji" },
 ];
 
 export function SchoolParticipationsFilterBar({

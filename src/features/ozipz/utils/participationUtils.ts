@@ -1,7 +1,27 @@
-import type { OzipzContact, OzipzSchoolParticipation } from "../types/ozipz.types";
+import type { OzipzContact, OzipzProgram, OzipzSchoolParticipation } from "../types/ozipz.types";
 
 /** Prefiks wartości listy programów dla symbolu JRWA ze słownika, który nie ma jeszcze programu w katalogu. */
 export const JRWA_PROGRAM_PREFIX = "jrwa:";
+
+/** Symbol JRWA wybranej pozycji listy programów: programu z katalogu albo symbolu ze słownika. */
+function participationProgramSymbol(programId: string, programs: OzipzProgram[]): string {
+  if (programId.startsWith(JRWA_PROGRAM_PREFIX)) return programId.slice(JRWA_PROGRAM_PREFIX.length);
+  return programs.find((p) => p.id === programId)?.jrwaSymbol?.trim() || "";
+}
+
+/**
+ * Formularze zgłoszeniowe szkoły wysyłają tylko do programów PROGRAMOWYCH. Rodzaj rozstrzyga słownik JRWA;
+ * symbol NIEPROGRAMOWY daje komunikat błędu, a program bez sklasyfikowanego symbolu przechodzi.
+ */
+export function nonProgrammaticProgramError(
+  programId: string,
+  programs: OzipzProgram[],
+  kindMap: ReadonlyMap<string, "PROGRAMOWE" | "NIEPROGRAMOWE">,
+): string | undefined {
+  const symbol = participationProgramSymbol(programId, programs);
+  if (!symbol || kindMap.get(symbol) !== "NIEPROGRAMOWE") return undefined;
+  return `JRWA ${symbol} to interwencja NIEPROGRAMOWA – zgłoszenia szkół przyjmuje się tylko do programów PROGRAMOWYCH. Wybierz inny program.`;
+}
 
 export function currentSchoolYear(date = new Date()): string {
   const year = date.getFullYear() - (date.getMonth() < 8 ? 1 : 0);
@@ -10,6 +30,13 @@ export function currentSchoolYear(date = new Date()): string {
 
 export function isSchoolYear(value: string): boolean {
   return /^\d{4}\/\d{4}$/.test(value) && Number(value.slice(5)) === Number(value.slice(0, 4)) + 1;
+}
+
+/** Rok szkolny „2026/2027” → zakres dat 2026-09-01 … 2027-08-31. */
+export function schoolYearDateRange(schoolYear: string): { from: string; to: string } | null {
+  const match = /^(\d{4})\/(\d{4})$/.exec(schoolYear.trim());
+  if (!match) return null;
+  return { from: `${match[1]}-09-01`, to: `${match[2]}-08-31` };
 }
 
 /**

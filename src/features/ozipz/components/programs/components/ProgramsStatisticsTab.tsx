@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Activity, BarChart3, Building2, FileCheck2, MapPin, Paperclip, Users } from "lucide-react";
+import { Activity, BarChart3, Building2, FileCheck2, MapPin, Paperclip, Presentation, Users } from "lucide-react";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterBar } from "@/components/ui/filter-bar";
@@ -20,6 +20,8 @@ export interface ProgramsStatisticsTabProps {
   programs: OzipzProgram[];
   actions: OzipzAction[];
   facilities: OzipzFacility[];
+  /** Rodzaj interwencji symboli JRWA ze słownika – statystyki obejmują tylko programy PROGRAMOWE. */
+  jrwaKindMap: ReadonlyMap<string, "PROGRAMOWE" | "NIEPROGRAMOWE">;
 }
 
 const number = (value: number) => value.toLocaleString("pl-PL");
@@ -69,6 +71,14 @@ const programColumns: ColumnDef<ProgramStatisticsRow>[] = [
     sortFn: (a, b) => percent(a.finalReports, a.participations) - percent(b.finalReports, b.participations),
     sortable: true,
     cell: ({ row }) => <ProgressCell done={row.finalReports} total={row.participations} />,
+  },
+  {
+    id: "lectures",
+    header: "Prelekcje",
+    accessorFn: (row) => `${row.lectures}/${row.participations}`,
+    sortFn: (a, b) => percent(a.lectures, a.participations) - percent(b.lectures, b.participations),
+    sortable: true,
+    cell: ({ row }) => <ProgressCell done={row.lectures} total={row.participations} />,
   },
   {
     id: "files",
@@ -132,6 +142,7 @@ function SchoolList({ row }: { row: ProgramStatisticsRow }) {
           <th className="py-1 pr-3 font-semibold text-right">Uczniowie</th>
           <th className="py-1 pr-3 font-semibold">Deklaracja</th>
           <th className="py-1 pr-3 font-semibold">Sprawozdanie</th>
+          <th className="py-1 pr-3 font-semibold">Prelekcja</th>
           <th className="py-1 font-semibold">Plik</th>
         </tr>
       </thead>
@@ -144,6 +155,7 @@ function SchoolList({ row }: { row: ProgramStatisticsRow }) {
             <td className="py-1 pr-3 text-right font-mono">{number(school.pupils)}</td>
             <td className="py-1 pr-3">{school.hasDeclaration ? "złożona" : <span className="text-amber-700 dark:text-amber-400">brak</span>}</td>
             <td className="py-1 pr-3">{school.hasFinalReport ? <span className="text-emerald-700 dark:text-emerald-400">złożone</span> : "oczekuje"}</td>
+            <td className="py-1 pr-3">{school.hasLecture ? <span className="text-emerald-700 dark:text-emerald-400">przeprowadzona</span> : <span className="text-amber-700 dark:text-amber-400">brak</span>}</td>
             <td className="py-1">{school.hasFile ? <Paperclip className="size-3 text-primary" aria-label="Jest plik zgłoszenia" /> : "–"}</td>
           </tr>
         ))}
@@ -160,13 +172,13 @@ function defaultYear(participations: OzipzSchoolParticipation[]): StatisticsYear
   return used[0];
 }
 
-export function ProgramsStatisticsTab({ participations, programs, actions, facilities }: ProgramsStatisticsTabProps) {
+export function ProgramsStatisticsTab({ participations, programs, actions, facilities, jrwaKindMap }: ProgramsStatisticsTabProps) {
   const years = useMemo(() => schoolYearOptions(participations.map((p) => p.schoolYear)), [participations]);
   const [year, setYear] = useState<StatisticsYear>(() => defaultYear(participations));
 
   const stats = useMemo(
-    () => computeProgramStatistics(participations, programs, actions, facilities, year),
-    [participations, programs, actions, facilities, year]
+    () => computeProgramStatistics(participations, programs, actions, facilities, year, jrwaKindMap),
+    [participations, programs, actions, facilities, year, jrwaKindMap]
   );
   const { summary } = stats;
   const yearLabel = year === "all" ? "wszystkie lata" : year;
@@ -184,11 +196,11 @@ export function ProgramsStatisticsTab({ participations, programs, actions, facil
           />
         </div>
         <p className="text-[11px] text-muted-foreground">
-          Działania liczone z ewidencji w okresie roku szkolnego (1 IX – 31 VIII).
+          Tylko programy PROGRAMOWE (wg słownika JRWA). Działania liczone z ewidencji w okresie roku szkolnego (1 IX – 31 VIII).
         </p>
       </FilterBar>
 
-      <StatsGrid>
+      <StatsGrid columns={5}>
         <MetricCard
           title="Szkoły i placówki"
           value={summary.schools}
@@ -209,6 +221,13 @@ export function ProgramsStatisticsTab({ participations, programs, actions, facil
           subtext={`${summary.finalReports} z ${summary.participations} złożonych${summary.withoutCoordinator ? ` · bez koordynatora: ${summary.withoutCoordinator}` : ""}`}
           icon={<FileCheck2 className="size-4" />}
           variant="emerald"
+        />
+        <MetricCard
+          title="Prelekcje"
+          value={`${percent(summary.lectures, summary.participations)}%`}
+          subtext={`${summary.lectures} z ${summary.participations} zgłoszeń · z rejestru lub oznaczone ręcznie`}
+          icon={<Presentation className="size-4" />}
+          variant="indigo"
         />
         <MetricCard
           title="Działania programowe"

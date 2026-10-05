@@ -4,6 +4,8 @@ import type { ColumnDef } from "@/components/ui/data-table";
 import type { OzipzContact, OzipzSchoolParticipation, OzipzProgram } from "../../../types/ozipz.types";
 import { RowActionButton } from "@/components/ui/row-action-button";
 import { participationCoordinators } from "../../../utils/participationUtils";
+import type { ParticipationLectureStatus } from "../../../utils/participationLectures";
+import { formatDatePl } from "../../../utils/dateUtils";
 
 export interface SchoolParticipationsColumnsProps {
   programMap: Map<string, OzipzProgram>;
@@ -13,6 +15,14 @@ export interface SchoolParticipationsColumnsProps {
   onDelete: (id: string) => void;
   /** Podgląd pliku zgłoszenia – przycisk widoczny tylko przy zgłoszeniach z plikiem. */
   onPreviewFile?: (item: OzipzSchoolParticipation) => void;
+  /** Status prelekcji zgłoszeń po id (rejestr działań + oznaczenie ręczne). */
+  lectureStatuses?: Map<string, ParticipationLectureStatus>;
+}
+
+function lectureText(status: ParticipationLectureStatus | undefined): string {
+  if (!status?.done) return "brak";
+  if (status.manualOnly) return "przeprowadzona (oznaczona ręcznie)";
+  return `przeprowadzona (rejestr: ${status.fromRegister.map((a) => formatDatePl(a.date)).join(", ")})`;
 }
 
 export function createSchoolParticipationsColumns({
@@ -21,6 +31,7 @@ export function createSchoolParticipationsColumns({
   onEdit,
   onDelete,
   onPreviewFile,
+  lectureStatuses = new Map(),
 }: SchoolParticipationsColumnsProps): ColumnDef<OzipzSchoolParticipation>[] {
   return [
     {
@@ -150,6 +161,33 @@ export function createSchoolParticipationsColumns({
           )}
         </div>
       ),
+    },
+    {
+      id: "lectureStatus",
+      header: "Prelekcja",
+      accessorFn: (row) => lectureText(lectureStatuses.get(row.id)),
+      cell: ({ row }) => {
+        const status = lectureStatuses.get(row.id);
+        if (!status?.done) {
+          return (
+            <Badge variant="outline" className="text-amber-700 border-amber-300 text-[10px] dark:text-amber-400 dark:border-amber-800">
+              Brak
+            </Badge>
+          );
+        }
+        const [first, ...rest] = status.fromRegister;
+        return (
+          <div className="space-y-0.5" title={status.fromRegister.map((a) => `${formatDatePl(a.date)} – ${a.title}`).join("\n") || undefined}>
+            <Badge className="bg-emerald-100 text-emerald-800 border-0 text-[10px] font-semibold flex items-center gap-1 dark:bg-emerald-950/60 dark:text-emerald-300">
+              <CheckCircle2 className="size-3" />
+              Przeprowadzona
+            </Badge>
+            <p className="text-[10px] text-muted-foreground whitespace-nowrap">
+              {first ? `${formatDatePl(first.date)}${rest.length ? ` (+${rest.length})` : ""}` : "oznaczona ręcznie"}
+            </p>
+          </div>
+        );
+      },
     },
     {
       id: "actions",

@@ -6,7 +6,7 @@ import { SchoolParticipationsTab } from "./SchoolParticipationsTab";
 import { SchoolParticipationsFilterBar } from "./SchoolParticipationsFilterBar";
 import { ProgramsCatalogTab } from "./ProgramsCatalogTab";
 import { ProgramsSection } from "../ProgramsSection";
-import type { OzipzProgram, OzipzSchoolParticipation } from "../../../types/ozipz.types";
+import type { OzipzAction, OzipzProgram, OzipzSchoolParticipation } from "../../../types/ozipz.types";
 
 const mockPrograms: OzipzProgram[] = [
   {
@@ -148,6 +148,34 @@ describe("Programs Module Components — Comprehensive Test Suite", () => {
       fireEvent.click(screen.getByRole("button", { name: /wyczyść/i }));
       expect(screen.getByText(mockParticipations[0].facilityName)).toBeDefined();
       expect(screen.getByText(mockParticipations[1].facilityName)).toBeDefined();
+    });
+  });
+
+  describe("Prelekcje w zgłoszeniach", () => {
+    const lecture = {
+      id: "act-1", title: "Prelekcja antytytoniowa", actionType: "Prelekcja (warsztat)", date: "2025-11-14",
+      programId: "prog-1", facilityId: "fac-1", facilityName: mockParticipations[0].facilityName, municipality: "Barlinek", status: "wykonane",
+    } as OzipzAction;
+
+    it("pokazuje prelekcję z rejestru i filtruje zgłoszenia bez prelekcji", () => {
+      render(<SchoolParticipationsTab {...defaultTabProps} actions={[lecture]} />);
+
+      expect(screen.getByText("Przeprowadzona")).toBeDefined();
+      expect(screen.getByText("14.11.2025")).toBeDefined();
+      expect(screen.getByText(/bez prelekcji: 1/)).toBeDefined();
+
+      fireEvent.click(screen.getByRole("button", { name: "Bez prelekcji" }));
+      expect(screen.queryByText(mockParticipations[0].facilityName)).toBeNull();
+      expect(screen.getByText(mockParticipations[1].facilityName)).toBeDefined();
+    });
+
+    it("pokazuje prelekcję oznaczoną ręcznie", () => {
+      const manual = mockParticipations.map((p) => (p.id === "part-2" ? { ...p, lectureDone: true } : p));
+      render(<SchoolParticipationsTab {...defaultTabProps} participations={manual} actions={[lecture]} />);
+
+      expect(screen.getAllByText("Przeprowadzona")).toHaveLength(2);
+      expect(screen.getByText("oznaczona ręcznie")).toBeDefined();
+      expect(screen.queryByText(/bez prelekcji/)).toBeNull();
     });
   });
 

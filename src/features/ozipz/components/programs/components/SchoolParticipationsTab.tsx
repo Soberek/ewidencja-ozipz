@@ -3,7 +3,7 @@ import { FolderOpen, School } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { OzipzContact, OzipzSchoolParticipation, OzipzProgram } from "../../../types/ozipz.types";
+import type { OzipzAction, OzipzContact, OzipzSchoolParticipation, OzipzProgram } from "../../../types/ozipz.types";
 import {
   SchoolParticipationsFilterBar,
   type ParticipationReportStatusFilter,
@@ -12,11 +12,14 @@ import { createSchoolParticipationsColumns } from "./SchoolParticipationsColumns
 import { normalizeText } from "../../contacts/contactUtils";
 import { ParticipationFilePreviewDialog } from "./ParticipationFilePreviewDialog";
 import { openParticipationFilesFolder, supportsParticipationFiles } from "@/db/participation-files";
+import { buildLectureIndex, participationLectureStatus } from "../../../utils/participationLectures";
 
 export interface SchoolParticipationsTabProps {
   participations: OzipzSchoolParticipation[];
   programs: OzipzProgram[];
   contacts?: OzipzContact[];
+  /** Rejestr działań – źródło przeprowadzonych prelekcji. */
+  actions?: OzipzAction[];
   onOpenAdd: () => void;
   onEdit: (item: OzipzSchoolParticipation) => void;
   onDelete: (id: string) => void;
@@ -26,6 +29,7 @@ export function SchoolParticipationsTab({
   participations,
   programs,
   contacts = [],
+  actions,
   onOpenAdd,
   onEdit,
   onDelete,
@@ -42,6 +46,11 @@ export function SchoolParticipationsTab({
     programs.forEach((p) => map.set(p.id, p));
     return map;
   }, [programs]);
+
+  const lectureStatuses = useMemo(() => {
+    const index = buildLectureIndex(actions ?? []);
+    return new Map(participations.map((p) => [p.id, participationLectureStatus(p, index)]));
+  }, [participations, actions]);
 
   // Dostępne lata szkolne
   const availableSchoolYears = useMemo(() => {
@@ -93,6 +102,7 @@ export function SchoolParticipationsTab({
         if (statusFilter === "missing-declaration" && p.hasDeclaration) return false;
         if (statusFilter === "submitted" && !p.hasFinalReport) return false;
         if (statusFilter === "pending" && p.hasFinalReport) return false;
+        if (statusFilter === "missing-lecture" && lectureStatuses.get(p.id)?.done) return false;
 
         if (search.trim()) {
           const haystack = normalizeText(
@@ -104,13 +114,13 @@ export function SchoolParticipationsTab({
         return true;
       })
       .sort((a, b) => (a.facilityName || "").localeCompare(b.facilityName || "", "pl"));
-  }, [participations, selectedProgramId, selectedYear, selectedMunicipality, statusFilter, search]);
+  }, [participations, selectedProgramId, selectedYear, selectedMunicipality, statusFilter, search, lectureStatuses]);
 
   const contactsById = useMemo(() => new Map(contacts.map((c) => [c.id, c])), [contacts]);
 
   const columns = useMemo(
-    () => createSchoolParticipationsColumns({ programMap, contactsById, onEdit, onDelete, onPreviewFile: setPreviewItem }),
-    [programMap, contactsById, onEdit, onDelete]
+    () => createSchoolParticipationsColumns({ programMap, contactsById, onEdit, onDelete, onPreviewFile: setPreviewItem, lectureStatuses }),
+    [programMap, contactsById, onEdit, onDelete, lectureStatuses]
   );
 
   const totals = useMemo(
@@ -118,8 +128,9 @@ export function SchoolParticipationsTab({
       facilities: new Set(filteredParticipations.map((p) => p.facilityId || p.facilityName)).size,
       pupils: filteredParticipations.reduce((sum, p) => sum + (Number(p.pupilsCount) || 0), 0),
       withoutCoordinator: filteredParticipations.filter((p) => !p.schoolCoordinatorName?.trim()).length,
+      withoutLecture: filteredParticipations.filter((p) => !lectureStatuses.get(p.id)?.done).length,
     }),
-    [filteredParticipations]
+    [filteredParticipations, lectureStatuses]
   );
 
   return (
@@ -152,6 +163,9 @@ export function SchoolParticipationsTab({
             <strong className="text-foreground">{totals.pupils.toLocaleString("pl-PL")}</strong>
             {totals.withoutCoordinator > 0 && (
               <span className="text-amber-700 dark:text-amber-400"> · bez koordynatora: {totals.withoutCoordinator}</span>
+            )}
+            {totals.withoutLecture > 0 && (
+              <span className="text-amber-700 dark:text-amber-400"> · bez prelekcji: {totals.withoutLecture}</span>
             )}
           </p>
           {supportsParticipationFiles() && (

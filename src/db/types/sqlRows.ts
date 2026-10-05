@@ -72,6 +72,8 @@ export interface ParticipationSqlRow {
   pupils_count: number;
   has_declaration: number;
   has_final_report: number;
+  /** Prelekcja oznaczona ręcznie (gdy nie ma jej w rejestrze działań). Brak w bazach sprzed v15. */
+  lecture_done?: number;
   evaluation_grade: string | null;
   notes: string | null;
   /** Ścieżka względem folderu bazy, np. „Zgłoszenia/2026-2027/…pdf”. Brak w bazach sprzed v13. */

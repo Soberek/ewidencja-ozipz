@@ -14,6 +14,10 @@ interface ParticipationProgramFacilityFieldsProps {
   programs: OzipzProgram[];
   /** Symbole ze słownika JRWA bez programu w katalogu – program powstaje przy zapisie zgłoszenia. */
   jrwaWithoutProgram?: OzipzDictionaryItem[];
+  /** Rodzaj interwencji symboli JRWA – programy NIEPROGRAMOWE są na liście oznaczone jako błędny wybór. */
+  jrwaKindMap?: ReadonlyMap<string, "PROGRAMOWE" | "NIEPROGRAMOWE">;
+  /** Błąd wyboru programu (walidacja formularza albo program NIEPROGRAMOWY). */
+  programError?: string;
   facilities: OzipzFacility[];
   /** Zgłoszenia do wybranego programu w wybranym roku szkolnym (bez edytowanego). */
   programYearEntries: OzipzSchoolParticipation[];
@@ -32,6 +36,8 @@ export function ParticipationProgramFacilityFields({
   selectedFacId,
   programs,
   jrwaWithoutProgram = [],
+  jrwaKindMap,
+  programError,
   facilities,
   programYearEntries,
   schoolYear,
@@ -42,26 +48,33 @@ export function ParticipationProgramFacilityFields({
   currentProgramId = "",
 }: ParticipationProgramFacilityFieldsProps) {
   const programOptions: SelectOption[] = useMemo(() => {
+    const isNonProgrammatic = (symbol: string) => Boolean(symbol) && jrwaKindMap?.get(symbol) === "NIEPROGRAMOWE";
     const fromCatalog: SelectOption[] = programs.map((p) => {
       const jrwa = getProgramJrwaSymbol(p);
+      const wrong = isNonProgrammatic(jrwa);
       return {
         value: p.id,
         label: p.name,
-        description: jrwa ? `JRWA ${jrwa}` : undefined,
+        description: jrwa ? `JRWA ${jrwa}${wrong ? " · NIEPROGRAMOWE – bez zgłoszeń szkół" : ""}` : undefined,
         badge: jrwa || undefined,
-        badgeVariant: "secondary",
+        badgeVariant: wrong ? "destructive" : "secondary",
         icon: GraduationCap,
       };
     });
-    const fromDictionary: SelectOption[] = jrwaWithoutProgram.map((d) => ({
-      value: `${JRWA_PROGRAM_PREFIX}${d.code}`,
-      label: d.label,
-      description: `JRWA ${d.code} · ze słownika – program zostanie dodany do katalogu`,
-      group: "Słownik JRWA (bez programu w katalogu)",
-      badge: d.code,
-      badgeVariant: "outline",
-      icon: GraduationCap,
-    }));
+    const fromDictionary: SelectOption[] = jrwaWithoutProgram.map((d) => {
+      const wrong = isNonProgrammatic(d.code);
+      return {
+        value: `${JRWA_PROGRAM_PREFIX}${d.code}`,
+        label: d.label,
+        description: wrong
+          ? `JRWA ${d.code} · NIEPROGRAMOWE – bez zgłoszeń szkół`
+          : `JRWA ${d.code} · ze słownika – program zostanie dodany do katalogu`,
+        group: "Słownik JRWA (bez programu w katalogu)",
+        badge: d.code,
+        badgeVariant: wrong ? "destructive" : "outline",
+        icon: GraduationCap,
+      };
+    });
     const byJrwa = (a: SelectOption, b: SelectOption) =>
       (a.badge || "").localeCompare(b.badge || "", undefined, { numeric: true });
     if (fromDictionary.length === 0) return fromCatalog;
@@ -69,7 +82,7 @@ export function ParticipationProgramFacilityFields({
       ...fromCatalog.map((o) => ({ ...o, group: "Katalog programów" })),
       ...fromDictionary.sort(byJrwa),
     ];
-  }, [programs, jrwaWithoutProgram]);
+  }, [programs, jrwaWithoutProgram, jrwaKindMap]);
 
   const schoolYearSelectOptions: SelectOption[] = useMemo(() => {
     const current = currentSchoolYear();
@@ -134,7 +147,7 @@ export function ParticipationProgramFacilityFields({
             options={programOptions}
             placeholder="-- Wybierz program profilaktyczny --"
             searchPlaceholder="Szukaj programu po nazwie lub JRWA..."
-            error={errors.programId?.message as string}
+            error={programError ?? (errors.programId?.message as string)}
             size="sm"
           />
         </div>

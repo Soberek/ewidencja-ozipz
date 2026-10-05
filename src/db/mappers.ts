@@ -114,6 +114,7 @@ export const Mappers = {
       pupilsCount: Number(row.pupils_count) || 0,
       hasDeclaration: Boolean(row.has_declaration),
       hasFinalReport: Boolean(row.has_final_report),
+      lectureDone: Boolean(row.lecture_done),
       evaluationGrade: row.evaluation_grade || undefined,
       notes: row.notes || undefined,
       applicationFile: row.application_file || undefined,

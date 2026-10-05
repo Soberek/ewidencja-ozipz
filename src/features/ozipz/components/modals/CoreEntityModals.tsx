@@ -128,6 +128,7 @@ export function CoreEntityModals({
           )
         }
         participations={db.participations}
+        actions={db.actions}
         facilities={db.facilities}
         contacts={db.contacts}
         contactPositions={contactPositionNames}

@@ -1,8 +1,13 @@
 import type { OzipzAction, OzipzFacility, OzipzProgram, OzipzSchoolParticipation } from "../types/ozipz.types";
 import { isActionCountedInReports } from "./calculators/actionMetrics";
+import { getProgramJrwaSymbol } from "./programJrwaUtils";
+import { schoolYearDateRange } from "./participationUtils";
+import { buildLectureIndex, participationLectureStatus } from "./participationLectures";
 
 /** „all” – wszystkie lata szkolne. */
 export type StatisticsYear = string | "all";
+
+type JrwaKind = "PROGRAMOWE" | "NIEPROGRAMOWE";
 
 export interface ProgramSchoolEntry {
   key: string;
@@ -12,6 +17,7 @@ export interface ProgramSchoolEntry {
   pupils: number;
   hasDeclaration: boolean;
   hasFinalReport: boolean;
+  hasLecture: boolean;
   hasFile: boolean;
 }
 
@@ -24,6 +30,8 @@ export interface ProgramStatisticsRow {
   municipalities: number;
   declarations: number;
   finalReports: number;
+  /** Zgłoszenia z przeprowadzoną prelekcją (z rejestru działań albo oznaczoną ręcznie). */
+  lectures: number;
   files: number;
   withoutCoordinator: number;
   /** Działania z ewidencji przypisane do programu w tym okresie (suma „liczby działań”), bez odwołanych i odroczonych. */
@@ -47,6 +55,7 @@ export interface ProgramStatisticsSummary {
   pupils: number;
   municipalities: number;
   finalReports: number;
+  lectures: number;
   files: number;
   withoutCoordinator: number;
   actions: number;
@@ -68,11 +77,12 @@ function pushTo<T>(map: Map<string, T[]>, key: string, item: T) {
   else map.set(key, [item]);
 }
 
-/** Rok szkolny „2026/2027” → zakres dat 2026-09-01 … 2027-08-31. */
-export function schoolYearDateRange(schoolYear: string): { from: string; to: string } | null {
-  const match = /^(\d{4})\/(\d{4})$/.exec(schoolYear.trim());
-  if (!match) return null;
-  return { from: `${match[1]}-09-01`, to: `${match[2]}-08-31` };
+/**
+ * Zgłoszenia szkół (formularze) dotyczą tylko programów PROGRAMOWYCH. Rodzaj rozstrzyga słownik JRWA
+ * dla symbolu programu; program bez sklasyfikowanego symbolu zostaje w statystykach.
+ */
+function nonProgrammaticProgramIds(programs: OzipzProgram[], kindMap: ReadonlyMap<string, JrwaKind>): Set<string> {
+  return new Set(programs.filter((p) => kindMap.get(getProgramJrwaSymbol(p)) === "NIEPROGRAMOWE").map((p) => p.id));
 }
 
 export function computeProgramStatistics(
@@ -81,12 +91,20 @@ export function computeProgramStatistics(
   actions: OzipzAction[],
   facilities: OzipzFacility[],
   year: StatisticsYear,
+  kindMap: ReadonlyMap<string, JrwaKind>,
 ): ProgramStatistics {
-  const inYear = year === "all" ? participations : participations.filter((p) => p.schoolYear.trim() === year);
+  const excluded = nonProgrammaticProgramIds(programs, kindMap);
+  const inYear = participations.filter((p) => !excluded.has(p.programId) && (year === "all" || p.schoolYear.trim() === year));
   const range = year === "all" ? null : schoolYearDateRange(year);
   const programActions = actions.filter(
-    (a) => a.programId && isActionCountedInReports(a) && (!range || (a.date.slice(0, 10) >= range.from && a.date.slice(0, 10) <= range.to)),
+    (a) =>
+      a.programId &&
+      !excluded.has(a.programId) &&
+      isActionCountedInReports(a) &&
+      (!range || (a.date.slice(0, 10) >= range.from && a.date.slice(0, 10) <= range.to)),
   );
+  const lectureIndex = buildLectureIndex(actions);
+  const hasLecture = new Set(inYear.filter((p) => participationLectureStatus(p, lectureIndex).done).map((p) => p.id));
   const facilityById = new Map(facilities.map((f) => [f.id, f]));
   const programName = new Map(programs.map((p) => [p.id, p.name]));
 
@@ -112,6 +130,7 @@ export function computeProgramStatistics(
         pupils: (current?.pupils ?? 0) + (Number(p.pupilsCount) || 0),
         hasDeclaration: (current?.hasDeclaration ?? true) && Boolean(p.hasDeclaration),
         hasFinalReport: (current?.hasFinalReport ?? true) && Boolean(p.hasFinalReport),
+        hasLecture: (current?.hasLecture ?? true) && hasLecture.has(p.id),
         hasFile: Boolean(current?.hasFile) || Boolean(p.applicationFile),
       });
     }
@@ -124,6 +143,7 @@ export function computeProgramStatistics(
       municipalities: new Set(entries.map((p) => p.municipality.trim()).filter(Boolean)).size,
       declarations: entries.filter((p) => p.hasDeclaration).length,
       finalReports: entries.filter((p) => p.hasFinalReport).length,
+      lectures: entries.filter((p) => hasLecture.has(p.id)).length,
       files: entries.filter((p) => p.applicationFile).length,
       withoutCoordinator: entries.filter((p) => !p.schoolCoordinatorName?.trim()).length,
       actions: related.reduce((sum, a) => sum + (a.numberOfActions ?? 1), 0),
@@ -157,6 +177,7 @@ export function computeProgramStatistics(
       pupils: inYear.reduce((sum, p) => sum + (Number(p.pupilsCount) || 0), 0),
       municipalities: municipalities.filter((m) => m.municipality !== "Bez gminy").length,
       finalReports: inYear.filter((p) => p.hasFinalReport).length,
+      lectures: hasLecture.size,
       files: inYear.filter((p) => p.applicationFile).length,
       withoutCoordinator: inYear.filter((p) => !p.schoolCoordinatorName?.trim()).length,
       actions: rows.reduce((sum, r) => sum + r.actions, 0),

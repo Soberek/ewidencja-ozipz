@@ -107,6 +107,8 @@ export const SchoolParticipationSchema = z.object({
   pupilsCount: z.number().int().min(0, "Liczba uczniów nie może być ujemna"),
   hasDeclaration: z.boolean().default(true),
   hasFinalReport: z.boolean().default(false),
+  // Prelekcja oznaczona ręcznie; prelekcje z rejestru działań rozpoznaje się automatycznie (participationLectures)
+  lectureDone: z.boolean().optional(),
   evaluationGrade: z.string().optional().default(""),
   notes: z.string().optional().default(""),
   // Skan / plik zgłoszenia: ścieżka względem folderu bazy (aplikacja desktopowa)

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ParticipationDialog } from "./ParticipationDialog";
-import type { OzipzContact, OzipzDictionaryItem, OzipzFacility, OzipzProgram, OzipzSchoolParticipation } from "../../types/ozipz.types";
+import type { OzipzAction, OzipzContact, OzipzDictionaryItem, OzipzFacility, OzipzProgram, OzipzSchoolParticipation } from "../../types/ozipz.types";
 
 const facility: OzipzFacility = {
   id: "school-1", name: "Szkoła nr 1", type: "szkola", address: "Szkolna 1",
@@ -397,5 +397,71 @@ describe("ParticipationDialog – program, rok szkolny i słownik JRWA", () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
     expect(onCreateProgram).toHaveBeenCalledWith(expect.objectContaining({ name: "Tylko Pomyśl", jrwaSymbol: "966.20" }));
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ programId: "program-new", programName: "Tylko Pomyśl" }));
+  });
+
+  describe("program NIEPROGRAMOWY", () => {
+    const kindItem = (code: string, kind: "PROGRAMOWE" | "NIEPROGRAMOWE", label: string) =>
+      ({ ...jrwaItem, id: `dict_jrwa_${code}`, code, label, kind }) as OzipzDictionaryItem;
+    const kinds = [kindItem("966.1", "PROGRAMOWE", "Trzymaj formę"), kindItem("966.7", "NIEPROGRAMOWE", "Zdrowy styl życia")];
+
+    it("pokazuje błąd przy wyborze programu z katalogu i nie zapisuje zgłoszenia", async () => {
+      const { onSave } = renderDialog({ initialProgramId: undefined, programs: [program, oldProgram], jrwaSymbols: kinds, contacts: [contact({})] });
+
+      fireEvent.click(screen.getByText("-- Wybierz program profilaktyczny --"));
+      fireEvent.click(within(screen.getByRole("listbox")).getByText("Program z zeszłego roku"));
+      expect(screen.getAllByText(/JRWA 966\.7 to interwencja NIEPROGRAMOWA/).length).toBeGreaterThan(0);
+
+      fireEvent.change(pupilsInput(), { target: { value: "30" } });
+      save();
+      await waitFor(() => expect(screen.getAllByText(/interwencja NIEPROGRAMOWA/).length).toBeGreaterThan(1));
+      expect(onSave).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByText("Program z zeszłego roku"));
+      fireEvent.click(within(screen.getByRole("listbox")).getByText("Program szkolny"));
+      await waitFor(() => expect(screen.queryByText(/interwencja NIEPROGRAMOWA/)).toBeNull());
+      save();
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ programId: program.id }));
+    });
+
+    it("nie tworzy programu z NIEPROGRAMOWEGO symbolu słownika", async () => {
+      const onCreateProgram = vi.fn();
+      const { onSave } = renderDialog({ initialProgramId: undefined, programs: [], jrwaSymbols: kinds, onCreateProgram, contacts: [contact({})] });
+
+      fireEvent.click(screen.getByText("-- Wybierz program profilaktyczny --"));
+      fireEvent.click(within(screen.getByRole("listbox")).getByText("Zdrowy styl życia"));
+      fireEvent.change(pupilsInput(), { target: { value: "30" } });
+      save();
+
+      expect((await screen.findAllByText(/JRWA 966\.7 to interwencja NIEPROGRAMOWA/)).length).toBeGreaterThan(0);
+      expect(onCreateProgram).not.toHaveBeenCalled();
+      expect(onSave).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe("ParticipationDialog – prelekcja", () => {
+  const lecture = {
+    id: "act-1", title: "Prelekcja w Szkole nr 1", actionType: "Prelekcja (warsztat)", date: "2026-10-14",
+    programId: program.id, facilityId: facility.id, facilityName: facility.name, municipality: facility.municipality, status: "wykonane",
+  } as OzipzAction;
+
+  it("pokazuje prelekcję z rejestru działań zamiast ręcznego znacznika", () => {
+    renderDialog({ editingParticipation: participation({}), contacts: [contact({})], actions: [lecture] });
+
+    expect(screen.getByText("Prelekcja przeprowadzona – w rejestrze działań")).toBeDefined();
+    expect(screen.getByText(/14\.10\.2026 · Prelekcja \(warsztat\) · Prelekcja w Szkole nr 1/)).toBeDefined();
+    expect(screen.queryByLabelText("Prelekcja przeprowadzona")).toBeNull();
+  });
+
+  it("zapisuje ręczne oznaczenie prelekcji spoza rejestru", async () => {
+    const { onSave } = renderDialog({ contacts: [contact({})], actions: [{ ...lecture, date: "2026-06-01" }] });
+
+    fireEvent.click(screen.getByLabelText("Prelekcja przeprowadzona"));
+    fireEvent.change(pupilsInput(), { target: { value: "30" } });
+    save();
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ lectureDone: true }));
   });
 });

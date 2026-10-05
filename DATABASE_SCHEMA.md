@@ -1,6 +1,6 @@
 # Schemat Relacyjnej Bazy Danych SQLite (Ewidencja OZiPZ)
 
-Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VERSION = 14`). Zarówno aplikacja, jak i skrypt inicjalizacji używają tej samej migracji. Poniższy opis encji należy czytać wraz z ograniczeniami opisanymi niżej.
+Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VERSION = 15`). Zarówno aplikacja, jak i skrypt inicjalizacji używają tej samej migracji. Poniższy opis encji należy czytać wraz z ograniczeniami opisanymi niżej.
 
 ## Aktualizacja i integralność
 
@@ -8,6 +8,7 @@ Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VER
 - v12 (2026-09-30): zgłoszenie szkoły nie zawiera już liczby oddziałów ani rodziców (`classes_count`, `parents_count` usunięte; wartości zostają tylko w kopii sprzed migracji). Dochodzi opcjonalny drugi koordynator (`second_coordinator_*`), powiązany ze Spisem Kontaktów na tych samych zasadach co pierwszy.
 - v13 (2026-10-01): zgłoszenie szkoły może mieć plik zgłoszenia (`application_file`) – ścieżkę względną do kopii w folderze `Zgłoszenia/<rok szkolny>/` obok pliku bazy. Same pliki leżą poza bazą; kopia zapasowa dołącza je w tabeli `ozipz_backup_files` i odtwarza przy przywracaniu.
 - v14 (2026-10-02): działanie jest wykonane albo odwołane/odroczone – zapisane `zaplanowane` i `w_toku` zmieniają się na `wykonane`. Kolumna `indirect_recipients_count` jest usuwana (odbiorcy to jedna liczba). Dystrybucja zapisana razem z innym działaniem (`linked_action_id`) wraca do 1 odbiorcy, z grupą odbiorców zapisaną z liczbą 1.
+- v15 (2026-10-05): zgłoszenie szkoły ma ręczny znacznik przeprowadzonej prelekcji (`lecture_done`, domyślnie 0). Prelekcje wpisane w rejestr działań (ten program, ta placówka, rok szkolny) aplikacja rozpoznaje sama; znacznik służy prelekcjom spoza rejestru.
 - v5 (2026-09-27): placówki mają własne `email`/`phone` sekretariatu. Przy aktualizacji kontakt zapisany w polach koordynatora bez nazwiska przechodzi do tych kolumn, prefiks „Gmina” znika z nazwy gminy (zmiana spływa do powiązanych działań i zgłoszeń), a z `notes` usuwane są wyłącznie wpisy importu dublujące inne pola.
 - Migracja przebudowuje stare tabele w jednej transakcji, zachowuje rekordy i sprawdza klucze obce przed zatwierdzeniem. Duplikaty, błędne relacje lub nieznane kolumny przerywają migrację; rekordy nie są automatycznie usuwane ani scalane.
 - Obowiązuje 28 kluczy obcych. Udział placówki jest unikalny dla `(program_id, facility_id, school_year)`. Placówki ani programu z udziałami nie można usunąć (`RESTRICT`); usunięcie zgłoszenia jest osobną, jawną operacją.
@@ -193,6 +194,7 @@ Silnik SQLite działa z aktywnym `PRAGMA foreign_keys = ON;` w trybie `WAL` (`PR
 | `pupils_count` | `INTEGER` | `DEFAULT 0` | Liczba uczniów objętych programem | `pupilsCount: number` |
 | `has_declaration` | `INTEGER` | `DEFAULT 1` | Flaga złożenia deklaracji (0/1) | `hasDeclaration: boolean` |
 | `has_final_report` | `INTEGER` | `DEFAULT 0` | Flaga złożenia sprawozdania końcowego (0/1) | `hasFinalReport: boolean` |
+| `lecture_done` | `INTEGER` | `DEFAULT 0` | Prelekcja oznaczona ręcznie (0/1); prelekcje z rejestru działań rozpoznawane automatycznie | `lectureDone: boolean` |
 | `evaluation_grade` | `TEXT` | | Ocena realizacji programu | `evaluationGrade?: string` |
 | `notes` | `TEXT` | | Uwagi | `notes?: string` |
 | `application_file` | `TEXT` | niepusty | Plik zgłoszenia: ścieżka względem folderu bazy, np. `Zgłoszenia/2026-2027/<program> – <placówka>.pdf` | `applicationFile?: string` |

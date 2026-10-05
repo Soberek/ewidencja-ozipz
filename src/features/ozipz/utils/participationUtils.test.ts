@@ -8,8 +8,10 @@ import {
   syncCoordinatorContact,
   participationCoordinators,
   unlinkCoordinatorContact,
+  nonProgrammaticProgramError,
+  JRWA_PROGRAM_PREFIX,
 } from "./participationUtils";
-import type { OzipzContact, OzipzSchoolParticipation } from "../types/ozipz.types";
+import type { OzipzContact, OzipzProgram, OzipzSchoolParticipation } from "../types/ozipz.types";
 
 describe("udział placówki w programie", () => {
   it("zmienia rok szkolny we wrześniu", () => {
@@ -64,5 +66,26 @@ describe("udział placówki w programie", () => {
   it("buduje słownik lat szkolnych z bieżącym, poprzednimi, następnym i użytymi w danych", () => {
     const options = schoolYearOptions(["2018/2019", "2026", " 2025/2026 ", undefined], new Date(2026, 8, 15), 2);
     expect(options).toEqual(["2027/2028", "2026/2027", "2025/2026", "2024/2025", "2018/2019"]);
+  });
+});
+
+describe("zgłoszenia tylko do programów PROGRAMOWYCH", () => {
+  const kinds = new Map<string, "PROGRAMOWE" | "NIEPROGRAMOWE">([["966.1", "PROGRAMOWE"], ["966.7", "NIEPROGRAMOWE"]]);
+  const programs = [
+    { id: "prog", jrwaSymbol: "966.1" },
+    { id: "akcja", jrwaSymbol: " 966.7 " },
+    { id: "bez-symbolu", jrwaSymbol: "" },
+  ] as OzipzProgram[];
+
+  it("odrzuca program i symbol słownika oznaczone jako NIEPROGRAMOWE", () => {
+    expect(nonProgrammaticProgramError("akcja", programs, kinds)).toContain("JRWA 966.7");
+    expect(nonProgrammaticProgramError(`${JRWA_PROGRAM_PREFIX}966.7`, programs, kinds)).toContain("NIEPROGRAMOWA");
+  });
+
+  it("przepuszcza programy PROGRAMOWE i programy bez sklasyfikowanego symbolu", () => {
+    expect(nonProgrammaticProgramError("prog", programs, kinds)).toBeUndefined();
+    expect(nonProgrammaticProgramError("bez-symbolu", programs, kinds)).toBeUndefined();
+    expect(nonProgrammaticProgramError(`${JRWA_PROGRAM_PREFIX}966.99`, programs, kinds)).toBeUndefined();
+    expect(nonProgrammaticProgramError("nieznany", programs, kinds)).toBeUndefined();
   });
 });
