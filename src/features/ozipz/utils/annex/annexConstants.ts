@@ -1,3 +1,6 @@
+import { INSTITUTION_FILE_PREFIX } from "../../constants";
+import { toAsciiSlug } from "../izrzUtils";
+
 export const POLISH_MONTHS = [
   "Styczeń",
   "Luty",
@@ -74,10 +77,16 @@ export const formatStationForHeader = (stationName: string): string => {
   return `PSSE w ${clean}`;
 };
 
+const normalizeMonths = (months: readonly number[]): number[] =>
+  [...new Set(months.map(Number))]
+    .filter((month) => Number.isInteger(month) && month >= 1 && month <= 12)
+    .sort((left, right) => left - right);
+
+const isConsecutive = (sorted: readonly number[]): boolean =>
+  sorted.every((month, index) => index === 0 || month === sorted[index - 1] + 1);
+
 export const formatPeriodForHeader = (selectedMonths: readonly number[]): string => {
-  const selected = [...new Set(selectedMonths.map(Number))]
-    .filter((m) => Number.isInteger(m) && m >= 1 && m <= 12)
-    .sort((a, b) => a - b);
+  const selected = normalizeMonths(selectedMonths);
 
   if (selected.length === 0 || selected.length === 12) {
     return "styczeń - grudzień";
@@ -89,10 +98,8 @@ export const formatPeriodForHeader = (selectedMonths: readonly number[]): string
 
   const first = selected[0];
   const last = selected[selected.length - 1];
-  const isConsecutive =
-    selected.length === last - first + 1 && selected.every((num, i) => num === first + i);
 
-  if (isConsecutive) {
+  if (isConsecutive(selected)) {
     if (first === 1 && last === 3) return "styczeń - marzec (I kwartał)";
     if (first === 4 && last === 6) return "kwiecień - czerwiec (II kwartał)";
     if (first === 7 && last === 9) return "lipiec - wrzesień (III kwartał)";
@@ -122,14 +129,27 @@ export const buildDefaultHeaderTitle = (
 };
 
 export function formatReportMonthLabel(months: readonly number[]): string {
-  const normalized = [...new Set(months.map(Number))]
-    .filter((month) => Number.isInteger(month) && month >= 1 && month <= 12)
-    .sort((left, right) => left - right);
+  const normalized = normalizeMonths(months);
   if (!normalized.length || normalized.length === 12) return "Cały rok";
   if (normalized.length === 1) return POLISH_MONTHS[normalized[0] - 1];
   if (normalized.length === 6 && normalized[0] === 1 && normalized[5] === 6) return "I Półrocze (I-VI)";
   if (normalized.length === 6 && normalized[0] === 7 && normalized[5] === 12) return "II Półrocze (VII-XII)";
-  const contiguous = normalized.every((month, index) => index === 0 || month === normalized[index - 1] + 1);
-  if (contiguous) return `${POLISH_MONTHS[normalized[0] - 1]}–${POLISH_MONTHS[normalized[normalized.length - 1] - 1]}`;
+  if (isConsecutive(normalized)) return `${POLISH_MONTHS[normalized[0] - 1]}–${POLISH_MONTHS[normalized[normalized.length - 1] - 1]}`;
   return normalized.map((month) => POLISH_MONTHS[month - 1]).join(", ");
+}
+
+const monthForFileName = (month: number): string => toAsciiSlug(POLISH_MONTHS[month - 1]).toLowerCase();
+
+/** Okres w nazwie pliku bez polskich znaków, spacji i nawiasów – bezpieczny w EZD i poczcie (np. „lipiec-wrzesien”). */
+export function formatPeriodForFileName(months: readonly number[]): string {
+  const selected = normalizeMonths(months);
+  if (selected.length === 0) return `${monthForFileName(1)}-${monthForFileName(12)}`;
+  if (selected.length === 1) return monthForFileName(selected[0]);
+  if (isConsecutive(selected)) return `${monthForFileName(selected[0])}-${monthForFileName(selected[selected.length - 1])}`;
+  return selected.map(monthForFileName).join("_");
+}
+
+/** Nazwa pobieranego pliku sprawozdania, np. „PSSE_Mysliborz_Zalacznik_nr_1_OZIPZ_2026_lipiec-wrzesien”. */
+export function buildReportFileName(documentName: string, year: number, months: readonly number[]): string {
+  return `${INSTITUTION_FILE_PREFIX}_${documentName}_OZIPZ_${year}_${formatPeriodForFileName(months)}`;
 }

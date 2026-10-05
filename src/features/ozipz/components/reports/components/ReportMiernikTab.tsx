@@ -10,10 +10,11 @@ import type { MetricPlanSource } from "../useReportsData";
 import {
   aggregateActionsToProgramsData,
   exportToTemplate,
-  exportToCumulativeTemplate,
+  exportToAnnex2Template,
   exportToExcel,
   downloadFullReportWorkbook,
   buildDefaultHeaderTitle,
+  buildReportFileName,
   formatPeriodForHeader,
 } from "../../../utils/reportAnnex";
 import { MiernikExportCard } from "./miernik/MiernikExportCard";
@@ -93,21 +94,13 @@ export function ReportMiernikTab({
     );
   }, [filteredActions, jrwaInterventionKindMap, jrwaInterventionNamesMap]);
 
-  const cumulativeMonths = useMemo(() => Array.from({ length: Math.max(...selectedMonths) }, (_, index) => index + 1), [selectedMonths]);
-  const cumulativeData = useMemo(() => aggregateActionsToProgramsData(
-    yearActions,
-    cumulativeMonths,
-    jrwaInterventionKindMap,
-    jrwaInterventionNamesMap
-  ), [yearActions, cumulativeMonths, jrwaInterventionKindMap, jrwaInterventionNamesMap]);
-
   // Handlery eksportu
   const handleExportZal1 = async () => {
     setIsExporting("zal1");
     try {
       const ok = await exportToTemplate(
         aggregatedData,
-        `Zalacznik_nr_1_OZIPZ_${year}_${formatPeriodForHeader(selectedMonths).replace(/[\s/\\:]+/g, "_")}`,
+        buildReportFileName("Zalacznik_nr_1", year, selectedMonths),
         preparedBy,
         effectiveHeaderTitleZal1
       );
@@ -123,11 +116,11 @@ export function ReportMiernikTab({
   const handleExportZal2 = async () => {
     setIsExporting("zal2");
     try {
-      const ok = await exportToCumulativeTemplate(
-        cumulativeData,
-        `Zalacznik_nr_2_narastajacy_OZIPZ_${year}_${formatPeriodForHeader(cumulativeMonths).replace(/[\s/\\:]+/g, "_")}`,
+      const ok = await exportToAnnex2Template(
+        aggregatedData,
+        buildReportFileName("Zalacznik_nr_2", year, selectedMonths),
         preparedBy,
-        customHeaderTitle.trim() || buildDefaultHeaderTitle(2, stationName, cumulativeMonths, year)
+        customHeaderTitle.trim() || buildDefaultHeaderTitle(2, stationName, selectedMonths, year)
       );
       if (ok) toast.success("Pobrano plik Załącznika nr 2 (.xlsx)");
       else toast.error("Błąd podczas generowania Załącznika nr 2");
@@ -143,7 +136,7 @@ export function ReportMiernikTab({
     try {
       const ok = await exportToExcel(
         aggregatedData,
-        `Miernik_Budzetowy_OZIPZ_${year}_${formatPeriodForHeader(selectedMonths).replace(/[\s/\\:]+/g, "_")}`
+        buildReportFileName("Miernik_Budzetowy", year, selectedMonths)
       );
       if (ok) toast.success("Pobrano arkusz Miernika Budżetowego (.xlsx)");
       else toast.error("Błąd podczas generowania Miernika Excel");
@@ -239,7 +232,6 @@ export function ReportMiernikTab({
           defaultHeaderTitleZal1={defaultHeaderTitleZal1}
           isExporting={isExporting}
           totalActions={aggregatedData.allActions}
-          cumulativeActions={cumulativeData.allActions}
           yearActionsCount={yearActions.length}
           onStationNameChange={setStationName}
           onPreparedByChange={(name) => onPreparedByChange?.(name)}

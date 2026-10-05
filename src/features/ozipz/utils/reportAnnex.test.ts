@@ -12,10 +12,12 @@ import { assertAnnexFitsTemplate,
   resolveInterventionName,
   exportToExcel,
   exportToTemplate,
-  exportToCumulativeTemplate,
+  exportToAnnex2Template,
   downloadAnnexReportExcel,
   downloadFullReportWorkbook,
   formatPeriodForHeader,
+  formatPeriodForFileName,
+  buildReportFileName,
 } from "./reportAnnex";
 import * as downloadHelper from "./downloadHelper";
 
@@ -42,6 +44,16 @@ describe("Załączniki sprawozdawcze i eksport do Excela", () => {
       expect(formatPeriodForHeader([7, 8, 9, 10, 11, 12])).toBe("lipiec - grudzień (II półrocze)");
       expect(formatPeriodForHeader([2, 3, 4])).toBe("luty - kwiecień");
       expect(formatPeriodForHeader([1, 3])).toBe("styczeń, marzec");
+    });
+
+    it("formats period for file names without Polish characters, spaces or brackets", () => {
+      expect(formatPeriodForFileName([7, 8, 9])).toBe("lipiec-wrzesien");
+      expect(formatPeriodForFileName([8])).toBe("sierpien");
+      expect(formatPeriodForFileName([10, 11, 12])).toBe("pazdziernik-grudzien");
+      expect(formatPeriodForFileName([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])).toBe("styczen-grudzien");
+      expect(formatPeriodForFileName([])).toBe("styczen-grudzien");
+      expect(formatPeriodForFileName([3, 1])).toBe("styczen_marzec");
+      expect(buildReportFileName("Zalacznik_nr_2", 2026, [7, 8, 9])).toBe("PSSE_Mysliborz_Zalacznik_nr_2_OZIPZ_2026_lipiec-wrzesien");
     });
 
     it("formats station and header title for Excel annexes accurately", () => {
@@ -390,7 +402,7 @@ describe("Załączniki sprawozdawcze i eksport do Excela", () => {
       const res1 = await exportToTemplate(sampleActions as OzipzAction[], "zalnr1_test", "Jan Testowy");
       expect(res1).toBe(true);
 
-      const res2 = await exportToCumulativeTemplate(sampleActions as OzipzAction[], "zalnr2_test", "Jan Testowy");
+      const res2 = await exportToAnnex2Template(sampleActions as OzipzAction[], "zalnr2_test", "Jan Testowy");
       expect(res2).toBe(true);
 
       downloadBlobSpy.mockRestore();
@@ -426,7 +438,7 @@ describe("Załączniki sprawozdawcze i eksport do Excela", () => {
       await downloadFullReportWorkbook(sampleActions as OzipzAction[], 2026, [5, 6], "Krzysztof Palpuchowski");
       expect(downloadBlobSpy).toHaveBeenCalledWith(
         expect.any(Blob),
-        expect.stringMatching(/^Sprawozdanie_Pelne_OZIPZ_2026_.*\.xlsx$/)
+        "PSSE_Mysliborz_Sprawozdanie_Pelne_OZIPZ_2026_maj-czerwiec.xlsx"
       );
 
       downloadBlobSpy.mockRestore();
@@ -447,8 +459,8 @@ describe("Załączniki sprawozdawcze i eksport do Excela", () => {
         },
       ];
 
-      await downloadAnnexReportExcel(rows, 1, 2026, [5], "Krzysztof Palpuchowski");
-      expect(downloadBlobSpy).toHaveBeenCalled();
+      await downloadAnnexReportExcel(rows, 2, 2026, [7, 8, 9], "Krzysztof Palpuchowski");
+      expect(downloadBlobSpy).toHaveBeenCalledWith(expect.any(Blob), "PSSE_Mysliborz_Zalacznik_nr_2_OZIPZ_2026_lipiec-wrzesien.xlsx");
 
       downloadBlobSpy.mockRestore();
     });

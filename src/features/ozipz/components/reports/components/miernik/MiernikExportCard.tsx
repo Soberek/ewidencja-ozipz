@@ -21,7 +21,6 @@ interface MiernikExportCardProps {
   defaultHeaderTitleZal1: string;
   isExporting: string | null;
   totalActions: number;
-  cumulativeActions: number;
   yearActionsCount: number;
   onStationNameChange: (val: string) => void;
   onPreparedByChange: (val: string) => void;
@@ -39,7 +38,6 @@ export function MiernikExportCard({
   defaultHeaderTitleZal1,
   isExporting,
   totalActions,
-  cumulativeActions,
   yearActionsCount,
   onStationNameChange,
   onPreparedByChange,
@@ -143,13 +141,13 @@ export function MiernikExportCard({
 
         <Button
           onClick={onExportZal2}
-          disabled={isExporting !== null || cumulativeActions === 0}
+          disabled={isExporting !== null || totalActions === 0}
           className="h-10 text-xs font-bold gap-2 bg-sky-600 hover:bg-sky-700 text-white cursor-pointer shadow-none justify-start px-3"
         >
           {isExporting === "zal2" ? <Loader2 className="size-4 animate-spin" /> : <TrendingUp className="size-4" />}
           <div className="text-left leading-tight">
             <span>Załącznik nr 2 (.xlsx)</span>
-            <span className="block text-[10px] font-normal opacity-90">Raport Narastający</span>
+            <span className="block text-[10px] font-normal opacity-90">Z planem rocznym</span>
           </div>
         </Button>
 

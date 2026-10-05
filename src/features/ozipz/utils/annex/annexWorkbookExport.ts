@@ -6,7 +6,7 @@ import { isActionCountedInReports } from "../calculators/actionMetrics";
 import { isProgramAction } from "../calculators/jrwaClassification";
 import type { AggregatedMiernikData } from "./annexTypes";
 import { aggregateActionsToProgramsData } from "./annexAggregation";
-import { POLISH_MONTHS, formatPeriodForHeader } from "./annexConstants";
+import { POLISH_MONTHS, buildReportFileName, formatPeriodForHeader } from "./annexConstants";
 
 const LINE_HEIGHT_PT = 15;
 
@@ -157,5 +157,5 @@ export async function downloadFullReportWorkbook(
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
-  downloadBlob(blob, `Sprawozdanie_Pelne_OZIPZ_${year}_${monthText.replace(/[\s/\\:]+/g, "_")}.xlsx`);
+  downloadBlob(blob, `${buildReportFileName("Sprawozdanie_Pelne", year, months)}.xlsx`);
 }

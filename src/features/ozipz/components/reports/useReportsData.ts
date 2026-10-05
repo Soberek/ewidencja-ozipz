@@ -316,16 +316,6 @@ export function useReportsData({
     return buildReportAnnexRows(filteredActions, effectiveKindMap, effectiveNamesMap);
   }, [filteredActions, effectiveKindMap, effectiveNamesMap]);
 
-  const cumulativeMonths = useMemo(() => Array.from({ length: Math.max(0, ...months) }, (_, index) => index + 1), [months]);
-  const cumulativeAnnexRows = useMemo(() => buildReportAnnexRows(
-    yearActions.filter((action) => {
-      const ym = getActionYearMonth(action.date);
-      return isActionCountedInReports(action) && ym !== null && cumulativeMonths.includes(ym.month);
-    }),
-    effectiveKindMap,
-    effectiveNamesMap
-  ), [yearActions, cumulativeMonths, effectiveKindMap, effectiveNamesMap]);
-
   const reportHierarchy = useMemo(() => {
     return buildReportHierarchy(annexRows);
   }, [annexRows]);
@@ -364,10 +354,8 @@ export function useReportsData({
   } = useReportExports({
     filteredActions,
     annexRows,
-    cumulativeAnnexRows,
     year,
     months,
-    cumulativeMonths,
     preparedPersonId,
     defaultPersonName: persons[0]?.name ?? "",
   });
@@ -392,7 +380,6 @@ export function useReportsData({
     statisticsRows,
     metricSummary,
     annexRows,
-    cumulativeAnnexRows,
     reportHierarchy,
     vacationFilteredActions,
     vacationActionSummary,

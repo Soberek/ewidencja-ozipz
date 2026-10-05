@@ -8,7 +8,7 @@ import type {
   ReportAnnexRow,
 } from "./annexTypes";
 import { aggregateActionsToProgramsData } from "./annexAggregation";
-import { formatPeriodForHeader, buildDefaultHeaderTitle } from "./annexConstants";
+import { buildDefaultHeaderTitle, buildReportFileName } from "./annexConstants";
 
 const CELL_STYLES = {
   programName: { font: { name: "Calibri", size: 11, bold: true, color: { argb: "FFFF0000" } } },
@@ -141,15 +141,19 @@ export function assertAnnexFitsTemplate(data: AggregatedMiernikData, templatePat
   }
 }
 
+const ANNEX_TEMPLATES = {
+  1: { path: "/generate-templates/zalnr1.xlsx", preparedByCell: "B131" },
+  2: { path: "/generate-templates/zalnr2.xlsx", preparedByCell: "B165" },
+} as const;
+
 async function exportToTemplateGeneric(
   data: AggregatedMiernikData,
-  templatePath: string,
-  defaultFileName: string,
+  annexNum: 1 | 2,
   customFileName?: string,
-  preparedByCell?: string,
   preparedBy: string = "",
   headerTitle?: string
 ): Promise<boolean> {
+  const { path: templatePath, preparedByCell } = ANNEX_TEMPLATES[annexNum];
   assertAnnexFitsTemplate(data, templatePath);
   try {
     if (!data.aggregated || Object.keys(data.aggregated).length === 0) {
@@ -157,7 +161,6 @@ async function exportToTemplateGeneric(
       return false;
     }
 
-    const annexNum = defaultFileName.includes("2") ? 2 : 1;
     const finalHeaderTitle = headerTitle?.trim() || `Załącznik nr ${annexNum} OZiPZ PSSE w Myśliborzu mierniki`;
 
     let workbook: ExcelJS.Workbook;
@@ -184,7 +187,7 @@ async function exportToTemplateGeneric(
       worksheet.getCell("A1").value = finalHeaderTitle;
     }
 
-    if (preparedByCell && preparedBy.trim()) {
+    if (preparedBy.trim()) {
       worksheet.getCell(preparedByCell).value = `Sporządził/a: ${preparedBy.trim()}`;
     }
 
@@ -192,7 +195,7 @@ async function exportToTemplateGeneric(
     const blob = new Blob([buffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
-    const fileName = `${customFileName || `${defaultFileName}_${getTodayIsoDate()}`}.xlsx`;
+    const fileName = `${customFileName || `zalnr${annexNum}_${getTodayIsoDate()}`}.xlsx`;
     downloadBlob(blob, fileName);
 
     return true;
@@ -215,21 +218,13 @@ export async function exportToTemplate(
     ? aggregateActionsToProgramsData(data)
     : (data as AggregatedMiernikData);
 
-  return exportToTemplateGeneric(
-    aggregatedData,
-    "/generate-templates/zalnr1.xlsx",
-    "zalnr1",
-    customFileName,
-    "B131",
-    preparedBy,
-    headerTitle
-  );
+  return exportToTemplateGeneric(aggregatedData, 1, customFileName, preparedBy, headerTitle);
 }
 
 /**
- * Eksport do szablonu Załącznika Nr 2 Narastający (zalnr2.xlsx)
+ * Eksport do szablonu Załącznika Nr 2 (zalnr2.xlsx) – ten sam okres co Załącznik Nr 1, z planem rocznym i wykonaniem procentowym.
  */
-export async function exportToCumulativeTemplate(
+export async function exportToAnnex2Template(
   data: AggregatedMiernikData | readonly OzipzAction[],
   customFileName?: string,
   preparedBy: string = "",
@@ -239,15 +234,7 @@ export async function exportToCumulativeTemplate(
     ? aggregateActionsToProgramsData(data)
     : (data as AggregatedMiernikData);
 
-  return exportToTemplateGeneric(
-    aggregatedData,
-    "/generate-templates/zalnr2.xlsx",
-    "zalnr2_narastajacy",
-    customFileName,
-    "B165",
-    preparedBy,
-    headerTitle
-  );
+  return exportToTemplateGeneric(aggregatedData, 2, customFileName, preparedBy, headerTitle);
 }
 
 /**
@@ -260,9 +247,7 @@ export async function downloadAnnexReportExcel(
   months: readonly number[],
   preparedBy: string = ""
 ): Promise<void> {
-  const monthText = formatPeriodForHeader(months);
-  const templatePath = `/generate-templates/zalnr${annexNumber}.xlsx`;
-  const defaultFileName = `Zalacznik_nr_${annexNumber}_OZIPZ_${year}_${monthText.replace(/[\s/\\:]+/g, "_")}`;
+  const fileName = buildReportFileName(`Zalacznik_nr_${annexNumber}`, year, months);
   const headerTitle = buildDefaultHeaderTitle(annexNumber, "Myślibórz", months, year);
 
   const mockAggregated: AggregatedMiernikData = {
@@ -284,14 +269,6 @@ export async function downloadAnnexReportExcel(
     mockAggregated.allPeople += r.people || 0;
   });
 
-  const exported = await exportToTemplateGeneric(
-    mockAggregated,
-    templatePath,
-    defaultFileName,
-    defaultFileName,
-    annexNumber === 1 ? "B131" : "B165",
-    preparedBy,
-    headerTitle
-  );
+  const exported = await exportToTemplateGeneric(mockAggregated, annexNumber, fileName, preparedBy, headerTitle);
   if (!exported) throw new Error(`Nie udało się wygenerować Załącznika nr ${annexNumber}`);
 }

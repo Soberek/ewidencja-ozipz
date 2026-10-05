@@ -300,13 +300,13 @@ describe("useReportsData Hook", () => {
     load.mockRestore();
   });
 
-  it("exports annex 2 cumulatively through the last selected month", async () => {
+  it("exports annex 2 only for the selected months", async () => {
     const { buildReportAnnexRows, downloadAnnexReportExcel } = await import("../../utils/reportAnnex");
     const actions = [{ ...mockActions[0], id: "january", date: "2026-01-10" }, ...mockActions];
     const { result } = renderHook(() => useReportsData({ allActions: actions, year: 2026, months: [5] }));
     await act(async () => result.current.handleExportAnnex(2));
-    expect(vi.mocked(buildReportAnnexRows).mock.calls.some(([input]) => input.map((action) => action.id).join(",") === "january,act-1,act-2")).toBe(true);
-    expect(downloadAnnexReportExcel).toHaveBeenCalledWith(expect.any(Array), 2, 2026, [1, 2, 3, 4, 5], expect.any(String));
+    expect(vi.mocked(buildReportAnnexRows).mock.calls.some(([input]) => input.some((action) => action.id === "january"))).toBe(false);
+    expect(downloadAnnexReportExcel).toHaveBeenCalledWith(expect.any(Array), 2, 2026, [5], expect.any(String));
   });
 
   it("handles XLSX export call and sets success message", async () => {
