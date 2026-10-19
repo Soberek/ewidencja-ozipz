@@ -36,6 +36,8 @@ export interface DataTableProps<T> {
   defaultSortDirection?: SortDirection;
   onRowClick?: (item: T) => void;
   renderSubComponent?: (props: { row: T; isExpanded: boolean }) => React.ReactNode;
+  /** Kliknięcie wiersza rozwija jego szczegóły (`renderSubComponent`) zamiast wywoływać `onRowClick`. */
+  expandOnRowClick?: boolean;
   presetFilters?: {
     activePreset: string;
     onPresetChange: (presetId: string) => void;

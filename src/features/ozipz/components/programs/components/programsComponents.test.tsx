@@ -403,8 +403,8 @@ describe("Programs Module Components — Comprehensive Test Suite", () => {
       expect(screen.getByText("Zgłoszenia Szkół")).toBeDefined();
       fireEvent.click(screen.getByText("Katalog Programów"));
       expect(handleTabChange).toHaveBeenCalledWith("programs");
-      fireEvent.click(screen.getByText("Bez zgłoszeń"));
-      expect(handleTabChange).toHaveBeenCalledWith("missing");
+      fireEvent.click(screen.getByText("Przegląd placówek"));
+      expect(handleTabChange).toHaveBeenCalledWith("overview");
 
       fireEvent.click(screen.getByText("Dodaj Zgłoszenie"));
       expect(handleAddSchool).toHaveBeenCalled();

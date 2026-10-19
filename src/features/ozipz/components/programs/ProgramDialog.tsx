@@ -245,10 +245,10 @@ export function ProgramDialog({
           <p className="text-[10px] text-muted-foreground">
             {targetTypes.length > 0 ? (
               <>
-                Zakładka „Bez zgłoszeń” obejmie placówki: <strong className="text-foreground">{targetTypes.join(", ")}</strong>
+                „Przegląd placówek” obejmie placówki: <strong className="text-foreground">{targetTypes.join(", ")}</strong>
               </>
             ) : (
-              "Rodzaje kształcenia wpisane po przecinku (np. Szkoła podstawowa, Przedszkole, Żłobek) wskazują placówki w zakładce „Bez zgłoszeń”."
+              "Rodzaje kształcenia wpisane po przecinku (np. Szkoła podstawowa, Przedszkole, Żłobek) wskazują placówki w zakładce „Przegląd placówek”."
             )}
           </p>
         )}
@@ -299,7 +299,7 @@ export function ProgramDialog({
           </label>
         </div>
         <p className="text-[10px] text-muted-foreground">
-          Odznacz dla programów bez formularzy zgłoszeniowych szkół (np. HIV/AIDS) – nie przyjmą zgłoszeń i nie ma ich w zakładce „Bez zgłoszeń”.
+          Odznacz dla programów bez formularzy zgłoszeniowych szkół (np. HIV/AIDS) – nie przyjmą zgłoszeń i nie ma ich w zakładce „Przegląd placówek”.
         </p>
       </div>
 

@@ -19,6 +19,7 @@ export function DataTable<T>({
   defaultSortDirection = "asc",
   onRowClick,
   renderSubComponent,
+  expandOnRowClick = false,
   presetFilters,
   totalCount,
   entityLabel = "pozycji",
@@ -265,7 +266,7 @@ export function DataTable<T>({
                     isExpanded={isExpanded}
                     selectable={selectable}
                     hasExpandable={hasExpandable}
-                    onRowClick={onRowClick}
+                    onRowClick={expandOnRowClick && hasExpandable ? () => toggleRow(key) : onRowClick}
                     onToggleSelectRow={handleToggleSelectRow}
                     onToggleRow={toggleRow}
                     renderSubComponent={renderSubComponent}

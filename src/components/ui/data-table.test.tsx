@@ -337,4 +337,25 @@ describe("DataTable component", () => {
     expect(nameHeader.getAttribute("aria-sort")).toBe("ascending");
   });
 
+  it("expands a row on click or Enter when expandOnRowClick is set", () => {
+    const onRowClick = vi.fn();
+    render(
+      <DataTable
+        data={testData}
+        columns={testColumns}
+        keyExtractor={(item) => item.id}
+        onRowClick={onRowClick}
+        expandOnRowClick
+        renderSubComponent={({ row }) => <div>Detail {row.name}</div>}
+      />
+    );
+
+    const row = screen.getByText("Alpha").closest("tr")!;
+    fireEvent.click(row);
+    expect(screen.getByText("Detail Alpha")).toBeDefined();
+    fireEvent.keyDown(row, { key: "Enter" });
+    expect(screen.queryByText("Detail Alpha")).toBeNull();
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
+
 });

@@ -35,8 +35,16 @@ describe("grupa docelowa programu", () => {
   });
 });
 
-describe("placówki bez zgłoszeń", () => {
-  it("wymienia kwalifikujące się placówki bez zgłoszenia w wybranym roku", () => {
+// Stan placówki w programie: id → „zgłoszona” / „brak” (pomija programy, które jej nie dotyczą).
+const statuses = (coverage: ReturnType<typeof computeProgramCoverage>, programId: string) =>
+  Object.fromEntries(
+    coverage.facilities
+      .filter((row) => row.programs[programId])
+      .map((row) => [row.facility.id, row.programs[programId].participations.length > 0 ? "zgłoszona" : "brak"]),
+  );
+
+describe("udział placówek w programach", () => {
+  it("wymienia kwalifikujące się placówki ze zgłoszeniem i bez niego w wybranym roku", () => {
     const coverage = computeProgramCoverage(
       [program({})],
       facilities,
@@ -45,23 +53,36 @@ describe("placówki bez zgłoszeń", () => {
       "2026/2027",
       kinds,
     );
-    const row = coverage.rows[0];
-    expect(row).toMatchObject({ programId: "higiena", targetTypes: ["Szkoła podstawowa", "Szkoła podstawowa specjalna"], eligible: 3, participating: 1 });
-    expect(row.missing.map((m) => [m.facility.name, m.parent?.name, m.matchedTypes])).toEqual([
-      ["SP 2", undefined, ["Szkoła podstawowa"]],
-      ["Szkoła Podstawowa w Zespole", "Zespół Szkół", ["Szkoła podstawowa"]],
+    expect(coverage.rows[0]).toMatchObject({ programId: "higiena", targetTypes: ["Szkoła podstawowa", "Szkoła podstawowa specjalna"], eligible: 3, participating: 1, missing: 2 });
+    expect(statuses(coverage, "higiena")).toEqual({ sp1: "zgłoszona", sp2: "brak", "zs-sp": "brak" });
+    expect(coverage.facilities.map((r) => [r.facility.name, r.parent?.name, r.signed, r.missing])).toEqual([
+      ["SP 2", undefined, 0, 1],
+      ["Szkoła Podstawowa w Zespole", "Zespół Szkół", 0, 1],
+      ["SP 1", undefined, 1, 0],
     ]);
   });
 
   it("zgłoszenie zespołu obejmuje jego szkoły, a sam zespół z jednostkami nie jest liczony osobno", () => {
-    const row = computeProgramCoverage([program({})], facilities, [part({ facilityId: "zs", facilityName: "Zespół Szkół" })], [], "2026/2027", kinds).rows[0];
-    expect(row).toMatchObject({ eligible: 3, participating: 1 });
-    expect(row.missing.map((m) => m.facility.id)).toEqual(["sp2", "sp1"]);
+    const zgloszenie = part({ facilityId: "zs", facilityName: "Zespół Szkół" });
+    const coverage = computeProgramCoverage([program({})], facilities, [zgloszenie], [], "2026/2027", kinds);
+    expect(coverage.rows[0]).toMatchObject({ eligible: 3, participating: 1 });
+    expect(statuses(coverage, "higiena")).toEqual({ sp1: "brak", sp2: "brak", "zs-sp": "zgłoszona" });
+    expect(coverage.facilities.find((r) => r.facility.id === "zs-sp")?.programs.higiena).toEqual({ participations: [zgloszenie], eligible: true, actions: 0 });
+    // Liceum zespołu nie kwalifikuje się do programu dla podstawówek – zgłoszenie zespołu go nie obejmuje.
+    expect(coverage.facilities.map((r) => r.facility.id)).not.toContain("zs-lo");
+    expect(coverage.facilities.map((r) => r.facility.id)).not.toContain("zs");
+  });
+
+  it("placówka zgłoszona sama poza grupą docelową jest pokazana ze zgłoszeniem", () => {
+    const lo = part({ id: "lo", facilityId: "zs-lo", facilityName: "Liceum w Zespole", municipality: "Dębno" });
+    const coverage = computeProgramCoverage([program({})], facilities, [lo], [], "2026/2027", kinds);
+    expect(coverage.rows[0]).toMatchObject({ eligible: 3, participating: 0 });
+    expect(coverage.facilities.find((r) => r.facility.id === "zs-lo")).toMatchObject({ programs: { higiena: { eligible: false } }, signed: 1, missing: 0 });
   });
 
   it("rozpoznaje zgłoszenie bez powiązania z bazą po nazwie i gminie", () => {
-    const row = computeProgramCoverage([program({})], facilities, [part({ facilityId: "", facilityName: " sp 2 ", municipality: "Dębno" })], [], "2026/2027", kinds).rows[0];
-    expect(row.missing.map((m) => m.facility.id)).not.toContain("sp2");
+    const coverage = computeProgramCoverage([program({})], facilities, [part({ facilityId: "", facilityName: " sp 2 ", municipality: "Dębno" })], [], "2026/2027", kinds);
+    expect(statuses(coverage, "higiena").sp2).toBe("zgłoszona");
   });
 
   it("udział to tylko zgłoszenie – działania programu w placówce bez zgłoszenia są dopiskiem", () => {
@@ -72,18 +93,25 @@ describe("placówki bez zgłoszeń", () => {
       action({ programId: "inny" }),
       action({ facilityId: "zs", facilityName: "Zespół Szkół" }),
     ];
-    const row = computeProgramCoverage([program({})], facilities, [], actions, "2026/2027", kinds).rows[0];
-    expect(row.participating).toBe(0);
-    expect(Object.fromEntries(row.missing.map((m) => [m.facility.id, m.actionsWithoutParticipation]))).toEqual({ sp1: 0, sp2: 2, "zs-sp": 1 });
+    const coverage = computeProgramCoverage([program({})], facilities, [], actions, "2026/2027", kinds);
+    expect(coverage.rows[0].participating).toBe(0);
+    expect(Object.fromEntries(coverage.facilities.map((r) => [r.facility.id, r.programs.higiena.actions]))).toEqual({ sp1: 0, sp2: 2, "zs-sp": 1 });
   });
 
-  it("dobiera placówki do grupy docelowej programu przedszkolnego", () => {
+  it("łączy programy w jednym wierszu placówki", () => {
     const zeby = program({ id: "zeby", name: "Zdrowe zęby", jrwaSymbol: "966.3", targetAudience: "Przedszkole, Żłobek, Oddział przedszkolny" });
-    const row = computeProgramCoverage([zeby], facilities, [], [], "2026/2027", kinds).rows[0];
-    expect(row.missing.map((m) => [m.facility.id, m.matchedTypes])).toEqual([
-      ["sp2", ["Oddział przedszkolny"]],
-      ["przedszkole", ["Przedszkole"]],
-    ]);
+    const coverage = computeProgramCoverage([program({}), zeby], facilities, [part({ facilityId: "sp2", facilityName: "SP 2", municipality: "Dębno" })], [], "2026/2027", kinds);
+    expect(statuses(coverage, "zeby")).toEqual({ sp2: "brak", przedszkole: "brak" });
+    const sp2 = coverage.facilities.find((r) => r.facility.id === "sp2")!;
+    expect(Object.keys(sp2.programs).sort()).toEqual(["higiena", "zeby"]);
+    expect([sp2.signed, sp2.missing]).toEqual([1, 1]);
+  });
+
+  it("zgłoszenia do programów spoza zestawienia są przy placówce osobno", () => {
+    const bezTypow = program({ id: "bez-typow", name: "Program bez typów", jrwaSymbol: "", targetAudience: "Uczniowie" });
+    const inne = part({ id: "inne", programId: "bez-typow", facilityId: "przedszkole", facilityName: "Przedszkole nr 1" });
+    const coverage = computeProgramCoverage([program({}), bezTypow], facilities, [inne], [], "2026/2027", kinds);
+    expect(coverage.facilities.find((r) => r.facility.id === "przedszkole")).toMatchObject({ programs: {}, otherParticipations: [inne], signed: 0, missing: 0 });
   });
 
   it("pomija programy NIEPROGRAMOWE, bez zgłoszeń szkół i nieaktywne bez zgłoszeń; zgłasza programy bez rodzaju kształcenia", () => {

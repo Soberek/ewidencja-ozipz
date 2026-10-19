@@ -93,7 +93,7 @@ export function ProgramsSection(props: ProgramsSectionProps) {
   return (
     <div className="space-y-4">
       {/* KPI Stats Header */}
-      {showKpiSummary && activeTab !== "stats" && activeTab !== "missing" && (
+      {showKpiSummary && activeTab !== "stats" && activeTab !== "overview" && (
         <ProgramsStatsHeader
           programsCount={stats.programsCount}
           participationsCount={stats.participationsCount}
@@ -123,7 +123,7 @@ export function ProgramsSection(props: ProgramsSectionProps) {
           facilities={facilities}
           jrwaKindMap={jrwaKindMap}
         />
-      ) : activeTab === "missing" ? (
+      ) : activeTab === "overview" ? (
         <ProgramsCoverageTab
           programs={programs}
           facilities={facilities}
@@ -132,6 +132,7 @@ export function ProgramsSection(props: ProgramsSectionProps) {
           contacts={contacts}
           jrwaKindMap={jrwaKindMap}
           onAddParticipation={onOpenAddParticipation}
+          onEditParticipation={onOpenEditParticipation}
         />
       ) : activeTab === "schools" ? (
         <SchoolParticipationsTab
