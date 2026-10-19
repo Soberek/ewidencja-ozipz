@@ -240,6 +240,22 @@ describe("versioned database migration", () => {
     expect((await service.getParticipations())[0].lectureDone).toBe(true);
   });
 
+  it("marks existing programs as accepting school sign-ups and stores the opt-out", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "ozipz-v15-programs-")); directories.push(directory);
+    const raw = new DatabaseSync(join(directory, "v15.db")); databases.push(raw);
+    raw.exec(SCHEMA_SQL.replace(" accepts_participations INTEGER NOT NULL DEFAULT 1 CHECK (accepts_participations IN (0, 1)),", ""));
+    raw.exec("PRAGMA user_version = 15");
+    insert(raw, "ozipz_programs", { id: "p", code: "HIV", edition_year: "2025/2026" });
+
+    expect((await migrateDatabase(adapter(raw))).migrated).toBe(true);
+    expect(raw.prepare("SELECT accepts_participations FROM ozipz_programs WHERE id = 'p'").get()).toEqual({ accepts_participations: 1 });
+
+    const service = new SqliteDatabaseService(adapter(raw));
+    expect((await service.getPrograms())[0].acceptsParticipations).toBe(true);
+    await service.updateProgram("p", { acceptsParticipations: false });
+    expect((await service.getPrograms())[0].acceptsParticipations).toBe(false);
+  });
+
   it("persists month locks across reopening and allows unlocking", async () => {
     const directory = mkdtempSync(join(tmpdir(), "ozipz-month-lock-")); directories.push(directory);
     const file = join(directory, "locks.db");

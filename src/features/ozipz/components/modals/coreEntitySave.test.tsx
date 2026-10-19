@@ -88,3 +88,17 @@ it("keeps the program form open after a failed save and closes after a retry", a
   await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   expect(onUpdate).toHaveBeenCalledTimes(2);
 });
+
+it("saves a program without school sign-ups and shows recognised education types", async () => {
+  const onUpdate = vi.fn().mockResolvedValue(undefined);
+  render(<ProgramDialog isOpen onClose={vi.fn()} editingProgram={{ ...program, targetAudience: "Liceum, Technikum (klasy I–II)" }}
+    onSave={vi.fn()} onUpdate={onUpdate} />);
+
+  expect(screen.getByText("Liceum, Technikum")).toBeDefined();
+  const checkbox = screen.getByLabelText("Szkoły zgłaszają się do programu") as HTMLInputElement;
+  expect(checkbox.checked).toBe(true);
+  fireEvent.click(checkbox);
+  fireEvent.click(screen.getByRole("button", { name: "Zapisz Zmiany" }));
+
+  await waitFor(() => expect(onUpdate).toHaveBeenCalledWith("program-1", expect.objectContaining({ acceptsParticipations: false })));
+});

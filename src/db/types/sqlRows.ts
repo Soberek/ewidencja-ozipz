@@ -49,6 +49,8 @@ export interface ProgramSqlRow {
   target_audience: string;
   description: string;
   status: string;
+  /** Szkoły zgłaszają się do programu (0/1). Brak w bazach sprzed v16. */
+  accepts_participations?: number;
   participating_schools_count: number;
   total_pupils_reached: number;
   created_at: string;

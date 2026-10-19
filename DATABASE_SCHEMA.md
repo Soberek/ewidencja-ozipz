@@ -1,6 +1,6 @@
 # Schemat Relacyjnej Bazy Danych SQLite (Ewidencja OZiPZ)
 
-Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VERSION = 15`). Zarówno aplikacja, jak i skrypt inicjalizacji używają tej samej migracji. Poniższy opis encji należy czytać wraz z ograniczeniami opisanymi niżej.
+Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VERSION = 16`). Zarówno aplikacja, jak i skrypt inicjalizacji używają tej samej migracji. Poniższy opis encji należy czytać wraz z ograniczeniami opisanymi niżej.
 
 ## Aktualizacja i integralność
 
@@ -9,6 +9,7 @@ Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VER
 - v13 (2026-10-01): zgłoszenie szkoły może mieć plik zgłoszenia (`application_file`) – ścieżkę względną do kopii w folderze `Zgłoszenia/<rok szkolny>/` obok pliku bazy. Same pliki leżą poza bazą; kopia zapasowa dołącza je w tabeli `ozipz_backup_files` i odtwarza przy przywracaniu.
 - v14 (2026-10-02): działanie jest wykonane albo odwołane/odroczone – zapisane `zaplanowane` i `w_toku` zmieniają się na `wykonane`. Kolumna `indirect_recipients_count` jest usuwana (odbiorcy to jedna liczba). Dystrybucja zapisana razem z innym działaniem (`linked_action_id`) wraca do 1 odbiorcy, z grupą odbiorców zapisaną z liczbą 1.
 - v15 (2026-10-05): zgłoszenie szkoły ma ręczny znacznik przeprowadzonej prelekcji (`lecture_done`, domyślnie 0). Prelekcje wpisane w rejestr działań (ten program, ta placówka, rok szkolny) aplikacja rozpoznaje sama; znacznik służy prelekcjom spoza rejestru.
+- v16 (2026-10-19): program ma znacznik `accepts_participations` (domyślnie 1) – czy szkoły zgłaszają się do niego formularzem. Program PROGRAMOWY bez zgłoszeń szkół (np. HIV/AIDS) ma 0: nie przyjmuje zgłoszeń i nie ma go w zestawieniu placówek bez zgłoszeń.
 - v5 (2026-09-27): placówki mają własne `email`/`phone` sekretariatu. Przy aktualizacji kontakt zapisany w polach koordynatora bez nazwiska przechodzi do tych kolumn, prefiks „Gmina” znika z nazwy gminy (zmiana spływa do powiązanych działań i zgłoszeń), a z `notes` usuwane są wyłącznie wpisy importu dublujące inne pola.
 - Migracja przebudowuje stare tabele w jednej transakcji, zachowuje rekordy i sprawdza klucze obce przed zatwierdzeniem. Duplikaty, błędne relacje lub nieznane kolumny przerywają migrację; rekordy nie są automatycznie usuwane ani scalane.
 - Obowiązuje 28 kluczy obcych. Udział placówki jest unikalny dla `(program_id, facility_id, school_year)`. Placówki ani programu z udziałami nie można usunąć (`RESTRICT`); usunięcie zgłoszenia jest osobną, jawną operacją.
@@ -130,9 +131,10 @@ Silnik SQLite działa z aktywnym `PRAGMA foreign_keys = ON;` w trybie `WAL` (`PR
 | `name` | `TEXT` | `NOT NULL` | Pełna nazwa programu | `name: string` |
 | `edition_year` | `TEXT` | `NOT NULL` | Rok edycji (np. `2025/2026`) | `editionYear: string` |
 | `jrwa_symbol` | `TEXT` | | Symbol JRWA przypisany do programu | `jrwaSymbol?: string` |
-| `target_audience` | `TEXT` | `NOT NULL` | Grupa docelowa | `targetAudience: string` |
+| `target_audience` | `TEXT` | `NOT NULL` | Grupa docelowa; rodzaje kształcenia wpisane po przecinku (np. `Szkoła podstawowa, Szkoła podstawowa specjalna`) wskazują placówki kwalifikujące się do programu | `targetAudience: string` |
 | `description` | `TEXT` | `NOT NULL` | Opis merytoryczny programu | `description: string` |
 | `status` | `TEXT` | `DEFAULT 'aktywny'` | Status (`aktywny` / `archiwalny`) | `status: string` |
+| `accepts_participations` | `INTEGER` | `DEFAULT 1` | Szkoły zgłaszają się do programu (0/1) | `acceptsParticipations?: boolean` |
 | `participating_schools_count` | `INTEGER` | `DEFAULT 0` | Liczba zgłoszonych szkół | `participatingSchoolsCount?: number` |
 | `total_pupils_reached` | `INTEGER` | `DEFAULT 0` | Szacunkowa liczba uczniów | `totalPupilsReached?: number` |
 | `created_at` | `TEXT` | `NOT NULL` | Timestamp ISO 8601 | `createdAt: string` |

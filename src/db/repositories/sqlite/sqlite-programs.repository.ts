@@ -17,8 +17,8 @@ export class SqliteProgramsRepository implements IProgramsRepository {
     const now = new Date().toISOString();
     const newProg: OzipzProgram = { ...program, id, createdAt: now, updatedAt: now };
     await this.db.execute(
-      "INSERT INTO ozipz_programs (id, code, name, edition_year, jrwa_symbol, target_audience, description, status, participating_schools_count, total_pupils_reached, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
-      [newProg.id, newProg.code, newProg.name, newProg.editionYear, newProg.jrwaSymbol || null, newProg.targetAudience, newProg.description, newProg.status, newProg.participatingSchoolsCount || 0, newProg.totalPupilsReached || 0, newProg.createdAt, newProg.updatedAt]
+      "INSERT INTO ozipz_programs (id, code, name, edition_year, jrwa_symbol, target_audience, description, status, accepts_participations, participating_schools_count, total_pupils_reached, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
+      [newProg.id, newProg.code, newProg.name, newProg.editionYear, newProg.jrwaSymbol || null, newProg.targetAudience, newProg.description, newProg.status, newProg.acceptsParticipations === false ? 0 : 1, newProg.participatingSchoolsCount || 0, newProg.totalPupilsReached || 0, newProg.createdAt, newProg.updatedAt]
     );
     return newProg;
   }
@@ -29,8 +29,8 @@ export class SqliteProgramsRepository implements IProgramsRepository {
     if (!current) return;
     const merged = { ...current, ...updates, updatedAt: now };
     await this.db.execute(
-      "UPDATE ozipz_programs SET code = $1, name = $2, edition_year = $3, jrwa_symbol = $4, target_audience = $5, description = $6, status = $7, participating_schools_count = $8, total_pupils_reached = $9, updated_at = $10 WHERE id = $11",
-      [merged.code, merged.name, merged.editionYear, merged.jrwaSymbol || null, merged.targetAudience, merged.description, merged.status, merged.participatingSchoolsCount || 0, merged.totalPupilsReached || 0, merged.updatedAt, id]
+      "UPDATE ozipz_programs SET code = $1, name = $2, edition_year = $3, jrwa_symbol = $4, target_audience = $5, description = $6, status = $7, accepts_participations = $8, participating_schools_count = $9, total_pupils_reached = $10, updated_at = $11 WHERE id = $12",
+      [merged.code, merged.name, merged.editionYear, merged.jrwaSymbol || null, merged.targetAudience, merged.description, merged.status, merged.acceptsParticipations === false ? 0 : 1, merged.participatingSchoolsCount || 0, merged.totalPupilsReached || 0, merged.updatedAt, id]
     );
   }
 

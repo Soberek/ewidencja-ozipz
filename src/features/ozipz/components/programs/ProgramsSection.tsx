@@ -10,6 +10,7 @@ import { ProgramsViewSwitcher, type ProgramsView } from "./components/ProgramsVi
 import { SchoolParticipationsTab } from "./components/SchoolParticipationsTab";
 import { ProgramsCatalogTab } from "./components/ProgramsCatalogTab";
 import { ProgramsStatisticsTab } from "./components/ProgramsStatisticsTab";
+import { ProgramsCoverageTab } from "./components/ProgramsCoverageTab";
 import { useKpiVisibility } from "@/hooks/usePersistentToggle";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -19,7 +20,7 @@ export interface ProgramsSectionProps {
   defaultView?: "programs" | "schools";
   onOpenAddProgram?: () => void;
   onOpenEditProgram?: (prog: OzipzProgram) => void;
-  onOpenAddParticipation?: (programId?: string) => void;
+  onOpenAddParticipation?: (programId?: string, facilityId?: string) => void;
   onOpenEditParticipation?: (part: OzipzSchoolParticipation) => void;
   onDeleteParticipation?: (id: string) => void;
   onUpdateParticipation?: (id: string, data: Partial<OzipzSchoolParticipation>) => Promise<void> | void;
@@ -43,7 +44,7 @@ export function ProgramsSection(props: ProgramsSectionProps) {
     props.onOpenEditProgram ?? ((prog: OzipzProgram) => openModal("program", { item: prog }));
   const onOpenAddParticipation =
     props.onOpenAddParticipation ??
-    ((programId?: string) => openModal("participation", { programId }));
+    ((programId?: string, facilityId?: string) => openModal("participation", { programId, facilityId }));
   const onOpenEditParticipation =
     props.onOpenEditParticipation ??
     ((part: OzipzSchoolParticipation) => openModal("participation", { item: part }));
@@ -92,7 +93,7 @@ export function ProgramsSection(props: ProgramsSectionProps) {
   return (
     <div className="space-y-4">
       {/* KPI Stats Header */}
-      {showKpiSummary && activeTab !== "stats" && (
+      {showKpiSummary && activeTab !== "stats" && activeTab !== "missing" && (
         <ProgramsStatsHeader
           programsCount={stats.programsCount}
           participationsCount={stats.participationsCount}
@@ -121,6 +122,16 @@ export function ProgramsSection(props: ProgramsSectionProps) {
           actions={actions}
           facilities={facilities}
           jrwaKindMap={jrwaKindMap}
+        />
+      ) : activeTab === "missing" ? (
+        <ProgramsCoverageTab
+          programs={programs}
+          facilities={facilities}
+          participations={participations}
+          actions={actions}
+          contacts={contacts}
+          jrwaKindMap={jrwaKindMap}
+          onAddParticipation={onOpenAddParticipation}
         />
       ) : activeTab === "schools" ? (
         <SchoolParticipationsTab

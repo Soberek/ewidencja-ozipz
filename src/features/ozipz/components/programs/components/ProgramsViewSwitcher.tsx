@@ -1,9 +1,9 @@
-import { GraduationCap, BookOpen, BarChart3, Plus } from "lucide-react";
+import { GraduationCap, BookOpen, BarChart3, Plus, SearchCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { KpiToggleButton } from "@/components/ui/filter-bar";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 
-export type ProgramsView = "schools" | "programs" | "stats";
+export type ProgramsView = "schools" | "missing" | "programs" | "stats";
 
 export interface ProgramsViewSwitcherProps {
   activeTab: ProgramsView;
@@ -34,13 +34,14 @@ export function ProgramsViewSwitcher({
         onChange={onTabChange}
         options={[
           { value: "schools", label: "Zgłoszenia Szkół", icon: GraduationCap, count: participationsCount },
+          { value: "missing", label: "Bez zgłoszeń", icon: SearchCheck },
           { value: "programs", label: "Katalog Programów", icon: BookOpen, count: programsCount },
           { value: "stats", label: "Statystyki", icon: BarChart3 },
         ]}
       />
 
       <div className="flex items-center gap-1.5">
-        {onToggleKpi && activeTab !== "stats" && <KpiToggleButton visible={isKpiVisible} onToggle={onToggleKpi} />}
+        {onToggleKpi && activeTab !== "stats" && activeTab !== "missing" && <KpiToggleButton visible={isKpiVisible} onToggle={onToggleKpi} />}
         {activeTab === "programs" ? (
           <Button onClick={onOpenAddProgram}>
             <Plus className="size-3.5" />

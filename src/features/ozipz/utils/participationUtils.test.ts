@@ -8,7 +8,7 @@ import {
   syncCoordinatorContact,
   participationCoordinators,
   unlinkCoordinatorContact,
-  nonProgrammaticProgramError,
+  participationProgramError,
   JRWA_PROGRAM_PREFIX,
 } from "./participationUtils";
 import type { OzipzContact, OzipzProgram, OzipzSchoolParticipation } from "../types/ozipz.types";
@@ -69,23 +69,28 @@ describe("udział placówki w programie", () => {
   });
 });
 
-describe("zgłoszenia tylko do programów PROGRAMOWYCH", () => {
+describe("zgłoszenia tylko do programów PROGRAMOWYCH ze zgłoszeniami szkół", () => {
   const kinds = new Map<string, "PROGRAMOWE" | "NIEPROGRAMOWE">([["966.1", "PROGRAMOWE"], ["966.7", "NIEPROGRAMOWE"]]);
   const programs = [
     { id: "prog", jrwaSymbol: "966.1" },
     { id: "akcja", jrwaSymbol: " 966.7 " },
     { id: "bez-symbolu", jrwaSymbol: "" },
+    { id: "hiv", name: "HIV/AIDS", jrwaSymbol: "966.1", acceptsParticipations: false },
   ] as OzipzProgram[];
 
+  it("odrzuca program PROGRAMOWY, do którego szkoły się nie zgłaszają", () => {
+    expect(participationProgramError("hiv", programs, kinds)).toContain("„HIV/AIDS” szkoły się nie zgłaszają");
+  });
+
   it("odrzuca program i symbol słownika oznaczone jako NIEPROGRAMOWE", () => {
-    expect(nonProgrammaticProgramError("akcja", programs, kinds)).toContain("JRWA 966.7");
-    expect(nonProgrammaticProgramError(`${JRWA_PROGRAM_PREFIX}966.7`, programs, kinds)).toContain("NIEPROGRAMOWA");
+    expect(participationProgramError("akcja", programs, kinds)).toContain("JRWA 966.7");
+    expect(participationProgramError(`${JRWA_PROGRAM_PREFIX}966.7`, programs, kinds)).toContain("NIEPROGRAMOWA");
   });
 
   it("przepuszcza programy PROGRAMOWE i programy bez sklasyfikowanego symbolu", () => {
-    expect(nonProgrammaticProgramError("prog", programs, kinds)).toBeUndefined();
-    expect(nonProgrammaticProgramError("bez-symbolu", programs, kinds)).toBeUndefined();
-    expect(nonProgrammaticProgramError(`${JRWA_PROGRAM_PREFIX}966.99`, programs, kinds)).toBeUndefined();
-    expect(nonProgrammaticProgramError("nieznany", programs, kinds)).toBeUndefined();
+    expect(participationProgramError("prog", programs, kinds)).toBeUndefined();
+    expect(participationProgramError("bez-symbolu", programs, kinds)).toBeUndefined();
+    expect(participationProgramError(`${JRWA_PROGRAM_PREFIX}966.99`, programs, kinds)).toBeUndefined();
+    expect(participationProgramError("nieznany", programs, kinds)).toBeUndefined();
   });
 });

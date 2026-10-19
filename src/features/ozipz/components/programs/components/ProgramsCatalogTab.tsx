@@ -111,9 +111,14 @@ export function ProgramsCatalogTab({
         header: "Grupa Docelowa / Odbiorcy",
         accessorKey: "targetAudience",
         cell: ({ row }) => (
-          <span className="text-xs text-foreground">
-            {row.targetAudience || "Dzieci i młodzież szkolna"}
-          </span>
+          <div>
+            <span className="text-xs text-foreground">
+              {row.targetAudience || "Dzieci i młodzież szkolna"}
+            </span>
+            {row.acceptsParticipations === false && (
+              <p className="text-[10px] text-muted-foreground">Bez zgłoszeń szkół</p>
+            )}
+          </div>
         ),
       },
       {

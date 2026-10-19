@@ -15,6 +15,7 @@ import {
 import type { OzipzProgram, OzipzDictionaryItem } from "../../types/ozipz.types";
 import { ProgramSchema } from "../../schemas/ozipz.schemas";
 import { getProgramJrwaSymbol } from "../../utils/programJrwaUtils";
+import { programTargetEducationTypes } from "../../utils/programCoverage";
 import { useDictionaries } from "../../store/useOzipzDbStore";
 import { z } from "zod";
 
@@ -100,6 +101,7 @@ export function ProgramDialog({
       targetAudience: "",
       description: "",
       status: "aktywny",
+      acceptsParticipations: true,
       participatingSchoolsCount: 0,
       totalPupilsReached: 0,
     },
@@ -107,6 +109,9 @@ export function ProgramDialog({
 
   const selectedJrwaSymbol = watch("jrwaSymbol");
   const selectedStatus = watch("status");
+  const targetAudience = watch("targetAudience");
+  const acceptsParticipations = watch("acceptsParticipations") !== false;
+  const targetTypes = useMemo(() => programTargetEducationTypes(targetAudience), [targetAudience]);
 
   useEffect(() => {
     if (editingProgram) {
@@ -118,6 +123,7 @@ export function ProgramDialog({
         targetAudience: editingProgram.targetAudience || "",
         description: editingProgram.description || "",
         status: editingProgram.status || "aktywny",
+        acceptsParticipations: editingProgram.acceptsParticipations !== false,
         participatingSchoolsCount: editingProgram.participatingSchoolsCount || 0,
         totalPupilsReached: editingProgram.totalPupilsReached || 0,
       });
@@ -130,6 +136,7 @@ export function ProgramDialog({
         targetAudience: "",
         description: "",
         status: "aktywny",
+        acceptsParticipations: true,
         participatingSchoolsCount: 0,
         totalPupilsReached: 0,
       });
@@ -145,6 +152,7 @@ export function ProgramDialog({
       targetAudience: data.targetAudience?.trim() || "",
       description: data.description?.trim() || "",
       status: data.status || "aktywny",
+      acceptsParticipations: data.acceptsParticipations !== false,
       participatingSchoolsCount: Number(data.participatingSchoolsCount) || 0,
       totalPupilsReached: Number(data.totalPupilsReached) || 0,
     };
@@ -229,10 +237,21 @@ export function ProgramDialog({
         </label>
         <Input
           type="text"
-          placeholder="np. Szkoły Podstawowe (klasy V-VIII), przedszkola, rodzice..."
+          placeholder="np. Szkoła podstawowa (klasy I–III), Szkoła podstawowa specjalna"
           {...register("targetAudience")}
           className="h-8 text-xs"
         />
+        {acceptsParticipations && (
+          <p className="text-[10px] text-muted-foreground">
+            {targetTypes.length > 0 ? (
+              <>
+                Zakładka „Bez zgłoszeń” obejmie placówki: <strong className="text-foreground">{targetTypes.join(", ")}</strong>
+              </>
+            ) : (
+              "Rodzaje kształcenia wpisane po przecinku (np. Szkoła podstawowa, Przedszkole, Żłobek) wskazują placówki w zakładce „Bez zgłoszeń”."
+            )}
+          </p>
+        )}
       </div>
 
       {/* Symbol JRWA i Status Programu */}
@@ -264,6 +283,24 @@ export function ProgramDialog({
             size="sm"
           />
         </div>
+      </div>
+
+      {/* Zgłoszenia szkół */}
+      <div className="space-y-1 p-2.5 bg-muted/20 border border-border/70 rounded-[3px]">
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="acceptsParticipations"
+            {...register("acceptsParticipations")}
+            className="size-4 rounded border-input text-primary focus:ring-0 cursor-pointer"
+          />
+          <label htmlFor="acceptsParticipations" className="text-xs font-semibold text-foreground cursor-pointer">
+            Szkoły zgłaszają się do programu
+          </label>
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          Odznacz dla programów bez formularzy zgłoszeniowych szkół (np. HIV/AIDS) – nie przyjmą zgłoszeń i nie ma ich w zakładce „Bez zgłoszeń”.
+        </p>
       </div>
 
       {/* Opis Merytoryczny */}

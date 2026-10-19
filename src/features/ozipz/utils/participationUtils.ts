@@ -10,14 +10,18 @@ function participationProgramSymbol(programId: string, programs: OzipzProgram[])
 }
 
 /**
- * Formularze zgłoszeniowe szkoły wysyłają tylko do programów PROGRAMOWYCH. Rodzaj rozstrzyga słownik JRWA;
- * symbol NIEPROGRAMOWY daje komunikat błędu, a program bez sklasyfikowanego symbolu przechodzi.
+ * Formularze zgłoszeniowe szkoły wysyłają tylko do programów PROGRAMOWYCH, które w katalogu mają zaznaczone
+ * „Szkoły zgłaszają się do programu”. Rodzaj rozstrzyga słownik JRWA; program bez sklasyfikowanego symbolu przechodzi.
  */
-export function nonProgrammaticProgramError(
+export function participationProgramError(
   programId: string,
   programs: OzipzProgram[],
   kindMap: ReadonlyMap<string, "PROGRAMOWE" | "NIEPROGRAMOWE">,
 ): string | undefined {
+  const program = programs.find((p) => p.id === programId);
+  if (program?.acceptsParticipations === false) {
+    return `Do programu „${program.name}” szkoły się nie zgłaszają (ustawienie w Katalogu programów). Wybierz inny program.`;
+  }
   const symbol = participationProgramSymbol(programId, programs);
   if (!symbol || kindMap.get(symbol) !== "NIEPROGRAMOWE") return undefined;
   return `JRWA ${symbol} to interwencja NIEPROGRAMOWA – zgłoszenia szkół przyjmuje się tylko do programów PROGRAMOWYCH. Wybierz inny program.`;
@@ -26,6 +30,14 @@ export function nonProgrammaticProgramError(
 export function currentSchoolYear(date = new Date()): string {
   const year = date.getFullYear() - (date.getMonth() < 8 ? 1 : 0);
   return `${year}/${year + 1}`;
+}
+
+/** Domyślnie bieżący rok szkolny, a gdy nie ma w nim zgłoszeń – najnowszy rok ze zgłoszeniami. */
+export function defaultSchoolYear(participations: Pick<OzipzSchoolParticipation, "schoolYear">[], date = new Date()): string {
+  const used = participations.map((p) => p.schoolYear.trim()).filter(Boolean).sort().reverse();
+  const current = currentSchoolYear(date);
+  if (used.length === 0 || used.includes(current)) return current;
+  return used[0];
 }
 
 export function isSchoolYear(value: string): boolean {

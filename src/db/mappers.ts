@@ -88,6 +88,7 @@ export const Mappers = {
       targetAudience: row.target_audience || "",
       description: row.description || "",
       status: row.status || "aktywny",
+      acceptsParticipations: row.accepts_participations !== 0,
       participatingSchoolsCount: row.participating_schools_count != null ? Number(row.participating_schools_count) : 0,
       totalPupilsReached: row.total_pupils_reached != null ? Number(row.total_pupils_reached) : 0,
       createdAt: row.created_at,

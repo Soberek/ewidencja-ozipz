@@ -18,7 +18,7 @@ import {
   findDuplicateParticipation,
   coordinatorContactLine,
   schoolYearOptions,
-  nonProgrammaticProgramError,
+  participationProgramError,
   JRWA_PROGRAM_PREFIX,
 } from "../../utils/participationUtils";
 import { buildJrwaInterventionKindMap } from "../../utils/calculators/jrwaClassification";
@@ -237,7 +237,7 @@ export function ParticipationDialog({
   );
 
   const jrwaKindMap = useMemo(() => buildJrwaInterventionKindMap(jrwaSymbols), [jrwaSymbols]);
-  const programKindError = selectedProgramId ? nonProgrammaticProgramError(selectedProgramId, programs, jrwaKindMap) : undefined;
+  const programKindError = selectedProgramId ? participationProgramError(selectedProgramId, programs, jrwaKindMap) : undefined;
 
   const schoolYears = useMemo(
     () => schoolYearOptions([...participations.map((p) => p.schoolYear), ...programs.map((p) => p.editionYear)]),
@@ -315,7 +315,7 @@ export function ParticipationDialog({
   };
 
   const onSubmit = async (data: ParticipationFormOutput) => {
-    const kindError = nonProgrammaticProgramError(data.programId, programs, jrwaKindMap);
+    const kindError = participationProgramError(data.programId, programs, jrwaKindMap);
     if (kindError) {
       setError("programId", { message: kindError });
       return;

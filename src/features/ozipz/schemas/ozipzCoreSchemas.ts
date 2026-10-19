@@ -81,6 +81,8 @@ export const ProgramSchema = z.object({
   targetAudience: z.string().optional().default(""),
   description: z.string().optional().default(""),
   status: z.string().default("aktywny"),
+  // Szkoły wysyłają do programu formularze zgłoszeniowe; brak wartości (zapisy sprzed v16) = tak
+  acceptsParticipations: z.boolean().optional(),
   participatingSchoolsCount: z.number().int().min(0).optional().default(0),
   totalPupilsReached: z.number().int().min(0).optional().default(0),
   createdAt: z.string(),

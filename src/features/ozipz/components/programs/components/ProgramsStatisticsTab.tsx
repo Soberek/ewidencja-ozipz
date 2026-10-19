@@ -7,7 +7,7 @@ import { MetricCard, StatsGrid } from "@/components/ui/metric-card";
 import { Select } from "@/components/ui/select";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { OzipzAction, OzipzFacility, OzipzProgram, OzipzSchoolParticipation } from "../../../types/ozipz.types";
-import { currentSchoolYear, schoolYearOptions } from "../../../utils/participationUtils";
+import { defaultSchoolYear, schoolYearOptions } from "../../../utils/participationUtils";
 import {
   computeProgramStatistics,
   type MunicipalityStatisticsRow,
@@ -164,17 +164,9 @@ function SchoolList({ row }: { row: ProgramStatisticsRow }) {
   );
 }
 
-/** Domyślnie bieżący rok szkolny, a gdy nie ma w nim zgłoszeń – najnowszy rok ze zgłoszeniami. */
-function defaultYear(participations: OzipzSchoolParticipation[]): StatisticsYear {
-  const used = participations.map((p) => p.schoolYear.trim()).filter(Boolean).sort().reverse();
-  const current = currentSchoolYear();
-  if (used.length === 0 || used.includes(current)) return current;
-  return used[0];
-}
-
 export function ProgramsStatisticsTab({ participations, programs, actions, facilities, jrwaKindMap }: ProgramsStatisticsTabProps) {
   const years = useMemo(() => schoolYearOptions(participations.map((p) => p.schoolYear)), [participations]);
-  const [year, setYear] = useState<StatisticsYear>(() => defaultYear(participations));
+  const [year, setYear] = useState<StatisticsYear>(() => defaultSchoolYear(participations));
 
   const stats = useMemo(
     () => computeProgramStatistics(participations, programs, actions, facilities, year, jrwaKindMap),

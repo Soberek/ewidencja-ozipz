@@ -14,9 +14,9 @@ interface ParticipationProgramFacilityFieldsProps {
   programs: OzipzProgram[];
   /** Symbole ze słownika JRWA bez programu w katalogu – program powstaje przy zapisie zgłoszenia. */
   jrwaWithoutProgram?: OzipzDictionaryItem[];
-  /** Rodzaj interwencji symboli JRWA – programy NIEPROGRAMOWE są na liście oznaczone jako błędny wybór. */
+  /** Rodzaj interwencji symboli JRWA – programy NIEPROGRAMOWE i bez zgłoszeń szkół są na liście oznaczone jako błędny wybór. */
   jrwaKindMap?: ReadonlyMap<string, "PROGRAMOWE" | "NIEPROGRAMOWE">;
-  /** Błąd wyboru programu (walidacja formularza albo program NIEPROGRAMOWY). */
+  /** Błąd wyboru programu (walidacja formularza albo program bez zgłoszeń szkół). */
   programError?: string;
   facilities: OzipzFacility[];
   /** Zgłoszenia do wybranego programu w wybranym roku szkolnym (bez edytowanego). */
@@ -51,11 +51,13 @@ export function ParticipationProgramFacilityFields({
     const isNonProgrammatic = (symbol: string) => Boolean(symbol) && jrwaKindMap?.get(symbol) === "NIEPROGRAMOWE";
     const fromCatalog: SelectOption[] = programs.map((p) => {
       const jrwa = getProgramJrwaSymbol(p);
-      const wrong = isNonProgrammatic(jrwa);
+      const nonProgrammatic = isNonProgrammatic(jrwa);
+      const wrong = nonProgrammatic || p.acceptsParticipations === false;
+      const reason = nonProgrammatic ? "NIEPROGRAMOWE – bez zgłoszeń szkół" : wrong ? "bez zgłoszeń szkół" : "";
       return {
         value: p.id,
         label: p.name,
-        description: jrwa ? `JRWA ${jrwa}${wrong ? " · NIEPROGRAMOWE – bez zgłoszeń szkół" : ""}` : undefined,
+        description: [jrwa && `JRWA ${jrwa}`, reason].filter(Boolean).join(" · ") || undefined,
         badge: jrwa || undefined,
         badgeVariant: wrong ? "destructive" : "secondary",
         icon: GraduationCap,
