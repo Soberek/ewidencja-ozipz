@@ -11,8 +11,15 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import type { OzipzAction, OzipzContact, OzipzFacility, OzipzProgram, OzipzSchoolParticipation } from "../../../types/ozipz.types";
 import { defaultSchoolYear, schoolYearOptions } from "../../../utils/participationUtils";
 import { buildLectureIndex } from "../../../utils/participationLectures";
-import { computeProgramCoverage, type FacilityCoverageRow, type FacilityProgramEntry } from "../../../utils/programCoverage";
+import { normalizeTypKey } from "../../../utils/educationTypesUtils";
+import {
+  computeProgramCoverage,
+  coverageForFacilities,
+  type FacilityCoverageRow,
+  type FacilityProgramEntry,
+} from "../../../utils/programCoverage";
 import { FacilityEmailsCopyDialog } from "../../facilities/FacilityEmailsCopyDialog";
+import { FacilityEducationTypeFilterRow } from "../../facilities/components/FacilityEducationTypeFilterRow";
 import { FacilityCoverageDetails } from "./FacilityCoverageDetails";
 
 export interface ProgramsCoverageTabProps {
@@ -86,6 +93,7 @@ export function ProgramsCoverageTab({
   const [year, setYear] = useState(() => defaultSchoolYear(participations));
   const [programId, setProgramId] = useState("all");
   const [municipality, setMunicipality] = useState("all");
+  const [educationTypes, setEducationTypes] = useState<string[]>([]);
   const [status, setStatus] = useState<StatusFilter>("all");
   const [isEmailsOpen, setIsEmailsOpen] = useState(false);
 
@@ -102,24 +110,48 @@ export function ProgramsCoverageTab({
       ),
     [coverage]
   );
+  const educationTypeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    coverage.facilities.forEach((r) => (r.facility.educationTypes ?? []).forEach((t) => (counts[t] = (counts[t] || 0) + 1)));
+    return counts;
+  }, [coverage]);
+
+  // Gmina i rodzaj kształcenia zawężają całe zestawienie – karty, kolumny programów i wiersze.
+  const isScoped = municipality !== "all" || educationTypes.length > 0;
+  const scoped = useMemo(() => {
+    const selected = new Set(educationTypes.map(normalizeTypKey));
+    return coverage.facilities.filter(
+      (row) =>
+        (municipality === "all" || row.facility.municipality.trim() === municipality) &&
+        (selected.size === 0 || (row.facility.educationTypes ?? []).some((t) => selected.has(normalizeTypKey(t))))
+    );
+  }, [coverage, municipality, educationTypes]);
+  const programRows = useMemo(
+    () =>
+      coverageForFacilities(coverage.rows, scoped).filter(
+        (program) => !isScoped || scoped.some((row) => row.programs[program.programId])
+      ),
+    [coverage.rows, scoped, isScoped]
+  );
+
   const rows = useMemo(
     () =>
-      coverage.facilities.filter((row) => {
+      scoped.filter((row) => {
         const entry = programId === "all" ? undefined : row.programs[programId];
         if (programId !== "all" && !entry) return false;
-        if (municipality !== "all" && row.facility.municipality.trim() !== municipality) return false;
         if (status === "missing") return entry ? !isSigned(entry) : row.missing > 0;
         if (status === "none") return row.signed === 0 && row.otherParticipations.length === 0;
         return true;
       }),
-    [coverage, programId, municipality, status]
+    [scoped, programId, status]
   );
   const emailFacilities = useMemo(() => rows.map((r) => r.facility), [rows]);
 
-  const hasFilters = programId !== "all" || municipality !== "all" || status !== "all";
+  const hasFilters = programId !== "all" || isScoped || status !== "all";
   const clearFilters = () => {
     setProgramId("all");
     setMunicipality("all");
+    setEducationTypes([]);
     setStatus("all");
   };
 
@@ -146,7 +178,7 @@ export function ProgramsCoverageTab({
         sortable: true,
         cell: ({ row }) => <span className="text-xs">{row.facility.municipality}</span>,
       },
-      ...coverage.rows.map<ColumnDef<FacilityCoverageRow>>((program) => ({
+      ...programRows.map<ColumnDef<FacilityCoverageRow>>((program) => ({
         id: `program-${program.programId}`,
         header: program.programName,
         accessorFn: (row) => statusText(row.programs[program.programId]),
@@ -170,7 +202,7 @@ export function ProgramsCoverageTab({
         ),
       },
     ],
-    [coverage.rows, programId]
+    [programRows, programId]
   );
 
   return (
@@ -191,6 +223,15 @@ export function ProgramsCoverageTab({
                 </Chip>
               ))}
             </ChipGroup>
+            <FacilityEducationTypeFilterRow
+              selectedEducationTypes={educationTypes}
+              onToggleEducationType={(type) =>
+                setEducationTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]))
+              }
+              onSelectEducationTypePreset={setEducationTypes}
+              onClearEducationTypes={() => setEducationTypes([])}
+              educationTypeCounts={educationTypeCounts}
+            />
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden /> zgłoszona
@@ -246,14 +287,20 @@ export function ProgramsCoverageTab({
       ) : (
         <TooltipProvider delayDuration={150}>
           {/* Liczba kolumn dzieląca karty na równe wiersze (np. 6 → 3 + 3), żeby ostatni wiersz nie był pojedynczy. */}
-          <StatsGrid columns={coverage.rows.length % 3 === 0 ? 3 : coverage.rows.length % 4 === 0 ? 4 : 5}>
-            {coverage.rows.map((row) => (
+          <StatsGrid columns={programRows.length % 3 === 0 ? 3 : programRows.length % 4 === 0 ? 4 : 5}>
+            {programRows.map((row) => (
               <MetricCard
                 key={row.programId}
                 title={row.programName}
                 hint={`${row.programName} – kwalifikują się: ${row.targetTypes.join(", ")}`}
                 value={`${row.participating}/${row.eligible}`}
-                subtext={row.eligible === 0 ? "Brak placówek tego rodzaju w bazie" : `bez zgłoszenia: ${row.missing} · ${percent(row.participating, row.eligible)}% placówek`}
+                subtext={
+                  row.eligible === 0
+                    ? isScoped
+                      ? "Brak kwalifikujących się placówek w filtrze"
+                      : "Brak placówek tego rodzaju w bazie"
+                    : `bez zgłoszenia: ${row.missing} · ${percent(row.participating, row.eligible)}% placówek`
+                }
                 icon={<SearchCheck className="size-4" />}
                 variant={row.eligible > 0 && row.missing === 0 ? "emerald" : "default"}
                 compact

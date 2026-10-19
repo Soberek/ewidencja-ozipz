@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { OzipzAction, OzipzFacility, OzipzProgram, OzipzSchoolParticipation } from "../types/ozipz.types";
-import { computeProgramCoverage, programTargetEducationTypes } from "./programCoverage";
+import { computeProgramCoverage, coverageForFacilities, programTargetEducationTypes } from "./programCoverage";
 
 const program = (overrides: Partial<OzipzProgram>) =>
   ({ id: "higiena", name: "Higiena naszą tarczą ochronną", jrwaSymbol: "966.4", status: "aktywny", targetAudience: "Szkoła podstawowa, Szkoła podstawowa specjalna", ...overrides }) as OzipzProgram;
@@ -105,6 +105,20 @@ describe("udział placówek w programach", () => {
     const sp2 = coverage.facilities.find((r) => r.facility.id === "sp2")!;
     expect(Object.keys(sp2.programs).sort()).toEqual(["higiena", "zeby"]);
     expect([sp2.signed, sp2.missing]).toEqual([1, 1]);
+  });
+
+  it("przelicza liczby programu dla wybranych placówek, bez zgłoszeń spoza grupy docelowej", () => {
+    const coverage = computeProgramCoverage(
+      [program({})],
+      facilities,
+      [part({}), part({ id: "pz", facilityId: "przedszkole", facilityName: "Przedszkole nr 1" })],
+      [],
+      "2026/2027",
+      kinds,
+    );
+    expect(coverageForFacilities(coverage.rows, coverage.facilities)[0]).toMatchObject({ eligible: 3, participating: 1, missing: 2 });
+    const debno = coverage.facilities.filter((r) => r.facility.municipality === "Dębno");
+    expect(coverageForFacilities(coverage.rows, debno)[0]).toMatchObject({ eligible: 2, participating: 0, missing: 2 });
   });
 
   it("zgłoszenia do programów spoza zestawienia są przy placówce osobno", () => {

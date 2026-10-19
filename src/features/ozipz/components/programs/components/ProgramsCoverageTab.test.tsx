@@ -72,6 +72,26 @@ describe("zakładka Przegląd placówek", () => {
     expect(screen.getByText("Przedszkole Słoneczko")).toBeDefined();
   });
 
+  it("filtr kształcenia zawęża wiersze, karty i kolumny programów", () => {
+    renderTab();
+
+    fireEvent.click(screen.getByRole("button", { name: /Szkoły podstawowe/ }));
+    expect(screen.queryByText("Przedszkole Słoneczko")).toBeNull();
+    expect(screen.getByRole("button", { name: /^Zdrowe zęby mamy\s*0\/1/ })).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: /Edukacja przedszkolna/ }));
+    expect(screen.queryByText("SP 1 w Myśliborzu")).toBeNull();
+    expect(screen.getByText("Przedszkole Słoneczko")).toBeDefined();
+    expect(screen.getByRole("button", { name: /^Higiena naszą tarczą ochronną\s*0\/1/ })).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Szczegółowe typy/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Wyczyść \(5\)/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Przedszkole\s*1$/ }));
+    expect(screen.queryByText("SP 2 w Dębnie")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Higiena naszą tarczą ochronną/ })).toBeNull();
+    expect(within(rowOf("Przedszkole Słoneczko")).queryByRole("img", { name: /^Higiena/ })).toBeNull();
+  });
+
   it("kliknięcie placówki pokazuje zgłoszenia i braki z przyciskami", () => {
     const { onAddParticipation, onEditParticipation } = renderTab();
 

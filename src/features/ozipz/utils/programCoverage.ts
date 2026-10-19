@@ -55,6 +55,15 @@ export interface ProgramCoverage {
   withoutEducationTypes: OzipzProgram[];
 }
 
+/** Liczby programów przeliczone dla części placówek zestawienia (np. jednej gminy albo rodzaju kształcenia). */
+export function coverageForFacilities(rows: ProgramCoverageRow[], facilities: FacilityCoverageRow[]): ProgramCoverageRow[] {
+  return rows.map((row) => {
+    const eligible = facilities.map((f) => f.programs[row.programId]).filter((entry): entry is FacilityProgramEntry => Boolean(entry?.eligible));
+    const participating = eligible.filter((entry) => entry.participations.length > 0).length;
+    return { ...row, eligible: eligible.length, participating, missing: eligible.length - participating };
+  });
+}
+
 const nameKey = (name: string | null | undefined, municipality: string | null | undefined) =>
   `${String(name ?? "").trim().toLocaleLowerCase("pl")}|${String(municipality ?? "").trim().toLocaleLowerCase("pl")}`;
 
