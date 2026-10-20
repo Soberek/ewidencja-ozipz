@@ -1,7 +1,7 @@
 {
   "name": "ewidencja-ozipz",
   "private": true,
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Ewidencja działań Oświaty Zdrowotnej i Promocji Zdrowia w Państwowej Inspekcji Sanitarnej (Tauri + React)",
   "license": "UNLICENSED",
   "author": "Krzysztof Palpuchowski",
