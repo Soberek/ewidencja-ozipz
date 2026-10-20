@@ -139,6 +139,7 @@ export function ProgramsSection(props: ProgramsSectionProps) {
           participations={participations}
           programs={programs}
           contacts={contacts}
+          facilities={facilities}
           actions={actions}
           onOpenAdd={() => onOpenAddParticipation()}
           onEdit={onOpenEditParticipation}

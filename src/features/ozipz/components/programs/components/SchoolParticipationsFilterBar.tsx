@@ -1,3 +1,5 @@
+import { Mail } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Chip, ChipGroup } from "@/components/ui/chip";
 import { ClearFiltersButton, FilterBar } from "@/components/ui/filter-bar";
 import { SearchInput } from "@/components/ui/search-input";
@@ -24,6 +26,9 @@ export interface SchoolParticipationsFilterBarProps {
   onClearFilters: () => void;
   hasActiveFilters: boolean;
   activeFiltersCount?: number;
+  /** Kopiowanie adresów szkół i koordynatorów z widocznych zgłoszeń. */
+  onOpenEmailsCopy?: () => void;
+  isEmailsCopyDisabled?: boolean;
 }
 
 export const REPORT_STATUS_OPTIONS: { id: ParticipationReportStatusFilter; label: string }[] = [
@@ -52,11 +57,21 @@ export function SchoolParticipationsFilterBar({
   onClearFilters,
   hasActiveFilters,
   activeFiltersCount,
+  onOpenEmailsCopy,
+  isEmailsCopyDisabled = false,
 }: SchoolParticipationsFilterBarProps) {
   const currentSearch = searchQuery ?? search ?? "";
 
   return (
     <FilterBar
+      actions={
+        onOpenEmailsCopy && (
+          <Button variant="outline" onClick={onOpenEmailsCopy} disabled={isEmailsCopyDisabled} className="font-medium">
+            <Mail className="size-3.5 text-muted-foreground" />
+            <span>Kopiuj e-maile</span>
+          </Button>
+        )
+      }
       rows={
         <>
           <ChipGroup label="Szybkie filtry">

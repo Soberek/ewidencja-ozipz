@@ -9,9 +9,10 @@ import {
   participationCoordinators,
   unlinkCoordinatorContact,
   participationProgramError,
+  collectParticipationEmails,
   JRWA_PROGRAM_PREFIX,
 } from "./participationUtils";
-import type { OzipzContact, OzipzProgram, OzipzSchoolParticipation } from "../types/ozipz.types";
+import type { OzipzContact, OzipzFacility, OzipzProgram, OzipzSchoolParticipation } from "../types/ozipz.types";
 
 describe("udział placówki w programie", () => {
   it("zmienia rok szkolny we wrześniu", () => {
@@ -92,5 +93,32 @@ describe("zgłoszenia tylko do programów PROGRAMOWYCH ze zgłoszeniami szkół"
     expect(participationProgramError("bez-symbolu", programs, kinds)).toBeUndefined();
     expect(participationProgramError(`${JRWA_PROGRAM_PREFIX}966.99`, programs, kinds)).toBeUndefined();
     expect(participationProgramError("nieznany", programs, kinds)).toBeUndefined();
+  });
+});
+
+describe("adresy e-mail zgłoszeń", () => {
+  const facilities = [
+    { id: "sp", name: "SP 1", municipality: "Myślibórz", email: "sekretariat@sp1.pl" },
+    { id: "zs", name: "Zespół", municipality: "Dębno", email: "zespol@zs.pl" },
+    { id: "zs-sp", name: "SP w Zespole", municipality: "Dębno", email: "", parentFacilityId: "zs" },
+  ] as OzipzFacility[];
+  const contacts = [{ id: "c1", email: "anna.nowa@sp1.pl" }] as OzipzContact[];
+  const zgl = (overrides: Partial<OzipzSchoolParticipation>) =>
+    ({ id: "z", programId: "p", facilityId: "sp", facilityName: "SP 1", municipality: "Myślibórz", schoolYear: "2026/2027", schoolCoordinatorName: "Anna", ...overrides }) as OzipzSchoolParticipation;
+  const list = [
+    zgl({ id: "1", schoolCoordinatorContactId: "c1", schoolCoordinatorContact: "600 100 200 / anna.stara@sp1.pl", secondCoordinatorName: "Ewa", secondCoordinatorContact: "ewa@sp1.pl" }),
+    zgl({ id: "2", facilityId: "zs-sp", facilityName: "SP w Zespole", municipality: "Dębno", schoolCoordinatorContact: "600 100 200" }),
+    zgl({ id: "3", facilityId: undefined, facilityName: "sp 1", municipality: "myślibórz", schoolCoordinatorContact: "zly@adres" }),
+  ];
+
+  it("zbiera e-maile szkół (bez własnego – zespołu) i koordynatorów zgłoszenia, kontakt ze Spisu ma pierwszeństwo", () => {
+    expect(collectParticipationEmails(list, "school", facilities, contacts).emails).toEqual(["sekretariat@sp1.pl", "zespol@zs.pl"]);
+    const coordinators = collectParticipationEmails(list, "coordinator", facilities, contacts);
+    expect(coordinators.emails).toEqual(["anna.nowa@sp1.pl", "ewa@sp1.pl"]);
+    expect(coordinators.withoutEmail.map((p) => p.id)).toEqual(["2", "3"]);
+    expect(coordinators.invalid).toEqual(["zly@adres"]);
+    expect(collectParticipationEmails(list, "both", facilities, contacts).emails).toEqual([
+      "sekretariat@sp1.pl", "anna.nowa@sp1.pl", "ewa@sp1.pl", "zespol@zs.pl",
+    ]);
   });
 });

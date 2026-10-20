@@ -6,7 +6,7 @@ import { SchoolParticipationsTab } from "./SchoolParticipationsTab";
 import { SchoolParticipationsFilterBar } from "./SchoolParticipationsFilterBar";
 import { ProgramsCatalogTab } from "./ProgramsCatalogTab";
 import { ProgramsSection } from "../ProgramsSection";
-import type { OzipzAction, OzipzProgram, OzipzSchoolParticipation } from "../../../types/ozipz.types";
+import type { OzipzAction, OzipzFacility, OzipzProgram, OzipzSchoolParticipation } from "../../../types/ozipz.types";
 
 const mockPrograms: OzipzProgram[] = [
   {
@@ -148,6 +148,21 @@ describe("Programs Module Components — Comprehensive Test Suite", () => {
       fireEvent.click(screen.getByRole("button", { name: /wyczyść/i }));
       expect(screen.getByText(mockParticipations[0].facilityName)).toBeDefined();
       expect(screen.getByText(mockParticipations[1].facilityName)).toBeDefined();
+    });
+  });
+
+  describe("Kopiowanie e-maili zgłoszeń", () => {
+    it("kopiuje adresy szkół i koordynatorów tylko z widocznych zgłoszeń", () => {
+      const facilities = [{ id: "fac-1", name: mockParticipations[0].facilityName, municipality: "Barlinek", email: "sekretariat@sp-barlinek.pl" }] as OzipzFacility[];
+      render(<SchoolParticipationsTab {...defaultTabProps} facilities={facilities} />);
+
+      fireEvent.click(screen.getAllByRole("button", { name: "Barlinek" })[0]);
+      fireEvent.click(screen.getByRole("button", { name: "Kopiuj e-maile" }));
+
+      const list = (screen.getByLabelText("Lista adresów e-mail") as HTMLTextAreaElement).value;
+      expect(list).toContain("sekretariat@sp-barlinek.pl");
+      expect(list).toContain("anna.kowalska@sp-barlinek.pl");
+      expect(list).not.toContain("j.nowak@zsipo.pl");
     });
   });
 

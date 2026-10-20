@@ -1,4 +1,5 @@
-import type { OzipzContact, OzipzProgram, OzipzSchoolParticipation } from "../types/ozipz.types";
+import type { OzipzContact, OzipzFacility, OzipzProgram, OzipzSchoolParticipation } from "../types/ozipz.types";
+import { invalidEmails, uniqueEmails } from "./emailUtils";
 
 /** Prefiks wartości listy programów dla symbolu JRWA ze słownika, który nie ma jeszcze programu w katalogu. */
 export const JRWA_PROGRAM_PREFIX = "jrwa:";
@@ -106,6 +107,58 @@ export function participationCoordinators(
     { name: p.schoolCoordinatorName?.trim() || "", contact: p.schoolCoordinatorContact, contactId: p.schoolCoordinatorContactId },
     { name: p.secondCoordinatorName?.trim() || "", contact: p.secondCoordinatorContact, contactId: p.secondCoordinatorContactId },
   ].filter((c) => c.name);
+}
+
+export type ParticipationEmailSource = "school" | "coordinator" | "both";
+
+export interface ParticipationEmailsResult {
+  /** Unikalne adresy (bez rozróżniania wielkości liter) w kolejności zgłoszeń. */
+  emails: string[];
+  /** Wpisy wyglądające na adres, ale niepoprawne – pominięte. */
+  invalid: string[];
+  /** Zgłoszenia bez żadnego poprawnego adresu w wybranym źródle. */
+  withoutEmail: OzipzSchoolParticipation[];
+}
+
+type EmailFacility = Pick<OzipzFacility, "id" | "name" | "municipality" | "email" | "parentFacilityId">;
+
+/**
+ * Adresy do pola DW/UDW dla listy zgłoszeń: e-mail szkoły z Bazy placówek (bez niego – jej zespołu)
+ * i koordynatorów zgłoszenia – z powiązanego kontaktu, a bez niego z kontaktu zapisanego w zgłoszeniu.
+ */
+export function collectParticipationEmails(
+  participations: OzipzSchoolParticipation[],
+  source: ParticipationEmailSource,
+  facilities: EmailFacility[] = [],
+  contacts: Pick<OzipzContact, "id" | "email">[] = [],
+): ParticipationEmailsResult {
+  const byId = new Map(facilities.map((f) => [f.id, f]));
+  const byName = new Map(facilities.map((f) => [`${normalize(f.name)}|${normalize(f.municipality)}`, f]));
+  const contactsById = new Map(contacts.map((c) => [c.id, c]));
+  const firstWithEmail = (...values: (string | undefined)[]) => values.find((v) => uniqueEmails([v]).length > 0);
+
+  const values: (string | undefined)[] = [];
+  const checked: (string | undefined)[] = [];
+  const withoutEmail: OzipzSchoolParticipation[] = [];
+  for (const p of participations) {
+    const own: (string | undefined)[] = [];
+    if (source !== "coordinator") {
+      const facility = (p.facilityId && byId.get(p.facilityId)) || byName.get(`${normalize(p.facilityName)}|${normalize(p.municipality)}`);
+      const parent = facility?.parentFacilityId ? byId.get(facility.parentFacilityId) : undefined;
+      own.push(firstWithEmail(facility?.email, parent?.email));
+      checked.push(facility?.email);
+    }
+    if (source !== "school") {
+      for (const c of participationCoordinators(p)) {
+        const linked = c.contactId ? contactsById.get(c.contactId)?.email : undefined;
+        own.push(firstWithEmail(linked, c.contact));
+        checked.push(linked ?? c.contact);
+      }
+    }
+    if (uniqueEmails(own).length === 0) withoutEmail.push(p);
+    values.push(...own);
+  }
+  return { emails: uniqueEmails(values), invalid: invalidEmails(checked), withoutEmail };
 }
 
 /** Zgłoszenia powiązane z kontaktem dostają jego aktualne nazwisko i dane kontaktowe. */

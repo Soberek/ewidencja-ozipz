@@ -3,7 +3,7 @@ import { FolderOpen, School } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { OzipzAction, OzipzContact, OzipzSchoolParticipation, OzipzProgram } from "../../../types/ozipz.types";
+import type { OzipzAction, OzipzContact, OzipzFacility, OzipzSchoolParticipation, OzipzProgram } from "../../../types/ozipz.types";
 import {
   SchoolParticipationsFilterBar,
   type ParticipationReportStatusFilter,
@@ -11,6 +11,7 @@ import {
 import { createSchoolParticipationsColumns } from "./SchoolParticipationsColumns";
 import { normalizeText } from "../../contacts/contactUtils";
 import { ParticipationFilePreviewDialog } from "./ParticipationFilePreviewDialog";
+import { ParticipationEmailsCopyDialog } from "./ParticipationEmailsCopyDialog";
 import { openParticipationFilesFolder, supportsParticipationFiles } from "@/db/participation-files";
 import { buildLectureIndex, participationLectureStatus } from "../../../utils/participationLectures";
 
@@ -18,6 +19,8 @@ export interface SchoolParticipationsTabProps {
   participations: OzipzSchoolParticipation[];
   programs: OzipzProgram[];
   contacts?: OzipzContact[];
+  /** Baza placówek – e-maile szkół do kopiowania. */
+  facilities?: OzipzFacility[];
   /** Rejestr działań – źródło przeprowadzonych prelekcji. */
   actions?: OzipzAction[];
   onOpenAdd: () => void;
@@ -29,6 +32,7 @@ export function SchoolParticipationsTab({
   participations,
   programs,
   contacts = [],
+  facilities = [],
   actions,
   onOpenAdd,
   onEdit,
@@ -40,6 +44,7 @@ export function SchoolParticipationsTab({
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<ParticipationReportStatusFilter>("all");
   const [previewItem, setPreviewItem] = useState<OzipzSchoolParticipation | null>(null);
+  const [isEmailsOpen, setIsEmailsOpen] = useState(false);
 
   const programMap = useMemo(() => {
     const map = new Map<string, OzipzProgram>();
@@ -153,6 +158,8 @@ export function SchoolParticipationsTab({
         onClearFilters={handleClearFilters}
         hasActiveFilters={hasActiveFilters}
         activeFiltersCount={activeFiltersCount}
+        onOpenEmailsCopy={() => setIsEmailsOpen(true)}
+        isEmailsCopyDisabled={filteredParticipations.length === 0}
       />
 
       {filteredParticipations.length > 0 && (
@@ -228,6 +235,14 @@ export function SchoolParticipationsTab({
         filePath={previewItem?.applicationFile ?? null}
         title={previewItem ? `Zgłoszenie: ${previewItem.facilityName}` : undefined}
         onClose={() => setPreviewItem(null)}
+      />
+
+      <ParticipationEmailsCopyDialog
+        open={isEmailsOpen}
+        onOpenChange={setIsEmailsOpen}
+        participations={filteredParticipations}
+        facilities={facilities}
+        contacts={contacts}
       />
     </div>
   );
