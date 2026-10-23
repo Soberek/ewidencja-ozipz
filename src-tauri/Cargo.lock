@@ -955,7 +955,7 @@ dependencies = [
 
 [[package]]
 name = "ewidencja-ozipz"
-version = "1.4.3"
+version = "1.4.4"
 dependencies = [
  "chrono",
  "reqwest 0.12.28",
