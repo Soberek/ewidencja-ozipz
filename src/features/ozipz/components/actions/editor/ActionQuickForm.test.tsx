@@ -30,7 +30,7 @@ function Harness(props: ActionEditorSectionProps) {
 }
 const disclosure = (title: string) => screen.getByText(title, { exact: true }).closest("details")!;
 const fill = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
-function select(label: string, option: string) {
+function select(label: string, option: string | RegExp) {
   fireEvent.click(screen.getByLabelText(label));
   fireEvent.click(screen.getByRole("option", { name: option }));
 }
@@ -89,10 +89,10 @@ describe("Quick action form", () => {
 
   it("keeps a custom title when selecting a program and fills an empty title", () => {
     render(<Harness {...data} />);
-    select("Program lub klasyfikacja", "Program testowy");
+    select("Program lub klasyfikacja", /^Program testowy/);
     expect(screen.getByLabelText("Tytuł działania *")).toHaveValue("Program testowy");
     fill("Tytuł działania *", "Własny tytuł");
-    select("Program lub klasyfikacja", "Program testowy");
+    select("Program lub klasyfikacja", /^Program testowy/);
     expect(screen.getByLabelText("Tytuł działania *")).toHaveValue("Własny tytuł");
   });
 
@@ -227,7 +227,7 @@ describe("Quick action form", () => {
 });
 
 describe("Shared date and material state", () => {
-  it("recalculates independent JRWA sequences when selecting classifications and applying presets", () => {
+  it("recalculates independent JRWA sequences when switching classifications", () => {
     const existingAction = { ...validAction, ...timestamps, topic: "", ezdStatus: "w_ezd", status: "zrealizowane", materialsDistributedCount: 0 };
     const { result } = renderHook(() => useActionEditorState({
       ...data,
@@ -239,10 +239,7 @@ describe("Shared date and material state", () => {
     }));
     act(() => result.current.handleProgramOrJrwaSelect("jrwa:966.6"));
     expect(result.current.jrwaSign).toBe("OZiPZ.966.6.3.2026");
-    act(() => result.current.applyPreset({
-      id: "test", title: "Test", actionType: "Prelekcja", jrwaSymbol: "966.3",
-      badge: "", subtitle: "", audienceGroups: [],
-    }));
+    act(() => result.current.handleProgramOrJrwaSelect("jrwa:966.3"));
     expect(result.current.selectedJrwaSymbol).toBe("966.3");
     expect(result.current.jrwaSign).toBe("OZiPZ.966.3.2.2026");
     act(() => result.current.handleProgramOrJrwaSelect("jrwa:966.6"));

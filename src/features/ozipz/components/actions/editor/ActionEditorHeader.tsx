@@ -1,6 +1,5 @@
 import { Activity, ArrowLeft, Copy, Lock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import type { OzipzAction } from "../../../types/ozipz.types";
 import { getMonthKey } from "../../../utils/dateUtils";
 
@@ -40,19 +39,14 @@ export function ActionEditorHeader({
             <ArrowLeft className="size-3.5" /> Wróć do listy
           </Button>
 
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg font-black tracking-tight text-foreground flex items-center gap-2">
-                <Activity className="size-5 text-primary" />
-                {editingAction?.id
-                  ? isReadOnly ? "Podgląd działania" : "Edycja działania"
-                  : isDuplicate
-                  ? "Nowe Działanie (Kopia)"
-                  : "Nowe działanie"}
-              </h1>
-              {isDuplicate && <Badge variant="outline">Kopia zadania</Badge>}
-            </div>
-          </div>
+          <h1 className="text-lg font-black tracking-tight text-foreground flex items-center gap-2">
+            <Activity className="size-5 text-primary" />
+            {editingAction?.id
+              ? isReadOnly ? "Podgląd działania" : "Edycja działania"
+              : isDuplicate
+              ? "Nowe działanie (kopia)"
+              : "Nowe działanie"}
+          </h1>
         </div>
 
         <div className="flex items-center gap-2">

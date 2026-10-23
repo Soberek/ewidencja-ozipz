@@ -279,7 +279,7 @@ export function Select({
               <selectedOption.icon className="size-3.5 shrink-0 text-muted-foreground" />
             )}
             {selectedOption ? (
-              <span className="truncate font-medium">{selectedOption.label}</span>
+              <span className="truncate font-medium" title={selectedOption.label}>{selectedOption.label}</span>
             ) : (
               <span className="text-muted-foreground truncate">{placeholder}</span>
             )}

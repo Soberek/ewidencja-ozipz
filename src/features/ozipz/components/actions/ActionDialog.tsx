@@ -144,6 +144,7 @@ export function ActionDialog(props: ActionDialogProps) {
           isSubmitting={state.isSubmitting}
           onCancel={requestCancel}
           missingFields={state.missingFields}
+          warnings={state.saveWarnings}
           isModal
         />
         {confirmDialog}

@@ -1,103 +1,149 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Bookmark } from "lucide-react";
+import { BookmarkPlus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { SearchInput } from "@/components/ui/search-input";
+import { cn } from "@/lib/utils";
 import { useTemplates } from "../../../store/useOzipzDbStore";
+import type { OzipzTemplate } from "../../../types/ozipz.types";
 import type { ActionEditorSectionProps } from "./editor.types";
 import type { useActionEditorState } from "./useActionEditorState";
-import { isEmptyImportedTemplate } from "../../../utils/templateUtils";
-import { ACTION_CARD_PRESETS } from "./presetsConfig";
+import {
+  buildTemplatePayload, describeTemplateContent, isEmptyImportedTemplate, resolveTemplateContent, usableTemplates,
+  type TemplateContent,
+} from "../../../utils/templateUtils";
+import { FIELD_INPUT, FIELD_LABEL } from "./formStyles";
 
-const TEMPLATE_PREFIX = "tpl:";
-const PRESET_PREFIX = "preset:";
+/** Od tylu szablonów pokazujemy wyszukiwarkę — mniejszą listę ogarnia się wzrokiem. */
+const SEARCH_FROM = 9;
 
 /**
- * Szybki start: jedno pole z zapisanymi szablonami (z bazy) i wbudowanymi wzorcami działań,
- * oraz zapis bieżącego formularza jako nowego szablonu.
+ * Szablony nad formularzem: kliknięcie kafelka wypełnia formularz, „Cofnij” przywraca poprzedni stan,
+ * a zmiany w formularzu można zapisać w szablonie albo jako nowy szablon. Wbudowanych wzorców nie ma.
  */
 export function ActionQuickStart({ state: s, data }: {
   state: ReturnType<typeof useActionEditorState>; data: ActionEditorSectionProps;
 }) {
   const store = useTemplates();
   const templates = data.templates ?? store.templates;
-  const usableTemplates = templates.filter((t) => !isEmptyImportedTemplate(t));
-  const emptyCount = templates.length - usableTemplates.length;
-  const showPresets = !data.editingAction?.id;
+  const list = useMemo(() => usableTemplates(templates), [templates]);
+  const emptyCount = templates.filter(isEmptyImportedTemplate).length;
+  const programs = data.programs ?? [];
+  const lookups = {
+    programs,
+    materials: data.materials ?? [],
+    jrwaSymbols: (data.dictionaryItems ?? []).filter((d) => d.dictType === "jrwaSymbol"),
+  };
+  const [query, setQuery] = useState("");
+  const [saveOpen, setSaveOpen] = useState(false);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
-  const busy = useRef(false);
-  const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState("");
+  const busy = useRef(false);
 
-  const options = [
-    ...usableTemplates.map((t) => ({ value: `${TEMPLATE_PREFIX}${t.id}`, label: t.title, description: t.actionType, group: "Twoje szablony" })),
-    ...(showPresets
-      ? ACTION_CARD_PRESETS.map((p) => ({ value: `${PRESET_PREFIX}${p.id}`, label: p.title, description: p.subtitle, group: "Wzorce wbudowane" }))
-      : []),
-  ];
-  const value = s.selectedTemplateId.startsWith(PRESET_PREFIX)
-    ? s.selectedTemplateId
-    : s.selectedTemplateId ? `${TEMPLATE_PREFIX}${s.selectedTemplateId}` : "";
-
-  const apply = (choice: string) => {
-    if (choice.startsWith(PRESET_PREFIX)) {
-      const preset = ACTION_CARD_PRESETS.find((p) => `${PRESET_PREFIX}${p.id}` === choice);
-      if (!preset) return;
-      s.applyPreset(preset);
-      toast.info("Wczytano wzorzec. Sprawdź tytuł, miejsce, datę i liczby odbiorców.");
-      return;
-    }
-    const id = choice.startsWith(TEMPLATE_PREFIX) ? choice.slice(TEMPLATE_PREFIX.length) : "";
-    const template = templates.find((item) => item.id === id);
-    if (!template) { s.handleApplyTemplate(id); return; }
-    const program = data.programs?.find((p) => p.name === template.topic);
-    const symbol = template.topic?.match(/^JRWA\s+([\d.]+)/)?.[1];
-    s.handleProgramOrJrwaSelect(program ? `prog:${program.id}` : symbol ? `jrwa:${symbol}` : "");
-    s.handleApplyTemplate(id);
-    toast.info("Wczytano szablon. Sprawdź miejsce, datę i liczby odbiorców.");
+  const summarize = (content: TemplateContent, full: boolean) => {
+    const d = describeTemplateContent(content, lookups);
+    return (full
+      ? [content.actionType, d.classification, d.count, d.audience && `odbiorcy: ${d.audience}`, d.materials && `materiały: ${d.materials}`,
+        content.leadEducator && `prowadzi: ${content.leadEducator}`, content.description.trim() && "opis"]
+      : [content.actionType, d.count, d.audience]
+    ).filter(Boolean).join(" · ");
   };
+  const q = query.trim().toLocaleLowerCase("pl");
+  const visible = q
+    ? list.filter((t) => `${t.title} ${summarize(resolveTemplateContent(t, programs), true)}`.toLocaleLowerCase("pl").includes(q))
+    : list;
 
-  const save = async () => {
+  const run = async (task: () => Promise<unknown>, success: string) => {
     if (busy.current) return;
-    if (!name.trim() || !s.actionType) { setError("Podaj nazwę szablonu i wybierz formę działania."); return; }
-    if (templates.some((t) => t.title.trim().toLocaleLowerCase() === name.trim().toLocaleLowerCase())) {
-      setError("Szablon o tej nazwie już istnieje. Podaj inną nazwę."); return;
-    }
     busy.current = true; setSaving(true); setError("");
     try {
-      await store.addTemplate({
-        title: name.trim(), actionType: s.actionType,
-        actionDefaults: { title: s.title.trim() || name.trim(), leadEducator: s.leadEducator || "", campaignId: s.campaignId || "" },
-        topic: data.programs?.find((p) => p.id === s.programId)?.name || (s.selectedJrwaSymbol ? `JRWA ${s.selectedJrwaSymbol}` : s.form.getValues("topic") || ""),
-        descriptionTemplate: s.activitiesDescription,
-        defaultAudience: s.audienceGroups.flatMap((g) => g.items.map((i) => i.name.trim())).filter(Boolean).join("; "),
-      });
-      setExpanded(false); toast.success("Zapisano szablon. Znajdziesz go również w zakładce Szablony.");
-    } catch { setError("Nie udało się zapisać szablonu. Spróbuj ponownie."); }
-    finally { busy.current = false; setSaving(false); }
+      await task();
+      setSaveOpen(false);
+      toast.success(success);
+    } catch {
+      setError("Nie udało się zapisać szablonu. Spróbuj ponownie.");
+      toast.error("Nie udało się zapisać szablonu.");
+    } finally { busy.current = false; setSaving(false); }
   };
 
-  return <section aria-label="Szybki start" className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
-    <div className="flex flex-wrap items-end gap-2">
-      <div className="min-w-48 flex-1">
-        <Select label="Szybki start: szablon lub wzorzec" value={value} options={options} onChange={apply} clearable
-          placeholder={options.length ? "Wybierz, aby wypełnić formularz…" : "Zapisz swój pierwszy szablon"} />
+  const saveAsNew = () => {
+    const trimmed = name.trim();
+    if (!trimmed || !s.actionType) { setError("Podaj nazwę szablonu i wybierz formę działania."); return; }
+    if (list.some((t) => t.title.trim().toLocaleLowerCase("pl") === trimmed.toLocaleLowerCase("pl"))) {
+      setError("Szablon o tej nazwie już istnieje. Podaj inną nazwę albo zapisz zmiany we wczytanym szablonie."); return;
+    }
+    void run(() => store.addTemplate(buildTemplatePayload({ ...s.templateContent, name: trimmed })),
+      "Zapisano szablon. Znajdziesz go też w zakładce Szablony zadań.");
+  };
+
+  const saveChanges = (template: OzipzTemplate) => run(
+    () => store.updateTemplate(template.id, buildTemplatePayload({ ...s.templateContent, name: template.title })),
+    `Zapisano zmiany w szablonie „${template.title}”.`
+  );
+
+  return <section aria-label="Szablony" className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
+    <div className="flex flex-wrap items-center gap-2">
+      <h2 className="text-sm font-semibold">Szablony</h2>
+      {list.length > 0 && <span className="text-xs text-muted-foreground">Kliknij szablon, aby wypełnić formularz.</span>}
+      <div className="ml-auto flex flex-wrap items-center gap-2">
+        {list.length >= SEARCH_FROM && <SearchInput value={query} onValueChange={setQuery} placeholder="Szukaj szablonu…" />}
+        <Button type="button" variant="outline" size="sm" className="gap-1.5" aria-expanded={saveOpen}
+          onClick={() => { setName(s.selectedTemplate ? "" : s.title); setError(""); setSaveOpen(!saveOpen); }}>
+          <BookmarkPlus className="size-3.5" /> Zapisz jako szablon
+        </Button>
       </div>
-      <Button type="button" variant="outline" size="sm" className="gap-1.5" aria-expanded={expanded}
-        onClick={() => { setName(s.title); setError(""); setExpanded(!expanded); }}>
-        <Bookmark className="size-3.5" /> Zapisz jako szablon
-      </Button>
     </div>
-    {emptyCount > 0 && <p className="text-xs text-muted-foreground">Pominięto puste rekordy z importu ({emptyCount}).</p>}
-    {expanded && <div className="space-y-2 border-t border-border pt-3">
-      <label htmlFor="action-template-name" className="text-sm font-medium">Nazwa szablonu</label>
-      <Input id="action-template-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="np. Prelekcja — higiena rąk" />
-      <p className="text-xs text-muted-foreground">Zapisujemy tytuł, formę, program lub klasyfikację, prowadzącego, kampanię, opis i nazwy grup odbiorców. Miejsce, liczby osób i znaki spraw uzupełnisz przy realizacji.</p>
+
+    {list.length === 0
+      ? <p className="text-sm text-muted-foreground">Nie masz jeszcze szablonów. Wypełnij pola, które się powtarzają (formę, program, odbiorców, materiały), i kliknij „Zapisz jako szablon”.</p>
+      : <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {visible.map((t) => {
+          const active = t.id === s.selectedTemplateId;
+          const content = resolveTemplateContent(t, programs);
+          return <button key={t.id} type="button" aria-pressed={active} title={summarize(content, true)}
+            onClick={() => s.applyTemplate(t.id)}
+            className={cn(
+              "flex min-w-0 flex-col items-start gap-0.5 rounded-md border bg-background px-3 py-2 text-left transition-colors",
+              "hover:border-primary/60 hover:bg-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary",
+              active ? "border-primary bg-primary/10" : "border-border"
+            )}>
+            <span className="flex w-full items-start gap-1.5 text-sm font-medium leading-snug">
+              {/* Pełna nazwa (najwyżej dwie linie) — ucięte nazwy podobnych szablonów wyglądałyby tak samo. */}
+              <span className="line-clamp-2 break-words">{t.title}</span>
+              {active && <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-primary" />}
+            </span>
+            <span className="w-full truncate text-xs text-muted-foreground">{summarize(content, false)}</span>
+          </button>;
+        })}
+        {visible.length === 0 && <p className="text-sm text-muted-foreground">Żaden szablon nie pasuje do „{query.trim()}”.</p>}
+      </div>}
+
+    {s.selectedTemplate && <div role="status" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+      <span>Wczytano „<strong>{s.selectedTemplate.title}</strong>”. Uzupełnij datę, miejsce i liczby.</span>
+      {s.canUndoTemplate && <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={s.undoTemplate}>Cofnij</Button>}
+      {s.isTemplateChanged && <Button type="button" variant="link" size="sm" className="h-auto p-0" disabled={saving}
+        onClick={() => void saveChanges(s.selectedTemplate!)}>Zapisz zmiany w szablonie</Button>}
+    </div>}
+
+    {emptyCount > 0 && <p className="text-xs text-muted-foreground">Pominięto puste rekordy z importu ({emptyCount}) — usuniesz je w zakładce Szablony zadań.</p>}
+
+    {saveOpen && <div className="space-y-2 border-t border-border pt-3">
+      <div className="max-w-md">
+        <label htmlFor="action-template-name" className={FIELD_LABEL}>Nazwa nowego szablonu</label>
+        <Input id="action-template-name" className={FIELD_INPUT} value={name} autoFocus
+          onChange={(e) => setName(e.target.value)} placeholder="np. Prelekcja — higiena rąk, 4 grupy" />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Szablon zapamięta: {summarize(s.templateContent, true) || "na razie nic — wypełnij formularz"}.
+        {" "}Daty, miejsca, liczby osób i sztuk ani znaków spraw nie zapisujemy — uzupełnisz je przy każdym działaniu.
+      </p>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      <div className="flex gap-2"><Button type="button" size="sm" disabled={saving} onClick={save}>{saving ? "Zapisywanie…" : "Zapisz szablon"}</Button>
-        <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={() => setExpanded(false)}>Anuluj zapis szablonu</Button></div>
+      <div className="flex gap-2">
+        <Button type="button" size="sm" disabled={saving} onClick={saveAsNew}>{saving ? "Zapisywanie…" : "Zapisz szablon"}</Button>
+        <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={() => setSaveOpen(false)}>Anuluj</Button>
+      </div>
     </div>}
   </section>;
 }

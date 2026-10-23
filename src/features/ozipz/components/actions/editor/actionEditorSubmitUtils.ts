@@ -154,7 +154,8 @@ type ActionPayload = Omit<OzipzAction, "id" | "createdAt" | "updatedAt">;
 /** Wymagane pola, których jeszcze brakuje (podpowiedź w stopce przed zapisem; walidację i tak wykonuje schemat). */
 export function getMissingActionFields(
   values: Partial<ActionFormOutput>,
-  { isPublication, hasNamedAudience }: { isPublication: boolean; hasNamedAudience: boolean }
+  { isPublication, hasNamedAudience, hasIncompleteMaterials = false }:
+    { isPublication: boolean; hasNamedAudience: boolean; hasIncompleteMaterials?: boolean }
 ): string[] {
   const missing: string[] = [];
   if (!values.actionType) missing.push("forma działania");
@@ -164,6 +165,8 @@ export function getMissingActionFields(
   if (!values.municipality) missing.push("gmina");
   if (!(values.leadEducator || "").trim()) missing.push("osoba prowadząca");
   if (!isPublication && !hasNamedAudience) missing.push("odbiorcy");
+  // Pusty wiersz materiału blokuje zapis — stopka nie może wtedy pokazywać „Gotowe do zapisu”.
+  if (hasIncompleteMaterials) missing.push("materiał i liczba sztuk");
   return missing;
 }
 

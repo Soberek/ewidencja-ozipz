@@ -284,7 +284,6 @@ export function RegistryAdminModals({
         onClose={closeModal}
         editingTemplate={(payload as { item?: OzipzTemplate | null })?.item || null}
         programs={db.programs}
-        topics={db.topics}
         jrwaSymbols={jrwaSymbols}
         actionTypes={db.activityTypes}
         onSave={(data) =>

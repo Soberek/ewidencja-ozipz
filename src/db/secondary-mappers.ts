@@ -70,7 +70,7 @@ export const SecondaryMappers = {
     const raw = {
       id: row.id,
       title: row.title || "",
-      topic: row.topic || "inne",
+      topic: row.topic || "",
       actionType: row.action_type || "prelekcja",
       descriptionTemplate: row.description_template || "",
       defaultAudience: row.default_audience ?? "uczniowie_sp",

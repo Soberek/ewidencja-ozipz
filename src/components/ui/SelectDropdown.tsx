@@ -134,7 +134,8 @@ export function SelectDropdown({
                       opt.disabled && "opacity-40 cursor-not-allowed pointer-events-none"
                     )}
                   >
-                    <div className="flex items-center gap-2 truncate min-w-0 flex-1">
+                    {/* Długie etykiety zawijamy: obcięte nazwy (np. dwa programy różniące się końcówką) wyglądałyby tak samo. */}
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       {opt.icon && (
                         <opt.icon
                           className={cn(
@@ -143,10 +144,10 @@ export function SelectDropdown({
                           )}
                         />
                       )}
-                      <div className="truncate">
-                        <div className="truncate">{opt.label}</div>
+                      <div className="min-w-0 break-words">
+                        <div>{opt.label}</div>
                         {opt.description && (
-                          <div className="text-[10px] text-muted-foreground truncate">
+                          <div className="text-[10px] text-muted-foreground">
                             {opt.description}
                           </div>
                         )}

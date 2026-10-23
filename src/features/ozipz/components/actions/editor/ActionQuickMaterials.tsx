@@ -13,7 +13,7 @@ export function ActionQuickMaterials({ state: s, materials }: {
   const { errors } = s.form.formState;
   const hasItems = s.materialItems.length > 0;
   const hasMaterials = hasItems || Number(s.materialsDistributedCount) > 0;
-  return <div className="space-y-3 pt-3">
+  return <div className="space-y-3">
     {s.linkedDistribution && <p className="rounded-md border border-border bg-muted/40 p-2 text-sm text-muted-foreground">
       Materiały z tego działania są w osobnym wpisie „{s.linkedDistribution.title}” — tam je zmienisz. Zmiany daty, miejsca, prowadzącego i odbiorców zostaną w nim uwzględnione automatycznie.
     </p>}
@@ -23,7 +23,7 @@ export function ActionQuickMaterials({ state: s, materials }: {
     {!s.isPublication && !s.linkedDistribution && <>
       {s.materialItems.map((item, index) => <div key={index} className="grid grid-cols-[minmax(0,1fr)_6rem_2.25rem] items-end gap-2">
         <Select label={`Materiał ${index + 1}`} value={item.materialId}
-          options={materials.map((m) => ({ value: m.id, label: m.title }))}
+          options={materials.map((m) => ({ value: m.id, label: m.title }))} triggerClassName={FIELD_INPUT}
           onChange={(materialId) => s.handleUpdateMaterialItem(index, { materialId })} placeholder="Wybierz materiał z katalogu" />
         <div><label htmlFor={`material-${index}`} className={FIELD_LABEL}>Liczba sztuk</label>
           <Input id={`material-${index}`} className={`${FIELD_INPUT} font-mono`} type="number" min={1} step={1} value={item.quantity || ""}
@@ -33,7 +33,7 @@ export function ActionQuickMaterials({ state: s, materials }: {
           onClick={() => s.handleRemoveMaterialItem(index)}><Trash2 className="size-3.5" /></Button>
       </div>)}
       <div className="flex flex-wrap items-end gap-3">
-        <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => s.handleAddMaterialItem()}>
+        <Button type="button" variant="outline" className={`${FIELD_INPUT} gap-1.5`} onClick={() => s.handleAddMaterialItem()}>
           <Plus className="size-3.5" /> Dodaj materiał
         </Button>
         {hasItems

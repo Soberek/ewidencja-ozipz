@@ -14,7 +14,6 @@ import {
   duplicateActionDraft,
 } from "./editorUtils";
 import { ActionEditorHeader } from "./ActionEditorHeader";
-import { ACTION_CARD_PRESETS } from "./presetsConfig";
 import type { OzipzAction, OzipzDictionaryItem, OzipzStaff } from "../../../types/ozipz.types";
 
 describe("Action Editor - audienceUtils", () => {
@@ -169,22 +168,6 @@ describe("Action Editor - editorUtils", () => {
   });
 });
 
-describe("Action Editor - presetsConfig & Unified Program/JRWA Selection", () => {
-  it("contains all standard 1-click quick presets with JRWA integration", () => {
-    expect(ACTION_CARD_PRESETS.length).toBeGreaterThanOrEqual(4);
-    const sp1 = ACTION_CARD_PRESETS.find((p) => p.id === "preset-sp-1grp");
-    expect(sp1).toBeDefined();
-    expect(sp1?.jrwaSymbol).toBe("966.1");
-    expect(sp1?.actionType).toBe("Prelekcja (warsztat)");
-  });
-
-  it("binds program and JRWA symbol together for school programs", () => {
-    const biegPreset = ACTION_CARD_PRESETS.find((p) => p.jrwaSymbol === "966.3");
-    expect(biegPreset).toBeDefined();
-    expect(biegPreset?.jrwaSymbol).toBe("966.3");
-  });
-});
-
 describe("Action Editor - Live Summary Footer", () => {
   it("exports valid ActionEditorFooter component contract with rich metadata support", async () => {
     const { ActionEditorFooter } = await import("./ActionEditorFooter");
@@ -215,14 +198,12 @@ describe("Action Editor - Live Summary Footer", () => {
     );
 
     expect(screen.getByText("Warsztaty Zdrowotne")).toBeDefined();
-    expect(screen.getByText("2026-09-15")).toBeDefined();
-    expect(screen.getByText("Prelekcja")).toBeDefined();
-    expect(screen.getByText(/SP 1 Myślibórz/)).toBeDefined();
-    expect(screen.getByText("Czyste Powietrze Wokół Nas")).toBeDefined();
-    expect(screen.getByText(/Jan Kowalski/)).toBeDefined();
-    expect(screen.getByText("zarejestrowane")).toBeDefined();
-    expect(screen.getByText("OZiPZ.966.1.1.2026")).toBeDefined();
-    expect(screen.getByText("IZRZ/2026/09/01")).toBeDefined();
+    // Jedna linia podsumowania z datą w formacie formularza; pełna treść także w podpowiedzi.
+    const summary = screen.getByTitle(/^Warsztaty Zdrowotne · /);
+    expect(summary.getAttribute("title")).toBe(
+      "Warsztaty Zdrowotne · 15.09.2026 · Prelekcja · SP 1 Myślibórz (Myślibórz) · Czyste Powietrze Wokół Nas · Jan Kowalski · OZiPZ.966.1.1.2026 · IZRZ: IZRZ/2026/09/01 · zarejestrowane"
+    );
+    expect(screen.getByText(/^· 15\.09\.2026 · Prelekcja · /)).toBeDefined();
 
     // Metrics
     expect(screen.getByText("1 DZ")).toBeDefined();
@@ -246,8 +227,8 @@ describe("Action Editor - Live Summary Footer", () => {
 
     expect(screen.getByText("1 DZ")).toBeDefined();
     expect(screen.getByText("10")).toBeDefined();
-    expect(screen.queryByText("📍")).toBeNull();
-    expect(screen.queryByText("👤")).toBeNull();
+    // Bez danych działania nie ma linii podsumowania (same liczniki i przyciski).
+    expect(screen.queryByTitle(/·/)).toBeNull();
 
     unmount();
   });
@@ -293,78 +274,42 @@ describe("Action Editor - Live Summary Footer", () => {
 describe("Action Editor - Card Components & Single JRWA Sign Placement", () => {
   it("renders editable Znak Sprawy in ActionEditorKancelariaCard for regular actions and locks it for publications", async () => {
     const React = await import("react");
-    const { render, screen } = await import("@testing-library/react");
+    const { render, screen, fireEvent } = await import("@testing-library/react");
     const { ActionEditorKancelariaCard } = await import("./ActionEditorKancelariaCard");
-
-    // Case 1: Regular action (isPublication = false)
     const onJrwaSignChange = vi.fn();
     const onGenerateJrwaSign = vi.fn();
-
-    const { unmount } = render(
-      React.createElement(ActionEditorKancelariaCard, {
-        date: "2026-09-03",
+    const card = (props: { jrwaSign?: string; izrzSign?: string; ezdStatus: string; isPublication?: boolean; isDistribution?: boolean }) =>
+      render(React.createElement(ActionEditorKancelariaCard, {
         selectedJrwaSymbol: "966.1",
-        jrwaSign: "OZiPZ.966.1.1.2026",
-        izrzSign: "1/2026",
-        ezdStatus: "w_ezd",
-        isPublication: false,
-        onDateChange: vi.fn(),
-        onJrwaSignChange: onJrwaSignChange,
-        onGenerateJrwaSign: onGenerateJrwaSign,
+        onJrwaSignChange,
+        onGenerateJrwaSign,
         onIzrzSignChange: vi.fn(),
         onEzdStatusChange: vi.fn(),
-      })
-    );
+        ...props,
+      }));
 
-    expect(screen.getByText("Dane kancelaryjne")).toBeDefined();
-    expect(screen.getByDisplayValue("OZiPZ.966.1.1.2026")).toBeDefined();
-    expect(screen.getByText("Auto-Generuj")).toBeDefined();
+    // Zwykłe działanie: znak edytowalny, przycisk nadania kolejnego znaku i teczka JRWA
+    const { unmount } = card({ jrwaSign: "OZiPZ.966.1.1.2026", izrzSign: "1/2026", ezdStatus: "w_ezd" });
+    expect(screen.getByLabelText("Znak sprawy JRWA")).toHaveProperty("value", "OZiPZ.966.1.1.2026");
     expect(screen.getByText("JRWA 966.1")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: /Nadaj kolejny znak/ }));
+    expect(onGenerateJrwaSign).toHaveBeenCalledOnce();
+    expect(screen.getByLabelText("Status w EZD").textContent).toContain("w EZD (zarejestrowane)");
     unmount();
 
-    // Case 2: Publication action (isPublication = true)
-    const { unmount: unmount2 } = render(
-      React.createElement(ActionEditorKancelariaCard, {
-        date: "2026-09-03",
-        selectedJrwaSymbol: "966.1",
-        jrwaSign: "",
-        izrzSign: "",
-        ezdStatus: "nie_dotyczy",
-        isPublication: true,
-        onDateChange: vi.fn(),
-        onJrwaSignChange: onJrwaSignChange,
-        onGenerateJrwaSign: onGenerateJrwaSign,
-        onIzrzSignChange: vi.fn(),
-        onEzdStatusChange: vi.fn(),
-      })
-    );
-
-    expect(screen.getByText("Publikacja media (EZD zablokowane)")).toBeDefined();
-    expect(screen.queryByText("Auto-Generuj")).toBeNull();
-    expect(screen.getByText("Nie dotyczy")).toBeDefined();
+    // Publikacja: pola kancelaryjne zablokowane
+    const { unmount: unmount2 } = card({ ezdStatus: "nie_dotyczy", isPublication: true });
+    expect(screen.getByText(/Publikacja w mediach nie jest rejestrowana w kancelarii/)).toBeDefined();
+    expect(screen.queryByRole("button", { name: /Nadaj kolejny znak/ })).toBeNull();
+    expect(screen.getByLabelText("Znak sprawy JRWA")).toHaveProperty("disabled", true);
+    expect(screen.getByLabelText("Status w EZD").textContent).toContain("Nie dotyczy");
     unmount2();
 
-    // Case 3: Standalone distribution action (isDistribution = true)
-    const { unmount: unmount3 } = render(
-      React.createElement(ActionEditorKancelariaCard, {
-        date: "2026-09-03",
-        selectedJrwaSymbol: "966.1",
-        jrwaSign: "",
-        izrzSign: "",
-        ezdStatus: "nie_dotyczy",
-        isPublication: false,
-        isDistribution: true,
-        onDateChange: vi.fn(),
-        onJrwaSignChange: onJrwaSignChange,
-        onGenerateJrwaSign: onGenerateJrwaSign,
-        onIzrzSignChange: vi.fn(),
-        onEzdStatusChange: vi.fn(),
-      })
-    );
-
-    expect(screen.getByText("Samoistna dystrybucja (EZD zablokowane)")).toBeDefined();
-    expect(screen.queryByText("Auto-Generuj")).toBeNull();
-    expect(screen.getByText("Nie dotyczy")).toBeDefined();
+    // Samodzielna dystrybucja: tak samo bez kancelarii
+    const { unmount: unmount3 } = card({ ezdStatus: "nie_dotyczy", isDistribution: true });
+    expect(screen.getByText(/Samodzielna dystrybucja materiałów nie jest rejestrowana/)).toBeDefined();
+    expect(screen.queryByRole("button", { name: /Nadaj kolejny znak/ })).toBeNull();
+    expect(screen.getByLabelText("Numer w IZRZ")).toHaveProperty("disabled", true);
     unmount3();
   });
 
@@ -433,8 +378,7 @@ describe("Action Editor - Card Components & Single JRWA Sign Placement", () => {
       })
     );
 
-    expect(screen.getByText("Nowe Działanie (Kopia)")).toBeDefined();
-    expect(screen.getByText("Kopia zadania")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Nowe działanie (kopia)" })).toBeDefined();
     expect(screen.getByText("Kopiuj zadanie")).toBeDefined();
 
     fireEvent.click(screen.getByText("Kopiuj zadanie"));

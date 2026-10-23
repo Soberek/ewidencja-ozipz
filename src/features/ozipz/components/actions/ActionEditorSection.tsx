@@ -33,6 +33,7 @@ export function ActionEditorSection(props: ActionEditorSectionProps) {
   const locationState = location.state as {
     duplicateFrom?: Partial<OzipzAction>;
     sourceActionId?: string;
+    templateId?: string;
   } | undefined;
 
   // Pobranie domyślnych danych ze store'a
@@ -145,6 +146,7 @@ export function ActionEditorSection(props: ActionEditorSectionProps) {
     onUpdate,
     onCancel,
     onAddFacility: props.onAddFacility ?? facilitiesStore.addFacility,
+    initialTemplateId: props.initialTemplateId ?? (id ? undefined : locationState?.templateId),
   };
 
   const state = useActionEditorState(resolvedProps);
@@ -228,6 +230,7 @@ export function ActionEditorSection(props: ActionEditorSectionProps) {
         editingAction={editingAction}
         onCancel={requestCancel}
         missingFields={state.missingFields}
+        warnings={state.saveWarnings}
       />
       {confirmDialog}
     </form>

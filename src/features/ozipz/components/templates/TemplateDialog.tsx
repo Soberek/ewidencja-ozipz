@@ -1,287 +1,223 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { FileText } from "lucide-react";
 import { ModalDialog } from "@/components/ui/modal-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SearchableSelect, type SelectOption } from "@/components/ui/select";
-import {
-  FileText,
-  GraduationCap,
-  Folder,
-} from "lucide-react";
-import type {
-  OzipzTemplate,
-  OzipzDictionaryItem,
-  OzipzProgram,
-} from "../../types/ozipz.types";
-import { TemplateSchema } from "../../schemas/ozipz.schemas";
-import { useOzipzDbStore, useDictionaries } from "../../store/useOzipzDbStore";
-import { z } from "zod";
+import { Select } from "@/components/ui/select";
+import { Autocomplete } from "@/components/ui/autocomplete";
 import { EMPTY_LIST } from "@/lib/utils";
+import type { OzipzDictionaryItem, OzipzMaterial, OzipzProgram, OzipzStaff, OzipzTemplate } from "../../types/ozipz.types";
+import { useOzipzDbStore, useDictionaries } from "../../store/useOzipzDbStore";
+import { buildClassificationOptions, classificationValue, getAllJrwaSymbols } from "../../utils/programJrwaUtils";
+import { buildTemplatePayload, resolveTemplateContent, type TemplateAudienceGroup, type TemplatePayload } from "../../utils/templateUtils";
+import { findCampaign } from "../actions/editor/actionEditorSubmitUtils";
+import { FIELD_LABEL } from "../actions/editor/formStyles";
+import { TemplateAudienceEditor, TemplateMaterialsEditor } from "./components/TemplateContentEditors";
 
-export const TemplateFormSchema = TemplateSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
-  title: z.string().trim().min(1, "Wpisz nazwę szablonu."),
+export const TemplateFormSchema = z.object({
+  name: z.string().trim().min(1, "Wpisz nazwę szablonu."),
   actionType: z.string().trim().min(1, "Wybierz formę działania."),
-  defaultAudience: z.string().trim(),
-  descriptionTemplate: z.string().trim(),
-}).refine((data) => Boolean(data.descriptionTemplate || data.actionDefaults), {
-  path: ["descriptionTemplate"],
-  message: "Wpisz opis zadania.",
+  classification: z.string(),
+  title: z.string(),
+  campaignId: z.string(),
+  leadEducator: z.string(),
+  numberOfActions: z.number({ error: "Podaj liczbę działań." }).int().min(1, "Liczba działań to co najmniej 1.").max(999),
+  description: z.string(),
 });
 
-type TemplateFormInput = z.input<typeof TemplateFormSchema>;
-type TemplateFormOutput = z.output<typeof TemplateFormSchema>;
+type TemplateFormValues = z.infer<typeof TemplateFormSchema>;
+
+const EMPTY_VALUES: TemplateFormValues = {
+  name: "", actionType: "", classification: "", title: "", campaignId: "", leadEducator: "", numberOfActions: 1, description: "",
+};
+const EMPTY_AUDIENCE: TemplateAudienceGroup[] = [{ name: "", items: [{ name: "", ageFrom: null, ageTo: null }] }];
 
 interface TemplateDialogProps {
   isOpen: boolean;
   onClose: () => void;
   editingTemplate?: OzipzTemplate | null;
   actionTypes?: OzipzDictionaryItem[];
-  topics?: OzipzDictionaryItem[];
   programs?: OzipzProgram[];
   jrwaSymbols?: OzipzDictionaryItem[];
-  onSave: (data: Omit<OzipzTemplate, "id" | "createdAt" | "updatedAt">) => unknown | Promise<unknown>;
+  materials?: OzipzMaterial[];
+  staff?: OzipzStaff[];
+  templates?: OzipzTemplate[];
+  onSave: (data: TemplatePayload) => unknown | Promise<unknown>;
   onUpdate: (id: string, data: Partial<OzipzTemplate>) => unknown | Promise<unknown>;
 }
 
+/**
+ * Szablon zadania: to samo, co wypełnia formularz działania — forma, program lub JRWA, tytuł, kampania, prowadzący,
+ * liczba działań, grupy odbiorców, materiały i opis. Daty, miejsca, liczb osób i sztuk ani znaków spraw szablon nie ma.
+ */
 export function TemplateDialog({
   isOpen,
   onClose,
   editingTemplate = null,
   actionTypes: propActionTypes,
-  topics: propTopics,
   programs: propPrograms,
   jrwaSymbols: propJrwaSymbols,
+  materials: propMaterials,
+  staff: propStaff,
+  templates: propTemplates,
   onSave,
   onUpdate,
 }: TemplateDialogProps) {
   const dbPrograms = useOzipzDbStore((s) => s.programs);
+  const dbMaterials = useOzipzDbStore((s) => s.materials);
+  const dbStaff = useOzipzDbStore((s) => s.staff);
+  const dbTemplates = useOzipzDbStore((s) => s.templates);
   const dictStore = useDictionaries();
   const programs = propPrograms || dbPrograms || EMPTY_LIST;
+  const materials = propMaterials || dbMaterials || EMPTY_LIST;
+  const staff = propStaff || dbStaff || EMPTY_LIST;
+  const templates = propTemplates || dbTemplates || EMPTY_LIST;
+  const actionTypes = propActionTypes || dictStore.activityTypes || EMPTY_LIST;
   const jrwaSymbols = propJrwaSymbols || dictStore.jrwaSymbols || EMPTY_LIST;
-  const actionTypes: OzipzDictionaryItem[] = propActionTypes || dictStore.activityTypes || EMPTY_LIST;
-  const topics = propTopics || dictStore.dictionaryItems.filter((item) => item.dictType === "topic" || item.dictType === "tematyki");
+  const campaigns = dictStore.dictionaryItems.filter((d) => d.dictType === "campaign");
+  const recipientSuggestions = dictStore.dictionaryItems.filter((d) => d.dictType === "recipientGroup").map((d) => d.label);
 
-  const topicOptions: SelectOption[] = useMemo(() => {
-    const list: SelectOption[] = topics.map((item) => ({
-      value: item.code,
-      label: item.label,
-      group: "Tematyka zdrowotna",
-    }));
+  const classificationOptions = buildClassificationOptions(programs, getAllJrwaSymbols(jrwaSymbols));
+  const actionTypeOptions = actionTypes.map((a) => ({ value: a.label, label: a.label }));
+  const campaignOptions = campaigns.map((c) => ({ value: c.code, label: c.label }));
 
-    programs.forEach((p) => {
-      list.push({
-        value: p.name,
-        label: p.name,
-        group: "Programy Profilaktyczne (Baza OZiPZ)",
-        description: `Edycja: ${p.editionYear || "ciągła"}`,
-        icon: GraduationCap,
-        badge: p.jrwaSymbol ? `JRWA ${p.jrwaSymbol}` : undefined,
-        badgeVariant: "secondary",
-      });
-    });
+  const [audienceGroups, setAudienceGroups] = useState<TemplateAudienceGroup[]>(EMPTY_AUDIENCE);
+  const [materialIds, setMaterialIds] = useState<string[]>([]);
 
-    jrwaSymbols
-      .filter((j) => !programs.some((p) => (p.jrwaSymbol || "").trim() === j.code) && j.code !== "070" && j.code !== "9010")
-      .forEach((j) => {
-        const cleanLabel = j.label.startsWith(j.code) ? j.label.slice(j.code.length).replace(/^\s*[-–:]?\s*/, "") : j.label;
-        list.push({
-          value: `JRWA ${j.code} - ${cleanLabel}`,
-          label: `JRWA ${j.code} – ${cleanLabel}`,
-          group: "Pozostałe Symbole JRWA (Działania poza programami)",
-          icon: Folder,
-          badge: `JRWA ${j.code}`,
-          badgeVariant: "outline",
-        });
-      });
+  const { register, handleSubmit, setValue, watch, reset, setError, formState: { errors, isSubmitting } } =
+    useForm<TemplateFormValues>({ resolver: zodResolver(TemplateFormSchema), defaultValues: EMPTY_VALUES });
 
-    return list;
-  }, [topics, programs, jrwaSymbols]);
-
-  const actionTypeOptions: SelectOption[] = useMemo(() => {
-    return actionTypes.map((a) => ({
-      value: a.label,
-      label: a.label,
-    }));
-  }, [actionTypes]);
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    setError,
-    formState: { errors, isSubmitting },
-  } = useForm<TemplateFormInput, undefined, TemplateFormOutput>({
-    resolver: zodResolver(TemplateFormSchema),
-    defaultValues: {
-      title: "",
-      topic: "",
-      actionType: "",
-      descriptionTemplate: "",
-      defaultAudience: "",
-      suggestedMaterials: "",
-      actionDefaults: undefined,
-    },
-  });
-
-  const selectedTopic = watch("topic");
-  const selectedActionType = watch("actionType");
-
+  // Katalogi czytamy przy otwarciu okna; ich odświeżenie w tle nie może nadpisać wpisywanych zmian.
+  const lookupsRef = useRef({ programs, campaigns, actionTypes });
+  lookupsRef.current = { programs, campaigns, actionTypes };
   useEffect(() => {
-    if (editingTemplate) {
-      reset({
-        title: editingTemplate.title || "",
-        topic: editingTemplate.topic || "",
-        actionType: editingTemplate.actionType || "",
-        descriptionTemplate: editingTemplate.descriptionTemplate || "",
-        defaultAudience: editingTemplate.defaultAudience || "",
-        suggestedMaterials: editingTemplate.suggestedMaterials || "",
-        actionDefaults: editingTemplate.actionDefaults,
-      });
-    } else {
-      reset({
-        title: "",
-        topic: "",
-        actionType: "",
-        descriptionTemplate: "",
-        defaultAudience: "",
-        suggestedMaterials: "",
-        actionDefaults: undefined,
-      });
+    if (!isOpen) return;
+    if (!editingTemplate) {
+      reset(EMPTY_VALUES);
+      setAudienceGroups(EMPTY_AUDIENCE);
+      setMaterialIds([]);
+      return;
     }
+    const { programs: currentPrograms, campaigns: currentCampaigns, actionTypes: currentTypes } = lookupsRef.current;
+    const content = resolveTemplateContent(editingTemplate, currentPrograms);
+    const type = currentTypes.find((a) => a.code === content.actionType || a.label === content.actionType);
+    reset({
+      name: content.name,
+      actionType: type?.label || content.actionType,
+      classification: classificationValue(content.programId, content.jrwaSymbol),
+      title: content.title,
+      campaignId: findCampaign(currentCampaigns, content.campaignId)?.code || content.campaignId,
+      leadEducator: content.leadEducator,
+      numberOfActions: content.numberOfActions,
+      description: content.description,
+    });
+    setAudienceGroups(content.audienceGroups.length ? content.audienceGroups : EMPTY_AUDIENCE);
+    setMaterialIds(content.materialIds);
   }, [editingTemplate, isOpen, reset]);
 
-  const onSubmit = async (data: TemplateFormOutput) => {
-    const payload: Omit<OzipzTemplate, "id" | "createdAt" | "updatedAt"> = {
-      title: data.title.trim(),
-      topic: data.topic?.trim() || "",
-      actionType: data.actionType,
-      descriptionTemplate: data.descriptionTemplate?.trim() || "",
-      defaultAudience: data.defaultAudience,
-      suggestedMaterials: data.suggestedMaterials?.trim() || undefined,
-    };
+  const values = watch();
+  // Wartość spoza list (np. forma lub kampania usunięta ze słownika) pokazujemy, zamiast jej po cichu kasować.
+  const withCurrent = (options: { value: string; label: string }[], value: string) =>
+    value && !options.some((o) => o.value === value) ? [{ value, label: value }, ...options] : options;
 
+  const onSubmit = async (data: TemplateFormValues) => {
+    const name = data.name.trim();
+    if (templates.some((t) => t.id !== editingTemplate?.id && t.title.trim().toLocaleLowerCase("pl") === name.toLocaleLowerCase("pl"))) {
+      setError("name", { message: "Szablon o tej nazwie już istnieje. Podaj inną nazwę." });
+      return;
+    }
+    const [kind, ref = ""] = data.classification.split(/:(.*)/s);
+    const payload = buildTemplatePayload({
+      name,
+      actionType: data.actionType,
+      title: data.title,
+      programId: kind === "prog" ? ref : "",
+      jrwaSymbol: kind === "jrwa" ? ref : "",
+      campaignId: data.campaignId,
+      leadEducator: data.leadEducator,
+      numberOfActions: data.numberOfActions,
+      audienceGroups,
+      materialIds,
+      description: data.description,
+    });
     try {
-      if (editingTemplate) {
-        await onUpdate(editingTemplate.id, payload);
-      } else {
-        await onSave(payload);
-      }
+      if (editingTemplate) await onUpdate(editingTemplate.id, payload);
+      else await onSave(payload);
       onClose();
     } catch (error) {
       setError("root", { message: error instanceof Error ? error.message : "Nie udało się zapisać szablonu." });
     }
   };
 
-  const errorMessage = Object.values(errors)
-    .map((e) => e?.message)
-    .filter(Boolean)
-    .join(" ");
+  const errorMessage = Object.values(errors).map((e) => e?.message).filter(Boolean).join(" ");
+  const legacyMaterials = editingTemplate?.suggestedMaterials?.trim();
 
   return (
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
-      size="lg"
+      size="xl"
       headerAccent="primary"
       icon={<FileText className="size-5" />}
-      title={editingTemplate ? "Edytuj szablon zadania" : "Nowy szablon zadania"}
-      description="Zapisz opis i ustawienia, które chcesz wykorzystać ponownie."
+      title={editingTemplate ? "Edytuj szablon" : "Nowy szablon"}
+      description="To, co się powtarza. Datę, miejsce, liczby osób i sztuk oraz znaki spraw uzupełnisz przy każdym działaniu."
       error={errorMessage || null}
       onSubmit={handleSubmit(onSubmit)}
       isSubmitting={isSubmitting}
       submitText={editingTemplate ? "Zapisz zmiany" : "Utwórz szablon"}
     >
       <div className="space-y-4">
-        <div className="space-y-1">
-          <label htmlFor="template-title" className="block text-xs font-semibold text-foreground">
-            Nazwa szablonu <span className="text-destructive">*</span>
-          </label>
-          <Input
-            id="template-title"
-            placeholder="Np. Warsztaty profilaktyki dla uczniów"
-            {...register("title")}
-            aria-invalid={Boolean(errors.title)}
-            autoFocus
-          />
-          {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
+        <div>
+          <label htmlFor="template-name" className={FIELD_LABEL}>Nazwa szablonu <span className="text-destructive">*</span></label>
+          <Input id="template-name" placeholder="Np. Prelekcja — jesień bez infekcji, 4 grupy" {...register("name")}
+            aria-invalid={Boolean(errors.name)} autoFocus />
+          {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>}
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <SearchableSelect
-              id="template-topic"
-              label="Program, tematyka lub JRWA"
-              value={selectedTopic || ""}
-              onChange={(val) => setValue("topic", val, { shouldValidate: true })}
-              options={selectedTopic && !topicOptions.some((option) => option.value === selectedTopic)
-                ? [{ value: selectedTopic, label: selectedTopic }, ...topicOptions] : topicOptions}
-              placeholder="Wybierz powiązanie (opcjonalnie)"
-              searchPlaceholder="Szukaj programu, tematyki lub JRWA..."
-              error={errors.topic?.message as string}
-              clearable
-            />
+        <section className="space-y-3" aria-label="Działanie">
+          <h3 className="text-sm font-semibold">Działanie</h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Select id="template-action-type" label="Forma działania" required value={values.actionType}
+              options={withCurrent(actionTypeOptions, values.actionType)} placeholder="Wybierz formę działania"
+              onChange={(v) => setValue("actionType", v, { shouldValidate: true })} error={errors.actionType?.message} />
+            <Select id="template-classification" label="Program lub klasyfikacja" value={values.classification}
+              options={classificationOptions} clearable placeholder="Wybierz, jeśli dotyczy" dropdownClassName="sm:min-w-[26rem]"
+              onChange={(v) => setValue("classification", v)} />
+            <Select id="template-campaign" label="Kampania / akcja" value={values.campaignId}
+              options={withCurrent(campaignOptions, values.campaignId)} clearable placeholder="Wybierz, jeśli dotyczy"
+              onChange={(v) => setValue("campaignId", v)} />
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label htmlFor="template-title" className={FIELD_LABEL}>Tytuł działania</label>
+              <Input id="template-title" {...register("title")}
+                placeholder="Puste: tytułem będzie nazwa programu, a bez programu — nazwa szablonu" />
+            </div>
+            <Autocomplete label="Osoba prowadząca" value={values.leadEducator} options={staff.map((p) => p.fullName)}
+              onChange={(v) => setValue("leadEducator", v)} placeholder="Wybierz lub wpisz osobę" />
+            <div>
+              <label htmlFor="template-count" className={FIELD_LABEL}>Liczba działań [DZ]</label>
+              <Input id="template-count" type="number" min={1} max={999} className="max-w-32"
+                {...register("numberOfActions", { valueAsNumber: true })} aria-invalid={Boolean(errors.numberOfActions)} />
+            </div>
           </div>
+        </section>
 
-          <div>
-            <Select
-              id="template-action-type"
-              label="Forma działania"
-              required
-              value={selectedActionType || ""}
-              onChange={(val) => setValue("actionType", val, { shouldValidate: true })}
-              options={selectedActionType && !actionTypeOptions.some((option) => option.value === selectedActionType)
-                ? [{ value: selectedActionType, label: selectedActionType }, ...actionTypeOptions] : actionTypeOptions}
-              placeholder="Wybierz formę działania"
-              searchPlaceholder="Szukaj formy..."
-              error={errors.actionType?.message as string}
-            />
-          </div>
+        <section className="space-y-2 border-t border-border pt-3" aria-label="Odbiorcy">
+          <h3 className="text-sm font-semibold">Odbiorcy <span className="font-normal text-muted-foreground">— bez liczby osób</span></h3>
+          <TemplateAudienceEditor groups={audienceGroups} onChange={setAudienceGroups} suggestions={recipientSuggestions} />
+        </section>
 
-          <div className="space-y-1">
-            <label htmlFor="template-audience" className="block text-xs font-semibold text-foreground">
-              Grupy odbiorców
-            </label>
-            <Textarea
-              id="template-audience"
-              {...register("defaultAudience")}
-              rows={3}
-              placeholder="Np. uczniowie; rodzice"
-              aria-invalid={Boolean(errors.defaultAudience)}
-            />
-            {errors.defaultAudience && <p className="text-xs text-destructive">{errors.defaultAudience.message}</p>}
-            <p className="text-[11px] text-muted-foreground">Kilka grup oddziel średnikiem.</p>
-          </div>
-        </div>
+        <section className="space-y-2 border-t border-border pt-3" aria-label="Materiały">
+          <h3 className="text-sm font-semibold">Materiały <span className="font-normal text-muted-foreground">— bez liczby sztuk</span></h3>
+          <TemplateMaterialsEditor materialIds={materialIds} onChange={setMaterialIds} materials={materials} />
+          {legacyMaterials && <p className="text-xs text-muted-foreground">Ze starszej wersji szablonu: „{legacyMaterials}”. Wybierz te materiały z katalogu.</p>}
+        </section>
 
-        <div className="space-y-1">
-          <label htmlFor="template-description" className="block text-xs font-semibold text-foreground">
-            Opis zadania {!editingTemplate?.actionDefaults && <span className="text-destructive">*</span>}
-          </label>
-          <Textarea
-            id="template-description"
-            {...register("descriptionTemplate")}
-            rows={6}
-            placeholder="Wpisz wzorcowy opis przebiegu zadania..."
-            aria-invalid={Boolean(errors.descriptionTemplate)}
-          />
-          {errors.descriptionTemplate && <p className="text-xs text-destructive">{errors.descriptionTemplate.message}</p>}
-        </div>
-
-        <div className="space-y-1">
-          <label htmlFor="template-materials" className="block text-xs font-semibold text-foreground">Sugerowane materiały</label>
-          <Input
-            id="template-materials"
-            {...register("suggestedMaterials")}
-            placeholder="Np. ulotki, broszury lub plakaty"
-          />
+        <div className="border-t border-border pt-3">
+          <label htmlFor="template-description" className={FIELD_LABEL}>Opis czynności</label>
+          <Textarea id="template-description" rows={4} {...register("description")} placeholder="Przebieg działania, który chcesz powtarzać" />
         </div>
       </div>
     </ModalDialog>

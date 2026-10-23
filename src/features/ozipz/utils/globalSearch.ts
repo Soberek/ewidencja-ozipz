@@ -5,6 +5,7 @@ import type {
 import type { ModalPayloadMap, ModalType } from "../store/useModalStore";
 import { normalizeNavQuery } from "../components/layout/navigation";
 import { formatDatePl } from "./dateUtils";
+import { describeTemplateContent, resolveTemplateContent } from "./templateUtils";
 
 export interface SearchSources {
   actions: OzipzAction[];
@@ -116,11 +117,15 @@ export function buildSearchIndex(sources: SearchSources): SearchEntry[] {
       subtitle: joinParts(item.documentType, formatDatePl(item.scanDate), item.fileName),
       path: `/skany?skan=${encodeURIComponent(item.id)}`,
     }, item.facilityName, item.programName, item.notes)),
-    ...sources.templates.map((item) => entry({
-      key: `template-${item.id}`, group: "Szablony zadań", title: item.title,
-      subtitle: joinParts(item.actionType, item.topic),
-      path: "/opisy-zadan", modal: { type: "template", payload: { item } },
-    }, item.descriptionTemplate, item.defaultAudience, item.suggestedMaterials)),
+    ...sources.templates.map((item) => {
+      const content = resolveTemplateContent(item, sources.programs);
+      const summary = describeTemplateContent(content, { programs: sources.programs, materials: sources.materials });
+      return entry({
+        key: `template-${item.id}`, group: "Szablony zadań", title: item.title,
+        subtitle: joinParts(item.actionType, summary.programName || summary.classification),
+        path: "/opisy-zadan", modal: { type: "template", payload: { item } },
+      }, content.description, content.title, summary.audience, summary.materials, item.suggestedMaterials);
+    }),
   ];
 }
 

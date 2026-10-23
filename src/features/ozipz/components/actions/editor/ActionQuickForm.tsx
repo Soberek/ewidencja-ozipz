@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
@@ -10,13 +11,13 @@ import { ActionQuickStart } from "./ActionQuickStart";
 import { ActionQuickAudience } from "./ActionQuickAudience";
 import { ActionQuickMaterials } from "./ActionQuickMaterials";
 import { ActionQuickFacilityAdd } from "./ActionQuickFacilityAdd";
-import { getProgramJrwaSymbol } from "../../../utils/programJrwaUtils";
+import { buildClassificationOptions, classificationValue } from "../../../utils/programJrwaUtils";
 import type { ActionEditorSectionProps, ActionFormInput } from "./editor.types";
 import type { useActionEditorState } from "./useActionEditorState";
 import { DEFAULT_EZD_STATUS, findCampaign } from "./actionEditorSubmitUtils";
 import { EZD_STATUS_LABELS } from "../actionEzdStatus";
 import type { ActionDraft } from "./actionDraft";
-import { FIELD_INPUT, FIELD_LABEL } from "./formStyles";
+import { FIELD_INPUT, FIELD_LABEL, SECTION_HEADING } from "./formStyles";
 import { municipalityName } from "../../../utils/facilityUtils";
 import type { OzipzFacility } from "../../../types/ozipz.types";
 
@@ -38,9 +39,10 @@ function Disclosure({ title, summary, reveal = false, children }: {
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
   useEffect(() => { if (reveal && ref.current) ref.current.open = true; }, [reveal]);
-  return <details ref={ref} className="rounded-md border border-border p-3">
-    <summary className="cursor-pointer text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
-      {title}{summary && <> <span className="ml-2 font-normal text-muted-foreground break-words">{summary}</span></>}
+  return <details ref={ref} className="group rounded-md border border-border p-3">
+    <summary className="flex cursor-pointer list-none items-baseline gap-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
+      <ChevronRight aria-hidden className="size-4 shrink-0 self-center text-muted-foreground transition-transform group-open:rotate-90" />
+      {title}{summary && <span className="min-w-0 font-normal text-muted-foreground break-words">{summary}</span>}
     </summary>
     <div className="pt-3">{children}</div>
   </details>;
@@ -74,11 +76,7 @@ export function ActionQuickForm({ state: s, data }: {
   const field = (key: keyof ActionFormInput, children: ReactNode) => <div data-field-error={Boolean(errors[key])}>
     {children}{errors[key]?.message && <p role="alert" className="mt-1 text-sm text-destructive">{String(errors[key]?.message)}</p>}
   </div>;
-  const programOptions = [
-    ...programs.map((p) => ({ value: `prog:${p.id}`, label: p.name, group: "Programy" })),
-    ...s.jrwaSymbolsList.filter((j) => !programs.some((p) => getProgramJrwaSymbol(p) === j.symbol))
-      .map((j) => ({ value: `jrwa:${j.symbol}`, label: `${j.symbol} — ${j.label}`, group: "Klasyfikacja" })),
-  ];
+  const programOptions = buildClassificationOptions(programs, s.jrwaSymbolsList);
   const officeSummary = s.isNoJrwa ? "Nie dotyczy" : [s.jrwaSign, s.izrzSign && `IZRZ: ${s.izrzSign}`,
     EZD_STATUS_LABELS[s.ezdStatus || DEFAULT_EZD_STATUS] || s.ezdStatus].filter(Boolean).join(" · ");
   const materialsSummary = [Number(s.materialsDistributedCount) > 0 && `MAT: ${s.materialsDistributedCount} szt.`,
@@ -99,56 +97,60 @@ export function ActionQuickForm({ state: s, data }: {
     <ActionQuickStart state={s} data={data} />
     <p className="text-sm text-muted-foreground">Uzupełnij podstawowe dane. Pola oznaczone * są wymagane.</p>
     <section className="space-y-3" aria-label="Działanie">
-      <h2 className="font-semibold">Działanie</h2>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2 lg:grid-cols-3">
-          {field("actionType", <Select label="Forma działania *" value={s.actionType}
-            options={s.activityTypeDict.map((d) => ({ value: d.label, label: d.label }))}
-            onChange={(v) => s.setValue("actionType", v)} placeholder="Wybierz formę działania" autoFocus />)}
-          <Select label="Program lub klasyfikacja" value={s.programId ? `prog:${s.programId}` : s.selectedJrwaSymbol ? `jrwa:${s.selectedJrwaSymbol}` : ""}
-            options={programOptions} onChange={s.handleProgramOrJrwaSelect} clearable placeholder="Wybierz, jeśli dotyczy" />
-          <div className="sm:col-span-2 lg:col-span-1">
-            <Select label="Kampania / akcja" value={campaign?.code || s.campaignId}
-              options={s.campaignDict.map((c) => ({ value: c.code, label: c.label }))}
-              onChange={(v) => s.setValue("campaignId", v)} clearable placeholder="Wybierz, jeśli dotyczy" />
-          </div>
+      <h2 className={SECTION_HEADING}>Działanie</h2>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {field("actionType", <Select label="Forma działania *" value={s.actionType}
+          options={s.activityTypeDict.map((d) => ({ value: d.label, label: d.label }))} triggerClassName={FIELD_INPUT}
+          onChange={(v) => s.setValue("actionType", v)} placeholder="Wybierz formę działania" autoFocus />)}
+        <Select label="Program lub klasyfikacja" value={classificationValue(s.programId, s.selectedJrwaSymbol)}
+          options={programOptions} onChange={s.handleProgramOrJrwaSelect} clearable placeholder="Wybierz, jeśli dotyczy"
+          triggerClassName={FIELD_INPUT} dropdownClassName="sm:min-w-[26rem]" />
+        <div className="sm:col-span-2 lg:col-span-1">
+          <Select label="Kampania / akcja" value={campaign?.code || s.campaignId}
+            options={s.campaignDict.map((c) => ({ value: c.code, label: c.label }))} triggerClassName={FIELD_INPUT}
+            onChange={(v) => s.setValue("campaignId", v)} clearable placeholder="Wybierz, jeśli dotyczy" />
         </div>
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-2 lg:col-span-3">
           {field("title", <><label htmlFor="action-title" className={FIELD_LABEL}>Tytuł działania *</label>
             <Input id="action-title" className={FIELD_INPUT} value={s.title} placeholder="Czego dotyczyło działanie?" onChange={(e) => {
               s.setValue("title", e.target.value); if (!s.programId) s.setValue("programName", e.target.value);
             }} /></>)}
         </div>
+      </div>
+      {/* Data i krotność to krótkie wartości — wąskie pola zamiast połowy szerokości formularza. */}
+      <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
         {field("date", <><label htmlFor="action-date" className={FIELD_LABEL}>Data realizacji *</label>
-          <div className="flex flex-wrap items-center gap-2"><DatePicker id="action-date" value={s.date} onChange={s.handleDateChange} size="md" className="min-w-40 w-auto flex-1" showShortcuts={false} />
-            <div className="flex shrink-0 gap-1">
-              <Button type="button" variant="ghost" size="sm" onClick={() => s.setQuickDate("today")}>Dziś</Button>
-              <Button type="button" variant="ghost" size="sm" onClick={() => s.setQuickDate("yesterday")}>Wczoraj</Button>
-            </div>
+          <div className="flex flex-wrap items-center gap-1"><DatePicker id="action-date" value={s.date} onChange={s.handleDateChange} size="md" className="w-48" showShortcuts={false} />
+            <Button type="button" variant="ghost" size="sm" onClick={() => s.setQuickDate("today")}>Dziś</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => s.setQuickDate("yesterday")}>Wczoraj</Button>
           </div></>)}
-        {field("numberOfActions", <><label htmlFor="action-count" className={FIELD_LABEL}>Liczba działań [DZ] *</label>
-          <Input id="action-count" className={FIELD_INPUT} type="number" min={1} max={999} value={s.numberOfActions || 1}
-            onChange={(e) => {
-              const val = parseInt(e.target.value, 10);
-              s.setValue("numberOfActions", isNaN(val) ? 1 : Math.max(1, val));
-            }} placeholder="1" title="Krotność zrealizowanych działań (np. 1 prelekcja, 3 warsztaty)" /></>)}
+        <div className="w-36">
+          {field("numberOfActions", <><label htmlFor="action-count" className={FIELD_LABEL}>Liczba działań [DZ] *</label>
+            <Input id="action-count" className={FIELD_INPUT} type="number" min={1} max={999} value={s.numberOfActions || 1}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                s.setValue("numberOfActions", isNaN(val) ? 1 : Math.max(1, val));
+              }} placeholder="1" title="Krotność zrealizowanych działań (np. 1 prelekcja, 3 warsztaty)" /></>)}
+        </div>
       </div>
     </section>
     <section className="space-y-3 border-t border-border pt-4" aria-label="Miejsce i prowadzący">
-      <h2 className="font-semibold">Miejsce i prowadzący</h2>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {field("facilityName", <><Autocomplete label="Placówka lub miejsce *" value={s.facilityName}
-          options={facilities.map((f) => ({ value: f.id, label: f.name, description: [f.address, f.city, f.municipality].filter(Boolean).join(", ") }))}
-          onChange={s.handleFacilityNameInput} onSelectOption={(option) => {
-            const f = facilities.find((item) => item.id === option.value);
-            if (f) selectFacility(f);
-          }} placeholder="Wyszukaj lub wpisz miejsce" />
-          {facilityHint && <p className={`mt-1 text-xs ${s.facilityId ? "text-muted-foreground" : "text-amber-700 dark:text-amber-300"}`}>{facilityHint}</p>}
-          {data.onAddFacility && <ActionQuickFacilityAdd name={s.facilityId ? "" : s.facilityName} municipality={s.municipality}
-            facilities={facilities} municipalities={data.municipalities ?? []} dictionaryItems={dictionaries} onAddFacility={data.onAddFacility}
-            onCreated={selectFacility} />}</>)}
+      <h2 className={SECTION_HEADING}>Miejsce i prowadzący</h2>
+      <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="sm:col-span-2 xl:col-span-1">
+          {field("facilityName", <><Autocomplete label="Placówka lub miejsce *" value={s.facilityName}
+            options={facilities.map((f) => ({ value: f.id, label: f.name, description: [f.address, f.city, f.municipality].filter(Boolean).join(", ") }))}
+            onChange={s.handleFacilityNameInput} onSelectOption={(option) => {
+              const f = facilities.find((item) => item.id === option.value);
+              if (f) selectFacility(f);
+            }} placeholder="Wyszukaj lub wpisz miejsce" />
+            {facilityHint && <p className={`mt-1 text-xs ${s.facilityId ? "text-muted-foreground" : "text-amber-700 dark:text-amber-300"}`}>{facilityHint}</p>}
+            {data.onAddFacility && <ActionQuickFacilityAdd name={s.facilityId ? "" : s.facilityName} municipality={s.municipality}
+              facilities={facilities} municipalities={data.municipalities ?? []} dictionaryItems={dictionaries} onAddFacility={data.onAddFacility}
+              onCreated={selectFacility} />}</>)}
+        </div>
         {field("municipality", <Select label="Gmina *" value={municipalityName(s.municipality)} options={municipalityOptions}
-          onChange={(v) => s.setValue("municipality", v)} placeholder="Wybierz gminę" />)}
+          onChange={(v) => s.setValue("municipality", v)} placeholder="Wybierz gminę" triggerClassName={FIELD_INPUT} />)}
         {field("leadEducator", <Autocomplete label="Osoba prowadząca *" value={s.leadEducator}
           options={(data.staff ?? []).map((p) => p.fullName)} onChange={(v) => s.setValue("leadEducator", v)} placeholder="Wybierz lub wpisz osobę" />)}
       </div>
@@ -158,9 +160,9 @@ export function ActionQuickForm({ state: s, data }: {
     </div>
     <div className="space-y-2">
       <Disclosure title="Kancelaria" summary={officeSummary}>
-        <ActionEditorKancelariaCard showDate={false} selectedJrwaSymbol={s.selectedJrwaSymbol}
+        <ActionEditorKancelariaCard selectedJrwaSymbol={s.selectedJrwaSymbol}
           jrwaSign={s.jrwaSign} izrzSign={s.izrzSign} ezdStatus={s.ezdStatus || DEFAULT_EZD_STATUS}
-          isPublication={s.isPublication} isDistribution={s.isDistribution} onDateChange={s.handleDateChange}
+          isPublication={s.isPublication} isDistribution={s.isDistribution}
           onJrwaSignChange={s.handleJrwaSignChange} onIzrzSignChange={(v) => s.setValue("izrzSign", v)}
           onEzdStatusChange={(v) => s.setValue("ezdStatus", v)} onGenerateJrwaSign={s.handleGenerateJrwaSign} />
       </Disclosure>

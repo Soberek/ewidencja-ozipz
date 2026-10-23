@@ -54,10 +54,26 @@ export const StaffSchema = z.object({
 });
 
 // 13. Szablony Zadań i Opisy Merytoryczne
+export const TemplateAudienceGroupSchema = z.object({
+  name: z.string(),
+  items: z.array(z.object({
+    name: z.string(),
+    ageFrom: z.number().int().nullable().optional(),
+    ageTo: z.number().int().nullable().optional(),
+  })),
+});
+
 export const ActionTemplateDefaultsSchema = z.object({
   title: z.string(),
   leadEducator: z.string(),
   campaignId: z.string(),
+  // Pola poniżej zapisuje pełny szablon; starsze szablony ich nie mają (zob. resolveTemplateContent).
+  // Program i materiały po identyfikatorach — zmiana nazwy w katalogu nie psuje szablonu.
+  programId: z.string().optional(),
+  jrwaSymbol: z.string().optional(),
+  numberOfActions: z.number().int().min(1).optional(),
+  audienceGroups: z.array(TemplateAudienceGroupSchema).optional(),
+  materialIds: z.array(z.string()).optional(),
 });
 
 export const TemplateSchema = z.object({

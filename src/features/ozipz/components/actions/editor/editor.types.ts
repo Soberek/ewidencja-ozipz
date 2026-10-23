@@ -8,7 +8,6 @@ import type {
   OzipzJrwaCase,
   OzipzStaff,
   OzipzTemplate,
-  OzipzHealthTopic,
 } from "../../../types/ozipz.types";
 import { ActionSchema } from "../../../schemas/ozipz.schemas";
 import { z } from "zod";
@@ -53,25 +52,6 @@ export interface ActionEditorDraft extends Partial<OzipzAction> {
   materialItems?: ActionDistributedMaterialItem[];
 }
 
-export interface ActionCardPreset {
-  id: string;
-  badge: string;
-  title: string;
-  subtitle: string;
-  actionType: string;
-  titlePrefix?: string;
-  topic?: OzipzHealthTopic;
-  jrwaSymbol: string;
-  facilityType?: string;
-  audienceGroups: AudienceGroupBlock[];
-  materialsDistributedCount?: number;
-  materialItems?: ActionDistributedMaterialItem[];
-  programKeyword?: string;
-  campaignKeyword?: string;
-  notesTemplate?: string;
-  activitiesTemplate?: string;
-}
-
 export interface ActionEditorSectionProps {
   editingAction?: Partial<OzipzAction> | null;
   actions?: OzipzAction[];
@@ -89,6 +69,8 @@ export interface ActionEditorSectionProps {
   closedReason?: string;
   /** Autozapis szkicu nowego działania w przeglądarce (formularz otwarty bez danych startowych). */
   enableDraft?: boolean;
+  /** Szablon wczytywany od razu po otwarciu formularza nowego działania. */
+  initialTemplateId?: string;
   onSave?: (
     data: Omit<OzipzAction, "id" | "createdAt" | "updatedAt">,
     autoCreateJrwa?: { section: string; jrwaSymbol: string; caseNumber: number; year: number; fullCaseSign: string },

@@ -2,9 +2,9 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import type { OzipzAction } from "../../../types/ozipz.types";
 import { EZD_STATUS_LABELS } from "../actionEzdStatus";
+import { formatDatePl } from "../../../utils/dateUtils";
 
 const SAVE_SHORTCUT = "⌘/Ctrl + Enter";
 
@@ -32,6 +32,8 @@ export interface ActionEditorFooterProps {
   isModal?: boolean;
   /** Wymagane pola, których jeszcze brakuje — podpowiedź przed zapisem. */
   missingFields?: string[];
+  /** Rzeczy do sprawdzenia, które nie blokują zapisu. */
+  warnings?: string[];
 }
 
 export function ActionEditorFooter({
@@ -55,50 +57,38 @@ export function ActionEditorFooter({
   onCancel,
   onSaveAndAddSimilar,
   missingFields,
+  warnings = [],
 }: ActionEditorFooterProps) {
+  const place = facilityName ? `${facilityName}${municipality ? ` (${municipality})` : ""}` : municipality;
+  // Program zwykle nadaje tytuł działania — nie powtarzamy go wtedy w podsumowaniu.
+  const details = [
+    date && formatDatePl(date, date),
+    actionType,
+    place,
+    programName !== title && programName,
+    leadEducator,
+    jrwaSign,
+    izrzSign && `IZRZ: ${izrzSign}`,
+    ezdStatus && (EZD_STATUS_LABELS[ezdStatus] || ezdStatus),
+  ].filter((part): part is string => Boolean(part));
+  const summary = [title, ...details].filter(Boolean).join(" · ");
+
   return (
     <footer className="sticky bottom-0 z-20 grid gap-2 border-t border-border bg-card/95 px-4 py-2.5 shadow-md backdrop-blur lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
       <div className="min-w-0 space-y-1 text-xs">
-      {/* Jedna linia metadanych — długie nazwy są skracane, pełne wartości widać w formularzu. */}
-      <div className="flex min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap [&>*]:shrink-0">
-        {title && (
-          <span className="max-w-[200px] truncate font-semibold text-foreground" title={title}>
-            {title}
-          </span>
-        )}
-        {date && <Badge variant="outline">{date}</Badge>}
-        {actionType && <Badge variant="secondary">{actionType}</Badge>}
-        {(facilityName || municipality) && (
-          <span className="max-w-[16rem] truncate text-muted-foreground" title={facilityName || municipality}>
-            📍 {facilityName ? `${facilityName}${municipality ? ` (${municipality})` : ""}` : municipality}
-          </span>
-        )}
-        {programName && (
-          <Badge variant="default" className="max-w-[14rem] bg-primary/90" title={programName}>
-            <span className="truncate">{programName}</span>
-          </Badge>
-        )}
-        {leadEducator && <span className="text-muted-foreground">👤 {leadEducator}</span>}
-        {ezdStatus && (
-          <Badge
-            variant={
-              ezdStatus === "zakonczone" ||
-              ezdStatus === "zarejestrowane" ||
-              ezdStatus === "zarejestrowana" ||
-              ezdStatus === "w_ezd"
-                ? "success"
-                : "outline"
-            }
-          >
-            {EZD_STATUS_LABELS[ezdStatus] || ezdStatus}
-          </Badge>
-        )}
-        {jrwaSign && <span className="font-mono text-xs text-primary">{jrwaSign}</span>}
-        {izrzSign && <span className="font-mono text-xs text-muted-foreground">{izrzSign}</span>}
-      </div>
+      {/* Jedna linia podsumowania skracana na końcu — pełna treść w podpowiedzi, a wartości i tak widać w formularzu. */}
+      {summary && (
+        <p className="flex min-w-0 gap-1 whitespace-nowrap text-muted-foreground" title={summary}>
+          {/* Długi tytuł (np. pełna nazwa programu) nie może zasłonić daty i miejsca. */}
+          {title && <span className="max-w-[45%] shrink-0 truncate font-semibold text-foreground">{title}</span>}
+          {details.length > 0 && <span className="min-w-0 truncate">{title && "· "}{details.join(" · ")}</span>}
+        </p>
+      )}
         {!isReadOnly && missingFields && (
           <p className={missingFields.length ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300"}>
             {missingFields.length ? `Uzupełnij: ${missingFields.join(", ")}` : `Gotowe do zapisu (${SAVE_SHORTCUT})`}
+            {!missingFields.length && warnings.length > 0 &&
+              <span className="text-amber-700 dark:text-amber-300"> · Sprawdź: {warnings.join(", ")}</span>}
           </p>
         )}
       </div>

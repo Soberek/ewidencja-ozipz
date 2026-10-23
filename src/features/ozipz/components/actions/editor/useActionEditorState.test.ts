@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useActionEditorState } from "./useActionEditorState";
-import { ACTION_CARD_PRESETS } from "./presetsConfig";
 import type {
   OzipzProgram,
   OzipzFacility,
@@ -145,30 +144,6 @@ describe("useActionEditorState Hook", () => {
     expect(result.current.isPublication).toBe(false);
   });
 
-  it("applies action presets correctly", () => {
-    const { result } = renderHook(() =>
-      useActionEditorState({
-        programs: mockPrograms,
-        facilities: mockFacilities,
-        dictionaryItems: mockDictItems,
-        staff: mockStaff,
-        materials: mockMaterials,
-        templates: mockTemplates,
-      })
-    );
-
-    const preset = ACTION_CARD_PRESETS[0];
-    act(() => {
-      result.current.applyPreset(preset);
-    });
-
-    expect(result.current.actionType).toBe(preset.actionType);
-    expect(result.current.selectedJrwaSymbol).toBe(preset.jrwaSymbol);
-    if (preset.titlePrefix) {
-      expect(result.current.title).toBe(preset.titlePrefix);
-    }
-  });
-
   it("auto-matches facility by name and populates address and municipality", () => {
     const { result } = renderHook(() =>
       useActionEditorState({
@@ -260,7 +235,7 @@ describe("useActionEditorState Hook", () => {
     );
 
     act(() => {
-      result.current.handleApplyTemplate("tpl-warsztaty");
+      result.current.applyTemplate("tpl-warsztaty");
     });
 
     expect(result.current.title).toBe("Warsztaty Profilaktyczne");

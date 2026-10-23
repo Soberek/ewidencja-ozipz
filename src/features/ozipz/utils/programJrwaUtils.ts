@@ -29,6 +29,22 @@ export function getAllJrwaSymbols(dictionaryItems: OzipzDictionaryItem[] = []): 
     .sort((a, b) => compareJrwa(a.symbol, b.symbol));
 }
 
+/** Opcje pola „Program lub klasyfikacja” (wartości `prog:<id>` / `jrwa:<symbol>`) — wspólne dla działania i szablonu. */
+export function buildClassificationOptions(programs: OzipzProgram[], jrwaSymbols: { symbol: string; label: string }[]) {
+  return [
+    // Symbol JRWA odróżnia programy o podobnych nazwach i pozwala szukać po numerze teczki.
+    ...programs.map((p) => {
+      const symbol = getProgramJrwaSymbol(p);
+      return { value: `prog:${p.id}`, label: p.name, description: symbol ? `JRWA ${symbol}` : undefined, group: "Programy" };
+    }),
+    ...jrwaSymbols.filter((j) => !programs.some((p) => getProgramJrwaSymbol(p) === j.symbol))
+      .map((j) => ({ value: `jrwa:${j.symbol}`, label: `${j.symbol} — ${j.label}`, group: "Klasyfikacja" })),
+  ];
+}
+
+export const classificationValue = (programId: string | undefined, jrwaSymbol: string | undefined) =>
+  programId ? `prog:${programId}` : jrwaSymbol ? `jrwa:${jrwaSymbol}` : "";
+
 export {
   generateNextIzrzSign,
   generateNextJrwaSign,

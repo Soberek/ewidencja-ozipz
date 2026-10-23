@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Copy, Plus, Trash2, Users } from "lucide-react";
 import type { AudienceGroupBlock, RecipientSubItem } from "./editor.types";
 import type { useActionEditorState } from "./useActionEditorState";
-import { FIELD_INPUT, FIELD_LABEL } from "./formStyles";
+import { FIELD_INPUT, FIELD_LABEL, SECTION_HEADING } from "./formStyles";
 
 type EditorState = ReturnType<typeof useActionEditorState>;
 
@@ -35,7 +35,7 @@ export function ActionQuickAudience({ state: s, suggestions }: Props) {
   const { errors } = s.form.formState;
   return <section className="space-y-3" aria-label="Odbiorcy">
     <div className="flex items-center justify-between gap-2">
-      <h2 className="font-semibold">Odbiorcy</h2>
+      <h2 className={SECTION_HEADING}>Odbiorcy</h2>
       <Badge variant="outline" className="font-mono text-xs">Łącznie: <strong className="ml-1 text-primary">{s.totalDirectParticipants} os.</strong></Badge>
     </div>
 
@@ -78,6 +78,7 @@ export function ActionQuickAudience({ state: s, suggestions }: Props) {
         <Plus className="size-3.5" /> Dodaj grupę
       </Button>
       {!isGrouped && <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs"
+        disabled={!s.audienceGroups[0]?.items.some((i) => i.name.trim())}
         title="Np. kolejna klasa o takim samym składzie" onClick={() => s.handleDuplicateGroup(s.audienceGroups[0].id)}>
         <Copy className="size-3.5" /> Kopiuj jako kolejną grupę
       </Button>}

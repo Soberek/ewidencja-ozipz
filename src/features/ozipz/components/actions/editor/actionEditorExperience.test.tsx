@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { useActionEditorState } from "./useActionEditorState";
 import { ActionQuickForm } from "./ActionQuickForm";
@@ -172,6 +172,10 @@ describe("Stopka i podpowiedzi", () => {
     expect(screen.getByText("Do EZD")).toBeInTheDocument();
     rerender(<ActionEditorFooter totalDirectParticipants={0} onCancel={vi.fn()} missingFields={[]} />);
     expect(screen.getByText(/Gotowe do zapisu/)).toBeInTheDocument();
+    expect(screen.queryByText(/Sprawdź:/)).toBeNull();
+    // Ostrzeżenie nie blokuje zapisu — gotowość zostaje, z dopiskiem do sprawdzenia.
+    rerender(<ActionEditorFooter totalDirectParticipants={0} onCancel={vi.fn()} missingFields={[]} warnings={["liczba osób w odbiorcach to 0"]} />);
+    expect(screen.getByText(/Gotowe do zapisu/)).toHaveTextContent("Sprawdź: liczba osób w odbiorcach to 0");
   });
 
   it("pod polem placówki pokazuje adres z bazy albo ostrzega o miejscu spoza bazy", () => {
@@ -182,12 +186,34 @@ describe("Stopka i podpowiedzi", () => {
     expect(screen.getByText(/Miejsce spoza bazy placówek/)).toBeInTheDocument();
   });
 
-  it("wczytuje wbudowany wzorzec z pola szybkiego startu", () => {
+  it("szablony to tylko rekordy z bazy — kliknięcie kafelka wypełnia formularz", () => {
+    const templates = [{ ...ts, id: "t1", title: "Higiena rąk — prelekcja", topic: "Program testowy", actionType: "Prelekcja",
+      defaultAudience: "Uczniowie", descriptionTemplate: "Opis z szablonu", actionDefaults: { title: "Higiena rąk", leadEducator: "", campaignId: "" } }];
+    render(<Harness {...data} templates={templates} />);
+    const region = within(screen.getByRole("region", { name: "Szablony" }));
+    expect(region.getAllByRole("button", { pressed: false })).toHaveLength(1);
+    fireEvent.click(region.getByRole("button", { name: /Higiena rąk — prelekcja/ }));
+    expect(screen.getByLabelText("Tytuł działania *")).toHaveValue("Higiena rąk");
+    expect(screen.getByLabelText("Program lub klasyfikacja")).toHaveTextContent("Program testowy");
+    expect(region.getByRole("status")).toHaveTextContent("Wczytano „Higiena rąk — prelekcja”");
+  });
+
+  it("pusty wiersz materiału jest brakiem — stopka nie pokazuje gotowości do zapisu", () => {
+    expect(getMissingActionFields({ actionType: "Prelekcja", title: "Tytuł", date: "2026-10-01", facilityName: "SP", municipality: "Dębno", leadEducator: "A" },
+      { isPublication: false, hasNamedAudience: true, hasIncompleteMaterials: true })).toEqual(["materiał i liczba sztuk"]);
+    const { result } = renderHook(() => useActionEditorState({ ...data }));
+    act(() => result.current.handleAddMaterialItem());
+    expect(result.current.missingFields).toContain("materiał i liczba sztuk");
+    act(() => result.current.handleUpdateMaterialItem(0, { materialId: "m1", quantity: 5 }));
+    expect(result.current.missingFields).not.toContain("materiał i liczba sztuk");
+  });
+
+  it("program na liście ma symbol JRWA, a długie nazwy nie są obcinane", () => {
     render(<Harness {...data} />);
-    fireEvent.click(screen.getByLabelText("Szybki start: szablon lub wzorzec"));
-    fireEvent.click(screen.getByRole("option", { name: /2 Grupy/ }));
-    expect(screen.getByLabelText("Tytuł działania *")).toHaveValue("Cykl prelekcji edukacyjnych w szkole podstawowej");
-    expect(screen.getAllByLabelText("Nazwa grupy")).toHaveLength(2);
+    fireEvent.click(screen.getByLabelText("Program lub klasyfikacja"));
+    const option = screen.getByRole("option", { name: /Program testowy/ });
+    expect(option).toHaveTextContent("JRWA 966.1");
+    expect(option.querySelector(".truncate")).toBeNull();
   });
 });
 

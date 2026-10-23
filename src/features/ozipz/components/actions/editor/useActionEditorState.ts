@@ -22,7 +22,7 @@ import { useActionEditorJrwa } from "./useActionEditorJrwa";
 import { useActionEditorMaterials } from "./useActionEditorMaterials";
 import { useTemplates } from "../../../store/useOzipzDbStore";
 import { toast } from "sonner";
-import { useActionEditorPresets } from "./useActionEditorPresets";
+import { useActionEditorTemplates } from "./useActionEditorTemplates";
 import {
   buildActionCleanPayload,
   buildActionDistributionMaterials,
@@ -53,6 +53,7 @@ export function useActionEditorState({
   onUpdate,
   onCancel,
   enableDraft = false,
+  initialTemplateId,
 }: ActionEditorSectionProps) {
   const templatesStore = useTemplates();
   const templates = suppliedTemplates ?? templatesStore.templates;
@@ -120,10 +121,6 @@ export function useActionEditorState({
 
   const jrwa = useActionEditorJrwa({ programs, actions, jrwaCases, dictionaryItems, isNoJrwa, isEditMode, setValue, watch });
   const mats = useActionEditorMaterials({ materials, materialId, setValue, watch });
-  const presets = useActionEditorPresets({
-    templates, activityTypeDict, setValue, watch, setAudienceGroups,
-    handleJrwaSymbolChange: jrwa.handleJrwaSymbolChange, activitiesDescription, setActivitiesDescription,
-  });
 
   const allValues = watch();
   const restoreFromDraft = (saved: ActionDraft) => {
@@ -135,6 +132,25 @@ export function useActionEditorState({
     setFacilityAddress(matchFacilityInfo(saved.values.facilityName || "", facilities)?.address || "");
     jrwa.restoreClassification(saved.selectedJrwaSymbol, saved.autoSign);
   };
+  const tpl = useActionEditorTemplates({
+    templates, programs, materials, activityTypeDict, setValue, setAudienceGroups, setActivitiesDescription,
+    setMaterialItems: mats.setMaterialItems,
+    selectClassification: jrwa.handleProgramOrJrwaSelect,
+    takeSnapshot: () => ({
+      savedAt: new Date().toISOString(), values: form.getValues(), audienceGroups: audience.audienceGroups,
+      materialItems: mats.materialItems, activitiesDescription, additionalNotes, selectedJrwaSymbol: jrwa.selectedJrwaSymbol,
+      autoSign: Boolean(jrwaSign) && jrwaSign === jrwa.generatedJrwaMeta?.fullCaseSign,
+    }),
+    restoreSnapshot: restoreFromDraft,
+    currentContent: {
+      name: "", actionType: actionType || "", title: title || "", programId: programId || "",
+      jrwaSymbol: jrwa.selectedJrwaSymbol, campaignId: campaignId || "", leadEducator: leadEducator || "",
+      numberOfActions: Number(numberOfActions) || 1,
+      audienceGroups: isPublication ? [] : audience.audienceGroups,
+      materialIds: isPublication ? [] : mats.materialItems.map((item) => item.materialId),
+      description: activitiesDescription,
+    },
+  });
   const draft = useActionEditorDraft({
     enabled: enableDraft && !editingAction,
     content: { values: allValues, audienceGroups: audience.audienceGroups, materialItems: mats.materialItems, activitiesDescription, additionalNotes },
@@ -142,7 +158,12 @@ export function useActionEditorState({
     autoSign: Boolean(jrwaSign) && jrwaSign === jrwa.generatedJrwaMeta?.fullCaseSign,
     onRestore: restoreFromDraft,
   });
-  const missingFields = getMissingActionFields(allValues, { isPublication, hasNamedAudience });
+  const hasIncompleteMaterials = !isPublication &&
+    mats.materialItems.some((item) => !item.materialId || !Number.isInteger(item.quantity) || item.quantity < 1);
+  const missingFields = getMissingActionFields(allValues, { isPublication, hasNamedAudience, hasIncompleteMaterials });
+  // Zero osób bywa poprawne (np. konkurs ogłoszony w mediach), więc tylko przypominamy — zwłaszcza po wczytaniu szablonu,
+  // który wpisuje kategorie odbiorców bez liczb.
+  const saveWarnings = !isPublication && hasNamedAudience && savedParticipants === 0 ? ["liczba osób w odbiorcach to 0"] : [];
 
   useEffect(() => {
     if (isPublication) {
@@ -218,7 +239,7 @@ export function useActionEditorState({
         setAudienceGroups(loadedGroups);
         setActivitiesDescription(editingAction.notes || "");
         setAdditionalNotes("");
-        presets.setSelectedTemplateId("");
+        tpl.resetTemplate();
 
         const fac = facilitiesRef.current.find(
           (f) =>
@@ -241,12 +262,20 @@ export function useActionEditorState({
         setSaveError(null);
         setActivitiesDescription("");
         setAdditionalNotes("");
-        presets.setSelectedTemplateId("");
+        tpl.resetTemplate();
         jrwa.initJrwaForAction(null);
         mats.setMaterialItems([]);
       }
     }
-  }, [actionKey, editingAction, reset, setAudienceGroups, setValue, jrwa, presets, mats]);
+  }, [actionKey, editingAction, reset, setAudienceGroups, setValue, jrwa, tpl, mats]);
+
+  // Szablon wskazany przy otwarciu (przycisk „Użyj” w zakładce Szablony) — wczytywany raz, po wyzerowaniu formularza.
+  const initialTemplateAppliedRef = useRef(false);
+  useEffect(() => {
+    if (!initialTemplateId || initialTemplateAppliedRef.current) return;
+    initialTemplateAppliedRef.current = true;
+    tpl.applyTemplate(initialTemplateId);
+  }, [initialTemplateId, tpl]);
 
   useEffect(() => {
     const soleStaffName = getSoleActiveStaffName(staff);
@@ -271,7 +300,7 @@ export function useActionEditorState({
 
   const onSubmit = async (data: ActionFormOutput, addSimilar = false) => {
     if (isSubmittingRef.current) return;
-    if (!isPublication && mats.materialItems.some((item) => !item.materialId || !Number.isInteger(item.quantity) || item.quantity < 1)) {
+    if (hasIncompleteMaterials) {
       form.setError("materialId", { message: "Wybierz materiał i podaj dodatnią, całkowitą liczbę sztuk albo usuń pustą pozycję." });
       return;
     }
@@ -361,15 +390,17 @@ export function useActionEditorState({
     materialsDistributedCount, numberOfActions, materialId, materialItems: mats.materialItems, leadEducator,
     ezdStatus, izrzSign, jrwaSign, selectedMaterial: mats.selectedMaterial, activitiesDescription,
     additionalNotes, canSeparateDistribution, separateDistribution, setSeparateDistribution, distributionActionType,
-    linkedDistribution, linkedParentAction, selectedJrwaSymbol: jrwa.selectedJrwaSymbol, selectedTemplateId: presets.selectedTemplateId,
+    linkedDistribution, linkedParentAction, selectedJrwaSymbol: jrwa.selectedJrwaSymbol, selectedTemplateId: tpl.selectedTemplateId,
+    selectedTemplate: tpl.selectedTemplate, isTemplateChanged: tpl.isTemplateChanged, canUndoTemplate: tpl.canUndoTemplate,
+    templateContent: tpl.currentContent,
     jrwaSymbolsList: jrwa.jrwaSymbolsList, activityTypeDict, campaignDict, setValue, setFacilityAddress,
     setActivitiesDescription, setAdditionalNotes, handleAddMaterialItem: mats.handleAddMaterialItem,
     handleRemoveMaterialItem: mats.handleRemoveMaterialItem, handleUpdateMaterialItem: mats.handleUpdateMaterialItem,
-    applyPreset: presets.applyPreset, handleApplyTemplate: presets.handleApplyTemplate, handleFacilityNameInput,
+    applyTemplate: tpl.applyTemplate, undoTemplate: tpl.undoTemplate, handleFacilityNameInput,
     handleProgramSelect: jrwa.handleProgramSelect, handleJrwaSymbolChange: jrwa.handleJrwaSymbolChange,
     handleProgramOrJrwaSelect: jrwa.handleProgramOrJrwaSelect, setQuickDate: jrwa.setQuickDate, handleDateChange: jrwa.handleDateChange,
     handleGenerateJrwaSign: jrwa.handleGenerateJrwaSign, handleJrwaSignChange: jrwa.handleJrwaSignChange,
-    missingFields, pendingDraft: draft.pendingDraft, restoreDraft: draft.restoreDraft,
+    missingFields, saveWarnings, pendingDraft: draft.pendingDraft, restoreDraft: draft.restoreDraft,
     dismissDraft: draft.dismissDraft, hasUnsavedContent: draft.hasUnsavedContent, discardDraft: draft.discardDraft,
     onSubmit: (data: ActionFormOutput) => onSubmit(data),
     onSaveAndAddSimilar: form.handleSubmit((data) => onSubmit(data, true)), ...audience,

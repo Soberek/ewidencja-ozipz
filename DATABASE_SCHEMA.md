@@ -427,14 +427,16 @@ Silnik SQLite działa z aktywnym `PRAGMA foreign_keys = ON;` w trybie `WAL` (`PR
 |---|---|---|---|---|
 | `id` | `TEXT` | `PRIMARY KEY` | Unikalny identyfikator szablonu | `id: string` |
 | `title` | `TEXT` | `NOT NULL` | Nazwa szablonu | `title: string` |
-| `topic` | `TEXT` | `NOT NULL` | Tematyka / program | `topic: string` |
-| `action_type` | `TEXT` | `NOT NULL` | Domyślna forma działania | `actionType: string` |
-| `description_template` | `TEXT` | `NOT NULL` | Wzorcowy opis przebiegu działania | `descriptionTemplate: string` |
-| `default_audience` | `TEXT` | `NOT NULL` | Domyślna grupa odbiorców | `defaultAudience: string` |
-| `suggested_materials` | `TEXT` | | Sugerowane materiały oświatowe | `suggestedMaterials?: string` |
-| `action_defaults` | `TEXT` | | Domyślne parametry działania (JSON) | `actionDefaults?: string` |
+| `topic` | `TEXT` | `NOT NULL` | Starszy zapis: nazwa programu lub „JRWA x – …”; nowe szablony zapisują pusty tekst | `topic: string` |
+| `action_type` | `TEXT` | `NOT NULL` | Forma działania (etykieta ze słownika `activityType`) | `actionType: string` |
+| `description_template` | `TEXT` | `NOT NULL` | Opis czynności wpisywany do działania | `descriptionTemplate: string` |
+| `default_audience` | `TEXT` | `NOT NULL` | Starszy zapis: odbiorcy jako tekst po średniku; nowe szablony zapisują pusty tekst | `defaultAudience: string` |
+| `suggested_materials` | `TEXT` | | Starszy zapis: materiały jako tekst; nowe szablony go nie zapisują | `suggestedMaterials?: string` |
+| `action_defaults` | `TEXT` | `CHECK (json_valid(...))` | Treść szablonu (JSON) — zob. niżej | `actionDefaults?: ActionTemplateDefaults` |
 | `created_at` | `TEXT` | `NOT NULL` | Timestamp ISO 8601 | `createdAt: string` |
 | `updated_at` | `TEXT` | `NOT NULL` | Timestamp ISO 8601 | `updatedAt: string` |
+
+`action_defaults` (schemat `ActionTemplateDefaultsSchema`): `title`, `leadEducator`, `campaignId` oraz w pełnym zapisie `programId`, `jrwaSymbol` (tylko klasyfikacja bez programu), `numberOfActions`, `audienceGroups` (`[{ name, items: [{ name, ageFrom, ageTo }] }]`, bez liczby osób) i `materialIds` (pozycje katalogu, bez liczby sztuk). Obecność `audienceGroups` oznacza pełny zapis; starsze szablony odczytuje `resolveTemplateContent` (`src/features/ozipz/utils/templateUtils.ts`). Szablon nie zapisuje daty, miejsca, liczb osób i sztuk ani znaków spraw.
 
 ---
 

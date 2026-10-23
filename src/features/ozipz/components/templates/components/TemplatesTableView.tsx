@@ -3,14 +3,12 @@ import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FileText } from "lucide-react";
 import type { OzipzTemplate } from "../../../types/ozipz.types";
-import { createTemplateColumns } from "./TemplatesTableColumns";
+import { createTemplateColumns, type TemplateListRow } from "./TemplatesTableColumns";
 
 interface TemplatesTableViewProps {
-  templates: OzipzTemplate[];
+  templates: TemplateListRow[];
   totalCount: number;
-  copiedId: string | null;
-  onCopy: (text: string, id: string) => void;
-  onPreview: (template: OzipzTemplate) => void;
+  onUse: (template: OzipzTemplate) => void;
   onOpenEdit: (template: OzipzTemplate) => void;
   onDelete: (id: string) => void;
   onClearFilters?: () => void;
@@ -20,24 +18,15 @@ interface TemplatesTableViewProps {
 export function TemplatesTableView({
   templates,
   totalCount,
-  copiedId,
-  onCopy,
-  onPreview,
+  onUse,
   onOpenEdit,
   onDelete,
   onClearFilters,
   isFiltered,
 }: TemplatesTableViewProps) {
   const columns = useMemo(
-    () =>
-      createTemplateColumns({
-        copiedId,
-        onCopy,
-        onPreview,
-        onEdit: onOpenEdit,
-        onDelete,
-      }),
-    [copiedId, onCopy, onPreview, onOpenEdit, onDelete]
+    () => createTemplateColumns({ onUse, onEdit: onOpenEdit, onDelete }),
+    [onUse, onOpenEdit, onDelete]
   );
 
   return (
@@ -52,16 +41,16 @@ export function TemplatesTableView({
       enablePagination={true}
       defaultPageSize={25}
       enableExport={true}
-      exportFileName="szablony_opisow_ozipz.csv"
-      onRowClick={onPreview}
+      exportFileName="szablony_zadan_ozipz.csv"
+      onRowClick={onOpenEdit}
       emptyState={
         <EmptyState
           icon={FileText}
-          title={isFiltered ? "Brak szablonów spełniających kryteria" : "Brak szablonów w bazie"}
+          title={isFiltered ? "Brak szablonów spełniających kryteria" : "Brak szablonów"}
           description={
             isFiltered
               ? "Zmień kryteria wyszukiwania lub filtr formy działania."
-              : "Zdefiniuj pierwszy wzorcowy szablon opisu merytorycznego do wykorzystania w rejestrze działań."
+              : "Szablon zapamiętuje to, co się powtarza: formę, program, odbiorców, materiały i opis. Utwórz go tutaj albo w formularzu działania przyciskiem „Zapisz jako szablon”."
           }
           actionLabel={isFiltered && onClearFilters ? "Wyczyść filtry" : undefined}
           onAction={isFiltered ? onClearFilters : undefined}
