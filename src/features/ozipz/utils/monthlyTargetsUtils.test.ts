@@ -8,7 +8,8 @@ import {
   monthlyTargetsArrayToYearlyMap,
   type OzipzYearlyMonthlyTargets,
 } from "./monthlyTargetsUtils";
-import type { OzipzAction, OzipzMonthlyTarget } from "../types/ozipz.types";
+import { useOzipzDbStore } from "../store/useOzipzDbStore";
+import type { OzipzAction, OzipzMonthlyTarget, OzipzProgram } from "../types/ozipz.types";
 
 describe("Monthly Targets & Compliance Utils (monthlyTargetsUtils)", () => {
   beforeEach(() => {
@@ -40,6 +41,13 @@ describe("Monthly Targets & Compliance Utils (monthlyTargetsUtils)", () => {
   });
 
   it("computes monthly compliance matrix with program and other breakdown", () => {
+    // Rodzaj działania wynika wyłącznie z programu i rodzaju jego symbolu JRWA w słowniku
+    const program = (id: string, name: string, jrwaSymbol: string) =>
+      ({ id, code: id, name, jrwaSymbol, editionYear: "2025/2026", createdAt: "", updatedAt: "" }) as OzipzProgram;
+    useOzipzDbStore.setState({
+      programs: [program("prog-1", "Trzymaj Formę", "966.1"), program("prog-2", "Senior w roli głównej", "966.19")],
+    });
+
     const actions: OzipzAction[] = [
       // Styczeń (m=1): 2 działania programowe (50 ODB) i 1 nieprogramowe (20 ODB)
       {
@@ -70,6 +78,8 @@ describe("Monthly Targets & Compliance Utils (monthlyTargetsUtils)", () => {
         actionType: "pogadanka",
         date: "2026-01-25",
         topic: "nieprogramowe",
+        // Znak sprawy z teczki programowej bez programu nie czyni działania programowym
+        jrwaSign: "OZiPZ.966.1.3.2026",
         participantsCount: 20,
         numberOfActions: 1,
         status: "wykonane",

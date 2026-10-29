@@ -1,12 +1,21 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useOzipzDbStore } from "./useOzipzDbStore";
-import { isProgramAction } from "../utils/ozipzCalculations";
+import { extractCleanJrwaSymbol, isProgramAction } from "../utils/ozipzCalculations";
 import { buildReportAnnexRows } from "../utils/reportAnnex";
 import { resolveScheduleProgram, scheduleProgramLabel } from "../utils/scheduleProgramResolver";
 import { getActiveJrwaNamesMap } from "../utils/calculators/jrwaClassification";
 import { useReportsData } from "../components/reports/useReportsData";
 import type { OzipzAction, OzipzProgram, OzipzScheduleEvent } from "../types/ozipz.types";
+
+// Program z katalogu programów – o rodzaju działania decyduje wyłącznie rodzaj jego symbolu JRWA w słowniku.
+const addProgram = (id: string, name: string, jrwaSymbol: string) =>
+  useOzipzDbStore.setState({
+    programs: [
+      ...useOzipzDbStore.getState().programs.filter((p) => p.id !== id),
+      { id, code: id, name, jrwaSymbol, editionYear: "2025/2026", createdAt: "", updatedAt: "" } as OzipzProgram,
+    ],
+  });
 
 describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () => {
   beforeEach(async () => {
@@ -14,7 +23,8 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
   });
 
   it("dynamically recognizes newly added JRWA symbol as PROGRAMOWE in isProgramAction and reports", async () => {
-    // 1. Initially, an unrecognized JRWA code without programId defaults to false unless actionType=programowe
+    // 1. Program z symbolem spoza słownika nie ma rodzaju – działanie jest nieprogramowe
+    addProgram("prog-966-88", "Program Profilaktyczny Nowej Generacji", "966.88");
     const testAction: OzipzAction = {
       id: "act-test-jrwa-ssot",
       title: "Warsztaty Nowego Programu",
@@ -24,6 +34,7 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       municipality: "Myślibórz",
       topic: "Edukacja zdrowotna",
       audienceGroup: "Uczniowie",
+      programId: "prog-966-88",
       jrwaSign: "OZiPZ.966.88.1.2026",
       ezdStatus: "Robocze",
       status: "Zrealizowane",
@@ -53,6 +64,8 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
 
     // 3. Verify that isProgramAction now dynamically returns true (SSOT!)
     expect(isProgramAction(testAction)).toBe(true);
+    // Sam znak sprawy z tym symbolem (bez programu) nie decyduje – działanie pozostaje nieprogramowe
+    expect(isProgramAction({ ...testAction, programId: undefined })).toBe(false);
 
     // 4. Verify report annex aggregation classifies it as programowe with the dynamic label
     const annexRows = buildReportAnnexRows([testAction]);
@@ -86,6 +99,7 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       municipality: "Dębno",
       topic: "Ochrona zdrowia",
       audienceGroup: "Dorośli",
+      programId: "prog-851-1",
       jrwaSign: "OZiPZ.851.1.1.2026",
       ezdStatus: "Robocze",
       status: "wykonane",
@@ -96,6 +110,8 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       createdAt: "2026-05-15T10:00:00Z",
       updatedAt: "2026-05-15T10:00:00Z",
     };
+
+    addProgram("prog-851-1", "Program Ochrony Zdrowia i Profilaktyki", "851.1");
 
     // Before adding:
     expect(isProgramAction(customAction)).toBe(false);
@@ -109,7 +125,10 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       isSystem: false,
     });
 
+    expect(extractCleanJrwaSymbol(customAction)).toBe("851.1");
     expect(isProgramAction(customAction)).toBe(true);
+    // Bez programu sam znak sprawy 851.1 nie czyni działania programowym
+    expect(isProgramAction({ ...customAction, programId: undefined })).toBe(false);
 
     // Update to NIEPROGRAMOWE
     await useOzipzDbStore.getState().updateDictionaryItem(item.id, {
@@ -121,6 +140,8 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
 
   it("prioritizes nested specific JRWA symbols over broader parent symbols (e.g. 966.1.99 vs 966.1)", async () => {
     // 966.1 is PROGRAMOWE by default
+    addProgram("trzymaj-forme", "Trzymaj Formę", "966.1");
+    addProgram("konkurs-tf", "Doraźny konkurs Trzymaj Formę", "966.1.99");
     const parentAction: OzipzAction = {
       id: "act-parent-966-1",
       title: "Trzymaj formę - ogólne",
@@ -130,6 +151,7 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       municipality: "Myślibórz",
       topic: "Żywienie",
       audienceGroup: "Uczniowie",
+      programId: "trzymaj-forme",
       jrwaSign: "OZiPZ.966.1.5.2026",
       ezdStatus: "Robocze",
       status: "wykonane",
@@ -153,15 +175,27 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
     const childAction: OzipzAction = {
       ...parentAction,
       id: "act-child-966-1-99",
+      programId: "konkurs-tf",
       jrwaSign: "OZiPZ.966.1.99.1.2026",
     };
 
+    // Znak sprawy rozpoznaje najbardziej szczegółowy symbol
+    expect(extractCleanJrwaSymbol(parentAction)).toBe("966.1");
+    expect(extractCleanJrwaSymbol(childAction)).toBe("966.1.99");
+
     expect(isProgramAction(parentAction)).toBe(true);
     expect(isProgramAction(childAction)).toBe(false);
+
+    // Rodzaj wynika z programu, nie ze znaku sprawy: program 966.1 ze znakiem 966.1.99 pozostaje programowy
+    expect(isProgramAction({ ...childAction, programId: "trzymaj-forme" })).toBe(true);
+    expect(isProgramAction({ ...parentAction, programId: "konkurs-tf" })).toBe(false);
   });
 
   it("enforces JRWA dictionary classification as SSOT over conflicting actionType fields", async () => {
-    // 966.1 is PROGRAMOWE in dictionary. Even if actionType says 'wlasne', dictionary dictates PROGRAMOWE!
+    addProgram("trzymaj-forme", "Trzymaj Formę", "966.1");
+    addProgram("bezpieczne-wakacje", "Bezpieczne wakacje", "966.14");
+
+    // Program 966.1 is PROGRAMOWE in dictionary. Even if actionType says 'wlasne', dictionary dictates PROGRAMOWE!
     const progActionWithWlasneType: OzipzAction = {
       id: "act-ssot-override-1",
       title: "Trzymaj formę szkolenie",
@@ -171,6 +205,7 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       municipality: "Myślibórz",
       topic: "Żywienie",
       audienceGroup: "Uczniowie",
+      programId: "trzymaj-forme",
       jrwaSign: "OZiPZ.966.1.12.2026",
       ezdStatus: "Robocze",
       status: "wykonane",
@@ -183,7 +218,7 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
     };
     expect(isProgramAction(progActionWithWlasneType)).toBe(true);
 
-    // 966.14 is NIEPROGRAMOWE in dictionary. Even if actionType says 'programowe', dictionary dictates NIEPROGRAMOWE!
+    // Program 966.14 is NIEPROGRAMOWE in dictionary. Even if actionType says 'programowe', dictionary dictates NIEPROGRAMOWE!
     const nonProgActionWithProgramoweType: OzipzAction = {
       id: "act-ssot-override-2",
       title: "Bezpieczne wakacje nad jeziorem",
@@ -193,6 +228,7 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       municipality: "Myślibórz",
       topic: "Bezpieczeństwo",
       audienceGroup: "Dzieci",
+      programId: "bezpieczne-wakacje",
       jrwaSign: "OZiPZ.966.14.8.2026",
       ezdStatus: "Robocze",
       status: "wykonane",
@@ -204,6 +240,11 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       updatedAt: "2026-07-05T10:00:00Z",
     };
     expect(isProgramAction(nonProgActionWithProgramoweType)).toBe(false);
+
+    // Bez programu ani actionType "programowe", ani znak sprawy z teczki programowej nie dają działania programowego
+    expect(isProgramAction({ ...nonProgActionWithProgramoweType, programId: undefined, jrwaSign: "OZiPZ.966.1.12.2026" })).toBe(false);
+    // Znak sprawy sprzeczny z programem nie zmienia rodzaju
+    expect(isProgramAction({ ...progActionWithWlasneType, jrwaSign: "OZiPZ.966.14.8.2026" })).toBe(true);
   });
 
   it("resolveScheduleProgram classifies events according to the dynamic JRWA dictionary", async () => {
@@ -305,6 +346,8 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       isSystem: false,
     });
 
+    addProgram("prog-966-77", "Program Eksperymentalny 77", "966.77");
+
     const action77: OzipzAction = {
       id: "act-test-reactive-77",
       title: "Działanie 77",
@@ -314,6 +357,7 @@ describe("JRWA Dictionary Classification as Single Source of Truth (SSOT)", () =
       municipality: "Myślibórz",
       topic: "Zdrowie",
       audienceGroup: "Uczniowie",
+      programId: "prog-966-77",
       jrwaSign: "OZiPZ.966.77.1.2026",
       ezdStatus: "Robocze",
       status: "wykonane",

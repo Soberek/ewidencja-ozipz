@@ -11,10 +11,13 @@ export interface KnownJrwaItem {
 }
 
 /**
- * Przykładowy słownik JRWA do testów (aplikacja czyta symbole wyłącznie z bazy)
+ * Słownik JRWA do testów – odpowiada słownikowi w bazie produkcyjnej (aplikacja czyta symbole wyłącznie z bazy).
+ * Pary o podobnej tematyce są celowe: jeden symbol programowy, drugi nieprogramowy
+ * (966.19 / 966.15 seniorzy, 966.20 / 966.16 zdrowie psychiczne).
  */
 export const KNOWN_JRWA_CATALOG: KnownJrwaItem[] = [
   { symbol: "0442", label: "Sprawozdawczość Statystyczna", description: "Miesięczne, półroczne i roczne sprawozdania przesyłane do WSSE i GIS", kind: "NIEPROGRAMOWE", gisCategory: "brak" },
+  { symbol: "0444", label: "Profilaktyka używania substancji psychoaktywnych (NSP, nikotyna i światowe dni związane z nikotyną, alkohol)", kind: "NIEPROGRAMOWE", gisCategory: "uzaleznienia" },
   { symbol: "9011.1", label: "Wymiana Informacji - Współpraca z WSSE", description: "Wymiana informacji między podmiotami w sprawach sanitarnych - współpraca z WSSE", kind: "NIEPROGRAMOWE", gisCategory: "brak" },
   { symbol: "9011.2", label: "Wymiana Informacji - Organy Podległe", description: "Wymiana informacji między podmiotami w sprawach sanitarnych - współpraca z organami podległymi", kind: "NIEPROGRAMOWE", gisCategory: "brak" },
   { symbol: "966.1", label: "Trzymaj Formę", description: "Program edukacyjny Trzymaj Formę", kind: "PROGRAMOWE", gisCategory: "otylosc" },
@@ -31,10 +34,12 @@ export const KNOWN_JRWA_CATALOG: KnownJrwaItem[] = [
   { symbol: "966.12", label: "Światowy Dzień Zdrowia", description: "Obchody Światowego Dnia Zdrowia", kind: "NIEPROGRAMOWE", gisCategory: "otylosc" },
   { symbol: "966.13", label: "Europejski i Światowy Dzień Wiedzy o Antybiotykach", description: "Europejski i Światowy Dzień Wiedzy o Antybiotykach", kind: "NIEPROGRAMOWE", gisCategory: "inne" },
   { symbol: "966.14", label: "Bezpieczne Wakacje i Bezpieczne Ferie", description: "Bezpieczeństwo dzieci podczas wypoczynku letniego i zimowego", kind: "NIEPROGRAMOWE", gisCategory: "inne" },
-  { symbol: "966.15", label: "Seniorzy (Senior w Roli Głównej)", description: "Program edukacyjny Senior w roli głównej", kind: "PROGRAMOWE", gisCategory: "inne" },
+  { symbol: "966.15", label: "Seniorzy (Senior w Roli Głównej)", description: "Program edukacyjny Senior w roli głównej", kind: "NIEPROGRAMOWE", gisCategory: "inne" },
   { symbol: "966.16", label: "Promocja Zdrowia Psychicznego", description: "Tylko pomyśl, profilaktyka depresji", kind: "NIEPROGRAMOWE", gisCategory: "inne" },
   { symbol: "966.17", label: "Wpływ Czynników Środowiskowych na Zdrowie", description: "PEM, radon, jakość środowiska", kind: "NIEPROGRAMOWE", gisCategory: "inne" },
   { symbol: "966.18", label: "#MłodziŚwiadomi", description: "Program profilaktyczny #MłodziŚwiadomi", kind: "PROGRAMOWE", gisCategory: "sti" },
+  { symbol: "966.19", label: "Senior w roli głównej", kind: "PROGRAMOWE", gisCategory: "inne" },
+  { symbol: "966.20", label: "Tylko Pomyśl", kind: "PROGRAMOWE", gisCategory: "inne" },
 ];
 
 /** Słownik JRWA w postaci wierszy `ozipz_dictionaries` – tak, jak aplikacja wczytuje go z bazy. */

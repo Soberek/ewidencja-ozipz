@@ -132,15 +132,9 @@ export function extractCleanJrwaSymbol(
     if (found) return found;
   }
 
-  // 3. Symbol przypisany programowi w katalogu programów (po id, a gdy go brak – po dokładnej nazwie)
-  if (action.programId) {
-    const progSym = getStoreProgramJrwaSymbol(action.programId);
-    if (progSym) return progSym;
-  }
-  if (action.programName && action.programName.trim()) {
-    const progSym = getStoreProgramJrwaSymbolByName(action.programName);
-    if (progSym) return progSym;
-  }
+  // 3. Symbol przypisany programowi w katalogu programów
+  const progSym = getProgramJrwaSymbol(action);
+  if (progSym) return progSym;
 
   // 4. Nazwa programu lub tytuł zawiera nazwę pozycji słownika JRWA
   const storeItems = getStoreJrwaItems();
@@ -153,36 +147,51 @@ export function extractCleanJrwaSymbol(
   return null;
 }
 
+/** Symbol wybranego programu z katalogu programów (po id, a gdy go brak – po dokładnej nazwie). */
+function getProgramJrwaSymbol(action: Partial<OzipzAction>): string | undefined {
+  if (action.programId) {
+    const progSym = getStoreProgramJrwaSymbol(action.programId);
+    if (progSym) return progSym;
+  }
+  if (action.programName && action.programName.trim()) {
+    return getStoreProgramJrwaSymbolByName(action.programName);
+  }
+  return undefined;
+}
+
+/**
+ * Symbol JRWA, według którego działanie trafia do sprawozdań (programowe/nieprogramowe, obszar GIS,
+ * miernik). Decyduje wybrany program i jego symbol ze słownika; znak sprawy jest drugorzędny
+ * i rozstrzyga tylko wtedy, gdy działanie nie ma programu z symbolem ze słownika.
+ */
+export function resolveReportingJrwaSymbol(
+  action: Partial<OzipzAction>,
+  knownSymbols?: readonly string[]
+): string | null {
+  const known = knownSymbols && knownSymbols.length > 0 ? knownSymbols : getStoreJrwaSymbols();
+  const progSym = getProgramJrwaSymbol(action);
+  if (progSym && known.includes(progSym)) return progSym;
+  return extractCleanJrwaSymbol(action, knownSymbols);
+}
+
+/** Rodzaj programu: rodzaj jego symbolu JRWA w słowniku (brak symbolu lub rodzaju – brak rodzaju). */
+export function getProgramKind(
+  jrwaSymbol: string | null | undefined,
+  customKindMap?: ReadonlyMap<string, JrwaKind>
+): JrwaKind | undefined {
+  const symbol = jrwaSymbol?.trim();
+  return symbol ? getActiveJrwaKindMap(customKindMap).get(symbol) : undefined;
+}
+
+/**
+ * Działanie programowe czy nieprogramowe – decyduje wyłącznie wybrany program i rodzaj jego symbolu
+ * w słowniku JRWA. Znak sprawy nie ma wpływu; działanie bez programu o określonym rodzaju jest nieprogramowe.
+ */
 export function isProgramAction(
   action: Partial<OzipzAction>,
-  customKindMap?: ReadonlyMap<string, "PROGRAMOWE" | "NIEPROGRAMOWE">
+  customKindMap?: ReadonlyMap<string, JrwaKind>
 ): boolean {
-  const kindMap = getActiveJrwaKindMap(customKindMap);
-  const knownSymbols = customKindMap ? Array.from(customKindMap.keys()) : undefined;
-
-  // 1. Sprawdź czy działanie ma rozpoznawalny symbol JRWA (SSOT w słowniku bazy danych!)
-  const symbol = extractCleanJrwaSymbol(action, knownSymbols);
-  if (symbol) {
-    const kind = kindMap.get(symbol);
-    if (kind) {
-      return kind === "PROGRAMOWE";
-    }
-  }
-
-  // 2. Fallback na actionType, jeśli brak dopasowania w słowniku JRWA
-  if (action.actionType === "nieprogramowe" || action.actionType === "wlasne" || action.actionType === "akcyjne") {
-    return false;
-  }
-  if (action.actionType === "programowe") {
-    return true;
-  }
-
-  // 3. Fallback na programId (jeśli program nie jest oznaczony jako "inne"/"brak")
-  if (action.programId && action.programId !== "inne" && action.programId !== "brak") {
-    return true;
-  }
-
-  return false;
+  return getProgramKind(getProgramJrwaSymbol(action), customKindMap) === "PROGRAMOWE";
 }
 
 /**

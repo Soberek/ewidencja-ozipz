@@ -28,7 +28,7 @@ describe("Ewidencja OZiPZ - Edu-Report-V3 Data Integrity & Dictionaries", () => 
   });
 
   it("contains clean, canonical dictionary items across 11 categories", () => {
-    expect(MIGRATED_FIREBASE_DATA.dictionaryItems.length).toBe(129);
+    expect(MIGRATED_FIREBASE_DATA.dictionaryItems.length).toBe(132);
   });
 
   it("contains all 11 edu-report dictionary types with valid codes and labels, and does not contain deprecated topic", () => {
@@ -57,7 +57,7 @@ describe("Ewidencja OZiPZ - Edu-Report-V3 Data Integrity & Dictionaries", () => 
     });
   });
 
-  it("contains authentic breakdown: 18 activityType, 11 recipientGroup, 7 locationType, 7 materialType, 8 campaign, 30 annotationReason, 21 jrwaSymbol, 5 municipality, 6 staffRole, 9 contactPosition, 7 documentType", () => {
+  it("contains authentic breakdown: 18 activityType, 11 recipientGroup, 7 locationType, 7 materialType, 8 campaign, 30 annotationReason, 24 jrwaSymbol, 5 municipality, 6 staffRole, 9 contactPosition, 7 documentType", () => {
     const byType: Record<string, number> = {};
     MIGRATED_FIREBASE_DATA.dictionaryItems.forEach((d) => {
       byType[d.dictType] = (byType[d.dictType] || 0) + 1;
@@ -70,7 +70,7 @@ describe("Ewidencja OZiPZ - Edu-Report-V3 Data Integrity & Dictionaries", () => 
     expect(byType.campaign).toBe(8);
     expect(byType.annotationReason).toBe(30);
     expect(byType.topic).toBeUndefined();
-    expect(byType.jrwaSymbol).toBe(21);
+    expect(byType.jrwaSymbol).toBe(24);
     expect(byType.municipality).toBe(5);
     expect(byType.publicationChannel).toBeUndefined();
     expect(byType.staffRole).toBe(6);
@@ -93,14 +93,14 @@ describe("Ewidencja OZiPZ - Edu-Report-V3 Data Integrity & Dictionaries", () => 
     expect(DICTIONARY_CATEGORIES_CONFIG.documentType.label).toBe("Typy Dokumentów i Skanów");
   });
 
-  it("strictly guarantees uniqueness of (dictType, code) pairs across all 129 dictionary items", () => {
+  it("strictly guarantees uniqueness of (dictType, code) pairs across all 132 dictionary items", () => {
     const seen = new Set<string>();
     for (const item of MIGRATED_FIREBASE_DATA.dictionaryItems) {
       const key = `${item.dictType}:${item.code}`;
       expect(seen.has(key)).toBe(false);
       seen.add(key);
     }
-    expect(seen.size).toBe(129);
+    expect(seen.size).toBe(132);
   });
 
   it("assigns valid Polish postal codes (format XX-XXX) to all canonical municipalities", () => {
@@ -121,9 +121,9 @@ describe("Ewidencja OZiPZ - Edu-Report-V3 Data Integrity & Dictionaries", () => 
     expect(debno?.postalCode).toBe("74-400");
   });
 
-  it("assigns valid kind (PROGRAMOWE or NIEPROGRAMOWE) to all 21 JRWA symbols", () => {
+  it("assigns valid kind (PROGRAMOWE or NIEPROGRAMOWE) to all 24 JRWA symbols", () => {
     const jrwas = MIGRATED_FIREBASE_DATA.dictionaryItems.filter((d) => d.dictType === "jrwaSymbol");
-    expect(jrwas.length).toBe(21);
+    expect(jrwas.length).toBe(24);
     jrwas.forEach((j) => {
       expect(j.kind).toBeDefined();
       expect(["PROGRAMOWE", "NIEPROGRAMOWE"]).toContain(j.kind);
@@ -134,5 +134,10 @@ describe("Ewidencja OZiPZ - Edu-Report-V3 Data Integrity & Dictionaries", () => 
 
     const bw = jrwas.find((j) => j.code === "966.14");
     expect(bw?.kind).toBe("NIEPROGRAMOWE");
+
+    // Pary o podobnej tematyce: jeden symbol programowy, drugi nieprogramowy.
+    const kindOf = (code: string) => jrwas.find((j) => j.code === code)?.kind;
+    expect([kindOf("966.19"), kindOf("966.15")]).toEqual(["PROGRAMOWE", "NIEPROGRAMOWE"]);
+    expect([kindOf("966.20"), kindOf("966.16")]).toEqual(["PROGRAMOWE", "NIEPROGRAMOWE"]);
   });
 });

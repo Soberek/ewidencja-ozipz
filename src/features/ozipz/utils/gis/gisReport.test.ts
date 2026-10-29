@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { beforeEach, describe, it, expect } from "vitest";
 import { JRWA_DICTIONARY_FIXTURE } from "../../../../test/fixtures/jrwaCatalog";
-import type { OzipzAction, OzipzDictionaryItem, OzipzFacility } from "../../types/ozipz.types";
+import { useOzipzDbStore } from "../../store/useOzipzDbStore";
+import type { OzipzAction, OzipzDictionaryItem, OzipzFacility, OzipzProgram } from "../../types/ozipz.types";
 import {
   buildJrwaGisCategoryMap,
   calculateGisReports,
@@ -148,6 +149,14 @@ describe("calculateGisReports", () => {
     },
   ];
 
+  // Katalog programów – rodzaj (programowe/nieprogramowe) wynika wyłącznie z symbolu wybranego programu.
+  const program = (id: string, name: string, jrwaSymbol: string) =>
+    ({ id, code: id, name, jrwaSymbol, editionYear: "2025/2026", createdAt: "", updatedAt: "" }) as OzipzProgram;
+  const programs = [program("trzymaj-forme", "Trzymaj Formę", "966.1"), program("promocja-szczepien", "Promocja szczepień", "966.11")];
+  // Wspólne wyniki niżej liczą się przy wczytaniu pliku, a testy liczące własny raport dostają katalog w beforeEach.
+  useOzipzDbStore.setState({ programs });
+  beforeEach(() => useOzipzDbStore.setState({ programs }));
+
   const actions = [
     // SZCZEPIENIA – nieprogramowe
     action({ jrwaSign: "OZiPZ.966.11.1.2026", programName: "Promocja szczepień", actionType: "Prelekcja (warsztat)", numberOfActions: 2, participantsCount: 40, facilityId: "f-1" }),
@@ -199,6 +208,21 @@ describe("calculateGisReports", () => {
     expect(report.liczbaWizytacji).toBe(1);
     expect(report.grupyOdbiorcow).toContain("dorośli");
     expect(report.powiat).toBe("");
+  });
+
+  it("o rodzaju decyduje wybrany program, nie znak sprawy", () => {
+    const result = calculateGisReports([
+      // Znak z teczki programowej 966.1 bez programu – nieprogramowe (obszar nadal ze znaku)
+      action({ jrwaSign: "OZiPZ.966.1.5.2026", programName: "", actionType: "Prelekcja (warsztat)", participantsCount: 10 }),
+      // Program Trzymaj Formę ze znakiem nieprogramowej teczki 966.11 – programowe, obszar z programu
+      action({ jrwaSign: "OZiPZ.966.11.5.2026", programId: "trzymaj-forme", programName: "Trzymaj Formę", actionType: "Prelekcja (warsztat)", participantsCount: 7 }),
+    ], { gisCategoryMap });
+    expect(result.reports.otylosc.nieprogramowe.liczbaDzialan).toBe(1);
+    expect(result.reports.otylosc.nieprogramowe.liczbaOdbiorcow).toBe(10);
+    expect(result.reports.otylosc.programowe.liczbaDzialan).toBe(1);
+    expect(result.reports.otylosc.programowe.liczbaOdbiorcow).toBe(7);
+    expect(result.reports.szczepienia.programowe.liczbaDzialan).toBe(0);
+    expect(result.reports.szczepienia.nieprogramowe.liczbaDzialan).toBe(0);
   });
 
   it("reports categorisation coverage and the reason for each unclassified action", () => {

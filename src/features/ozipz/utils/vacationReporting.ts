@@ -1,5 +1,5 @@
 import type { OzipzAction } from "../types/ozipz.types";
-import { extractCleanJrwaSymbol } from "./ozipzCalculations";
+import { resolveReportingJrwaSymbol } from "./ozipzCalculations";
 import { resolveActivityFormLabel } from "./actionFormUtils";
 import { isActionCountedInReports } from "./calculators/actionMetrics";
 import { parseAudienceGroups } from "../components/actions/editor/audienceUtils";
@@ -72,8 +72,8 @@ function ranked(map: Map<string, number>): VacationRankedRow[] {
  * Bezwzględnie odrzuca działania przypisane do innych teczek JRWA (np. 966.1, 966.3, 966.4 itd.).
  */
 export function isVacationAction(action: Partial<OzipzAction>): boolean {
-  // 1. Znak JRWA lub wyodrębniony symbol: jeśli posiada symbol JRWA inny niż 966.14, natychmiast odrzucamy
-  const sym = extractCleanJrwaSymbol(action);
+  // 1. Symbol do sprawozdań (program, a bez niego znak sprawy): inny niż 966.14 – natychmiast odrzucamy
+  const sym = resolveReportingJrwaSymbol(action);
   if (sym) {
     return sym === BEZPIECZNE_WAKACJE_JRWA;
   }

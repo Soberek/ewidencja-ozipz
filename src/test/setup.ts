@@ -15,4 +15,8 @@ const loadDictionary = () => {
   useOzipzDbStore.setState({ dictionaryItems: JRWA_DICTIONARY_FIXTURE });
 };
 loadDictionary();
-beforeEach(loadDictionary);
+// Katalog programów decyduje o programowe/nieprogramowe – każdy test ustawia własny, bez przenoszenia z poprzednich.
+beforeEach(() => {
+  loadDictionary();
+  useOzipzDbStore.setState({ programs: [] });
+});

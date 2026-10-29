@@ -3,7 +3,8 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import { OzipzDbService } from "../../../../db/client";
 import { emptyMetricPlan } from "./components/reportConstants";
 import { useReportsData } from "./useReportsData";
-import type { OzipzAction } from "../../types/ozipz.types";
+import { useOzipzDbStore } from "../../store/useOzipzDbStore";
+import type { OzipzAction, OzipzProgram } from "../../types/ozipz.types";
 
 vi.mock("../../utils/reportExport", () => ({
   downloadHealthPromotionReportWorkbook: vi.fn().mockResolvedValue(undefined),
@@ -29,6 +30,12 @@ describe("useReportsData Hook", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    // Rodzaj działania wynika z programu: Trzymaj Formę ma symbol 966.1 (PROGRAMOWE w słowniku JRWA)
+    useOzipzDbStore.setState({
+      programs: [
+        { id: "prog-tf", code: "TF", name: "Trzymaj Formę!", jrwaSymbol: "966.1", editionYear: "2025/2026", createdAt: "", updatedAt: "" } as OzipzProgram,
+      ],
+    });
   });
 
   const mockActions: OzipzAction[] = [
@@ -179,6 +186,19 @@ describe("useReportsData Hook", () => {
     expect(mayStat?.otherRecipients).toBe(50);
     expect(mayStat?.totalActions).toBe(2);
     expect(mayStat?.totalRecipients).toBe(80);
+
+    // Znak sprawy nie decyduje: nieprogramowe ze znakiem teczki programowej i programowe ze znakiem
+    // teczki nieprogramowej zachowują rodzaj wynikający z programu
+    const withSigns = [
+      { ...mockActions[0], jrwaSign: "OZiPZ.966.14.1.2026" },
+      { ...mockActions[1], jrwaSign: "OZiPZ.966.1.1.2026" },
+    ];
+    const { result: signed } = renderHook(() => useReportsData({ allActions: withSigns, year: 2026, months: [5] }));
+    const signedMay = signed.current.statisticsRows.find((r) => r.month === 5);
+    expect(signedMay?.programActions).toBe(1);
+    expect(signedMay?.programRecipients).toBe(30);
+    expect(signedMay?.otherActions).toBe(1);
+    expect(signedMay?.otherRecipients).toBe(50);
   });
 
   it("calculates metricSummary and percentage execution vs budget plan", () => {

@@ -97,16 +97,26 @@ describe("ozipzCalculations", () => {
       });
     });
 
-    it("correctly determines program action based on actionType, JRWA and programId", () => {
-      expect(isProgramAction({ actionType: "programowe" })).toBe(true);
+    it("correctly determines program action based solely on the selected program's JRWA kind", () => {
+      // Dawny fallback na actionType już nie obowiązuje – bez programu działanie jest nieprogramowe
+      expect(isProgramAction({ actionType: "programowe" })).toBe(false);
       expect(isProgramAction({ actionType: "nieprogramowe" })).toBe(false);
       expect(isProgramAction({ actionType: "wlasne" })).toBe(false);
       expect(isProgramAction({ actionType: "akcyjne" })).toBe(false);
 
-      // JRWA 966.1 (Trzymaj Formę) -> PROGRAMOWE
-      expect(isProgramAction({ jrwaCaseId: "966.1" })).toBe(true);
-      // JRWA 966.14 (Bezpieczne Wakacje) -> NIEPROGRAMOWE
+      // Program Trzymaj Formę (966.1 -> PROGRAMOWE) -> programowe, po id i po nazwie
+      expect(isProgramAction({ programId: "trzymaj-forme" })).toBe(true);
+      expect(isProgramAction({ programName: "trzymaj formę" })).toBe(true);
+      // Program Bezpieczne Wakacje (966.14 -> NIEPROGRAMOWE) -> nieprogramowe
+      expect(isProgramAction({ programId: "bezpieczne-wakacje" })).toBe(false);
+
+      // Znak sprawy nie decyduje: sam znak (bez programu) nie czyni działania programowym
+      expect(isProgramAction({ jrwaCaseId: "966.1" })).toBe(false);
+      expect(isProgramAction({ jrwaSign: "OZiPZ.966.1.2.2026" })).toBe(false);
       expect(isProgramAction({ jrwaSign: "OZiPZ.966.14.2.2026" })).toBe(false);
+      // ...ani nie zmienia rodzaju wynikającego z wybranego programu
+      expect(isProgramAction({ programId: "trzymaj-forme", jrwaSign: "OZiPZ.966.14.2.2026" })).toBe(true);
+      expect(isProgramAction({ programId: "bezpieczne-wakacje", jrwaSign: "OZiPZ.966.1.2.2026", jrwaCaseId: "966.1" })).toBe(false);
 
       // Bezpieczne Wakacje z technicznym UUID SQLite w jrwaCaseId nie może być zaklasyfikowane jako programowe
       expect(
@@ -127,8 +137,8 @@ describe("ozipzCalculations", () => {
         })
       ).toBe(false);
 
-      // ProgramId fallback
-      expect(isProgramAction({ programId: "prog-tf" })).toBe(true);
+      // Dawny fallback „jest programId → programowe” już nie obowiązuje: program spoza katalogu nie ma rodzaju
+      expect(isProgramAction({ programId: "prog-tf" })).toBe(false);
       expect(isProgramAction({ programId: "inne" })).toBe(false);
       expect(isProgramAction({ programId: "brak" })).toBe(false);
       expect(isProgramAction({})).toBe(false);
@@ -223,9 +233,23 @@ describe("ozipzCalculations", () => {
         ["966.1", "NIEPROGRAMOWE"], // user re-classified 966.1 as NIEPROGRAMOWE
       ]);
 
-      expect(isProgramAction({ jrwaSign: "OZiPZ.966.14.1.2026" }, customKindMap)).toBe(true);
-      expect(isProgramAction({ jrwaSign: "OZiPZ.966.99.1.2026" }, customKindMap)).toBe(true);
-      expect(isProgramAction({ jrwaSign: "OZiPZ.966.1.1.2026" }, customKindMap)).toBe(false);
+      useOzipzDbStore.setState({
+        programs: [
+          ...useOzipzDbStore.getState().programs,
+          { id: "nowy-program", code: "nowy-program", name: "Nowy Program Lokalny", jrwaSymbol: "966.99", editionYear: "2025/2026", createdAt: "", updatedAt: "" } as OzipzProgram,
+        ],
+      });
+
+      // Rodzaj wynika z symbolu wybranego programu w przekazanej mapie
+      expect(isProgramAction({ programId: "bezpieczne-wakacje" }, customKindMap)).toBe(true);
+      expect(isProgramAction({ programId: "nowy-program" }, customKindMap)).toBe(true);
+      expect(isProgramAction({ programId: "trzymaj-forme" }, customKindMap)).toBe(false);
+
+      // Znak sprawy nie decyduje – ani sam, ani wbrew programowi
+      expect(isProgramAction({ jrwaSign: "OZiPZ.966.14.1.2026" }, customKindMap)).toBe(false);
+      expect(isProgramAction({ jrwaSign: "OZiPZ.966.99.1.2026" }, customKindMap)).toBe(false);
+      expect(isProgramAction({ programId: "trzymaj-forme", jrwaSign: "OZiPZ.966.99.1.2026" }, customKindMap)).toBe(false);
+      expect(isProgramAction({ programId: "nowy-program", jrwaSign: "OZiPZ.966.1.1.2026" }, customKindMap)).toBe(true);
     });
 
     it("extractCleanJrwaSymbol recognizes custom JRWA symbols passed via knownSymbols", () => {
@@ -636,6 +660,12 @@ describe("ozipzCalculations", () => {
 
   describe("isExcludedNieprogramoweWizytacja", () => {
     it("identifies when non-program Wizytacja should be excluded", () => {
+      const program = (id: string, jrwaSymbol: string) =>
+        ({ id, code: id, name: id, jrwaSymbol, editionYear: "2025/2026", createdAt: "", updatedAt: "" }) as OzipzProgram;
+      useOzipzDbStore.setState({
+        programs: [program("trzymaj-forme", "966.1"), program("prog-88", "966.88"), program("prog-99", "966.99")],
+      });
+
       expect(
         isExcludedNieprogramoweWizytacja({
           actionType: "nieprogramowe",
@@ -643,9 +673,18 @@ describe("ozipzCalculations", () => {
         })
       ).toBe(true);
 
+      // actionType "programowe" bez programu już nie chroni wizytacji – decyduje wyłącznie program
       expect(
         isExcludedNieprogramoweWizytacja({
           actionType: "programowe",
+          title: "Wizytacja",
+        })
+      ).toBe(true);
+
+      // Wizytacja w programie programowym (966.1) nie jest wykluczana
+      expect(
+        isExcludedNieprogramoweWizytacja({
+          programId: "trzymaj-forme",
           title: "Wizytacja",
         })
       ).toBe(false);
@@ -662,7 +701,29 @@ describe("ozipzCalculations", () => {
         ["966.99", "NIEPROGRAMOWE"],
       ]);
 
-      // Custom JRWA classified as PROGRAMOWE -> not excluded even if title is Wizytacja
+      // Program z symbolem PROGRAMOWE w mapie -> not excluded even if title is Wizytacja
+      expect(
+        isExcludedNieprogramoweWizytacja(
+          {
+            programId: "prog-88",
+            title: "Wizytacja",
+          },
+          dynamicMap
+        )
+      ).toBe(false);
+
+      // Program z symbolem NIEPROGRAMOWE w mapie -> excluded when title is Wizytacja
+      expect(
+        isExcludedNieprogramoweWizytacja(
+          {
+            programId: "prog-99",
+            title: "Wizytacja",
+          },
+          dynamicMap
+        )
+      ).toBe(true);
+
+      // Znak sprawy z symbolem PROGRAMOWE nie chroni wizytacji bez programu programowego
       expect(
         isExcludedNieprogramoweWizytacja(
           {
@@ -671,13 +732,12 @@ describe("ozipzCalculations", () => {
           },
           dynamicMap
         )
-      ).toBe(false);
-
-      // Custom JRWA classified as NIEPROGRAMOWE -> excluded when title is Wizytacja
+      ).toBe(true);
       expect(
         isExcludedNieprogramoweWizytacja(
           {
-            jrwaSign: "OZiPZ.966.99.1.2026",
+            programId: "prog-99",
+            jrwaSign: "OZiPZ.966.88.1.2026",
             title: "Wizytacja",
           },
           dynamicMap

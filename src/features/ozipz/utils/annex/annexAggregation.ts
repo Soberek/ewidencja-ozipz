@@ -4,6 +4,7 @@ import { safeParseDate } from "../dateUtils";
 import {
   isProgramAction,
   extractCleanJrwaSymbol,
+  resolveReportingJrwaSymbol,
   getActiveJrwaKindMap,
   getActiveJrwaNamesMap,
 } from "../calculators/jrwaClassification";
@@ -149,7 +150,7 @@ export function buildReportAnnexRows(
     const programName = resolveInterventionName(action, isProg, interventionNames);
     const actionName = getNormalizedActionType(action);
     if (isOutsideMiernik(isProg, actionName)) return;
-    const cleanJrwa = extractCleanJrwaSymbol(action, knownSymbols) || "";
+    const cleanJrwa = resolveReportingJrwaSymbol(action, knownSymbols) || "";
     const key = `${kind}|${programName}|${actionName}`;
 
     const row = buckets.get(key) ?? {

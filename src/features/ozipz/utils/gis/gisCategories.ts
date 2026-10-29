@@ -1,6 +1,6 @@
 import type { GisCategory, OzipzAction, OzipzDictionaryItem } from "../../types/ozipz.types";
 import { GisCategorySchema } from "../../schemas/ozipzCoreSchemas";
-import { extractCleanJrwaSymbol } from "../calculators/jrwaClassification";
+import { resolveReportingJrwaSymbol } from "../calculators/jrwaClassification";
 import type { GisReportCategoryId } from "./gisReportTypes";
 
 export interface GisCategoryConfig {
@@ -53,6 +53,6 @@ export function resolveActionGisCategory(
   action: Partial<OzipzAction>,
   gisCategoryMap: ReadonlyMap<string, GisCategory>
 ): ResolvedGisCategory {
-  const symbol = extractCleanJrwaSymbol(action);
+  const symbol = resolveReportingJrwaSymbol(action);
   return { symbol, category: symbol ? gisCategoryMap.get(symbol) ?? null : null };
 }

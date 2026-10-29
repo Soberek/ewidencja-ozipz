@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
-import type { OzipzAction, OzipzDictionaryItem } from "../../../types/ozipz.types";
+import type { OzipzAction, OzipzDictionaryItem, OzipzProgram } from "../../../types/ozipz.types";
 import { useOzipzDbStore } from "../../../store/useOzipzDbStore";
 import { ReportGisTab } from "./ReportGisTab";
 import { JRWA_DICTIONARY_FIXTURE } from "../../../../../test/fixtures/jrwaCatalog";
@@ -26,10 +26,19 @@ function action(id: string, overrides: Partial<OzipzAction>): OzipzAction {
   };
 }
 
+// Katalog programów – rodzaj (programowe/nieprogramowe) wynika wyłącznie z symbolu JRWA wybranego programu.
+const program = (id: string, name: string, jrwaSymbol: string) =>
+  ({ id, code: id, name, jrwaSymbol, editionYear: "2025/2026", createdAt: "", updatedAt: "" }) as OzipzProgram;
+const programs = [
+  program("substancje", "Profilaktyka substancji psychoaktywnych", "966.6"),
+  program("mlodzi-swiadomi", "#MłodziŚwiadomi", "966.18"),
+  program("zdrowie-psychiczne", "Promocja zdrowia psychicznego", "966.16"),
+];
+
 const actions = [
-  action("a1", { jrwaSign: "OZiPZ.966.6.1.2026", programName: "Profilaktyka substancji psychoaktywnych", participantsCount: 25 }),
-  action("a2", { jrwaSign: "OZiPZ.966.18.1.2026", programName: "#MłodziŚwiadomi", participantsCount: 30}),
-  action("a3", { jrwaSign: "OZiPZ.966.16.1.2026", programName: "Promocja zdrowia psychicznego", participantsCount: 10 }),
+  action("a1", { jrwaSign: "OZiPZ.966.6.1.2026", programId: "substancje", programName: "Profilaktyka substancji psychoaktywnych", participantsCount: 25 }),
+  action("a2", { jrwaSign: "OZiPZ.966.18.1.2026", programId: "mlodzi-swiadomi", programName: "#MłodziŚwiadomi", participantsCount: 30}),
+  action("a3", { jrwaSign: "OZiPZ.966.16.1.2026", programId: "zdrowie-psychiczne", programName: "Promocja zdrowia psychicznego", participantsCount: 10 }),
 ];
 
 function rowValue(label: RegExp): HTMLElement {
@@ -41,7 +50,7 @@ describe("ReportGisTab", () => {
   const originalClipboard = navigator.clipboard;
 
   beforeEach(() => {
-    useOzipzDbStore.setState({ dictionaryItems: JRWA_DICTIONARY_FIXTURE });
+    useOzipzDbStore.setState({ dictionaryItems: JRWA_DICTIONARY_FIXTURE, programs });
     Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
   });
 
@@ -62,6 +71,19 @@ describe("ReportGisTab", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: /STI/ }));
     expect(screen.getByText(/STI \(INFEKCJE PRZENOSZONE DROGĄ PŁCIOWĄ\) – PROGRAMOWE/)).toBeDefined();
+    expect(within(rowValue(/^4\. Liczba odbiorców/)).getByText("30")).toBeDefined();
+  });
+
+  it("does not let the case sign make an action without a program programowe", () => {
+    // Znak sprawy z teczki programowej 966.18, ale bez wybranego programu – działanie nieprogramowe
+    const signOnly = [action("s1", { jrwaSign: "OZiPZ.966.18.2.2026", programName: "", participantsCount: 30 })];
+    render(<ReportGisTab actions={signOnly} facilities={[]} year={2026} months={[7, 8, 9]} />);
+
+    fireEvent.click(screen.getByRole("tab", { name: /STI/ }));
+    expect(screen.getByText(/STI \(INFEKCJE PRZENOSZONE DROGĄ PŁCIOWĄ\) – PROGRAMOWE/)).toBeDefined();
+    expect(within(rowValue(/^4\. Liczba odbiorców/)).getByText("0")).toBeDefined();
+    fireEvent.click(screen.getByRole("tab", { name: /NIEPROGRAMOWE/ }));
+    expect(screen.getByText(/STI \(INFEKCJE PRZENOSZONE DROGĄ PŁCIOWĄ\) – NIEPROGRAMOWE/)).toBeDefined();
     expect(within(rowValue(/^4\. Liczba odbiorców/)).getByText("30")).toBeDefined();
   });
 

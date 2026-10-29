@@ -117,11 +117,27 @@ describe("Załączniki sprawozdawcze i eksport do Excela", () => {
   });
 
   describe("buildReportAnnexRows & buildReportHierarchy", () => {
+    // O rodzaju (programowe/nieprogramowe) decyduje wyłącznie wybrany program i rodzaj jego symbolu JRWA.
+    const program = (id: string, name: string, jrwaSymbol: string) =>
+      ({ id, code: id, name, jrwaSymbol, editionYear: "2025/2026", createdAt: "", updatedAt: "" }) as OzipzProgram;
+    const setPrograms = () =>
+      useOzipzDbStore.setState({
+        programs: [
+          program("higiena", "Higiena naszą tarczą ochronną", "966.4"),
+          program("bezpieczne-wakacje-test", "Bezpieczne wakacje", "966.14"),
+          program("trzymaj-forme", "Trzymaj Formę", "966.1"),
+          program("prog-1", "Bieg po zdrowie", "966.1"),
+          program("promocja", "Promocja zdrowego stylu życia", "966.7"),
+        ],
+      });
+
     it("builds annex rows with program and non-program grouping", () => {
+      setPrograms();
       const sampleActions: Partial<OzipzAction>[] = [
         {
           id: "act-1",
           title: "Prelekcja o higienie",
+          programId: "higiena",
           jrwaSign: "966.4.1.2026",
           numberOfActions: 2,
           participantsCount: 50,
@@ -130,6 +146,7 @@ describe("Załączniki sprawozdawcze i eksport do Excela", () => {
         {
           id: "act-2",
           title: "Stoisko profilaktyczne",
+          programId: "bezpieczne-wakacje-test",
           jrwaSign: "966.14.1.2026",
           numberOfActions: 1,
           participantsCount: 120,
@@ -138,6 +155,7 @@ describe("Załączniki sprawozdawcze i eksport do Excela", () => {
         {
           id: "act-3",
           title: "Wizytacja",
+          programId: "trzymaj-forme",
           jrwaSign: "966.1.1.2026",
           numberOfActions: 1,
           participantsCount: 0,
@@ -163,13 +181,30 @@ describe("Załączniki sprawozdawcze i eksport do Excela", () => {
       expect(visitRow).toBeDefined();
       expect(visitRow?.visits).toBe(1);
       expect(visitRow?.actions).toBe(0);
+
+      // Bez programu znak sprawy z teczki programowej nie decyduje – wiersz jest nieprogramowy,
+      // a symbol znaku nadal trafia do kolumny JRWA
+      const signOnly = buildReportAnnexRows([
+        { id: "act-4", title: "Prelekcja o higienie", jrwaSign: "OZiPZ.966.4.2.2026", numberOfActions: 1, participantsCount: 10, status: "wykonane" },
+      ] as OzipzAction[]);
+      expect(signOnly).toHaveLength(1);
+      expect(signOnly[0].kind).toBe("nieprogramowe");
+      expect(signOnly[0].jrwa).toBe("966.4");
+
+      // Wizytacja bez programu programowego jest nieprogramowa – poza miernikiem, mimo znaku 966.1
+      const visitSignOnly = buildReportAnnexRows([
+        { id: "act-5", title: "Wizytacja", jrwaSign: "966.1.1.2026", numberOfActions: 1, participantsCount: 0, status: "wykonane" },
+      ] as OzipzAction[]);
+      expect(visitSignOnly).toHaveLength(0);
     });
 
     it("builds hierarchy sections correctly", () => {
+      setPrograms();
       const sampleActions: Partial<OzipzAction>[] = [
         {
           id: "act-1",
           title: "Warsztat",
+          programId: "trzymaj-forme",
           jrwaSign: "966.1",
           numberOfActions: 1,
           participantsCount: 20,
@@ -178,6 +213,7 @@ describe("Załączniki sprawozdawcze i eksport do Excela", () => {
         {
           id: "act-2",
           title: "Konkurs",
+          programId: "promocja",
           jrwaSign: "966.7",
           numberOfActions: 1,
           participantsCount: 15,
@@ -198,6 +234,16 @@ describe("Załączniki sprawozdawcze i eksport do Excela", () => {
       expect(nonProgSec).toBeDefined();
       expect(nonProgSec?.totalActions).toBe(1);
       expect(nonProgSec?.totalPeople).toBe(15);
+
+      // Znak sprawy sprzeczny z programem nie przenosi działań między sekcjami
+      const swapped = buildReportHierarchy(
+        buildReportAnnexRows([
+          { ...sampleActions[0], jrwaSign: "966.7" },
+          { ...sampleActions[1], jrwaSign: "966.1" },
+        ] as OzipzAction[])
+      );
+      expect(swapped.find((sec) => sec.kind === "programowe")?.totalPeople).toBe(20);
+      expect(swapped.find((sec) => sec.kind === "nieprogramowe")?.totalPeople).toBe(15);
     });
 
     it("unifies actions from the same program into exactly ONE group without splitting or leaking UUIDs", () => {
@@ -276,6 +322,7 @@ describe("Załączniki sprawozdawcze i eksport do Excela", () => {
     });
 
     it("aggregates actions into the programs data structure", () => {
+      setPrograms();
       const sampleActions: Partial<OzipzAction>[] = [
         {
           id: "act-1",
@@ -305,6 +352,14 @@ describe("Załączniki sprawozdawcze i eksport do Excela", () => {
       expect(res.allPeople).toBe(45);
       expect(res.aggregated.PROGRAMOWE["Bieg po zdrowie"]).toBeDefined();
       expect(res.aggregated.NIEPROGRAMOWE["Bezpieczne Wakacje"]).toBeDefined();
+
+      // Program spoza katalogu nie ma rodzaju – samo programId nie czyni działania programowym
+      const unknown = aggregateActionsToProgramsData(
+        [{ ...sampleActions[0], id: "act-3", programId: "prog-spoza-katalogu", programName: "Program spoza katalogu" }] as OzipzAction[],
+        [4]
+      );
+      expect(unknown.aggregated.PROGRAMOWE["Program spoza katalogu"]).toBeUndefined();
+      expect(unknown.aggregated.NIEPROGRAMOWE["Program spoza katalogu"]).toBeDefined();
     });
 
     it("excludes cancelled or postponed actions from aggregation", () => {
