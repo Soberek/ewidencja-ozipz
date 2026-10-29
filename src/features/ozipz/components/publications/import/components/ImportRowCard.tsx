@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { OzipzProgram } from "../../../../types/ozipz.types";
+import type { OzipzDictionaryItem, OzipzProgram } from "../../../../types/ozipz.types";
 import { formatDatePl } from "../../../../utils/dateUtils";
 import type { EvaluatedRow, ImportRow } from "../importRows";
 import { IMPORT_STATUS_META } from "../importStatusMeta";
@@ -15,6 +15,7 @@ import { IMPORT_STATUS_META } from "../importStatusMeta";
 interface ImportRowCardProps {
   row: EvaluatedRow;
   programs: OzipzProgram[];
+  campaigns: OzipzDictionaryItem[];
   canLink: boolean;
   onToggle: (key: string, selected: boolean) => void;
   onUpdate: (key: string, patch: Partial<ImportRow>) => void;
@@ -26,7 +27,7 @@ interface ImportRowCardProps {
 
 const shortUrl = (url: string) => url.replace(/^https?:\/\/(www\.)?/, "");
 
-function ImportRowCardInner({ row, programs, canLink, onToggle, onUpdate, onProgram, onSkip, onLink, onOpenMatch }: ImportRowCardProps) {
+function ImportRowCardInner({ row, programs, campaigns, canLink, onToggle, onUpdate, onProgram, onSkip, onLink, onOpenMatch }: ImportRowCardProps) {
   const meta = IMPORT_STATUS_META[row.status];
   const StatusIcon = meta.icon;
   const editable = row.selectable;
@@ -166,6 +167,21 @@ function ImportRowCardInner({ row, programs, canLink, onToggle, onUpdate, onProg
                 </option>
               ))}
             </NativeSelect>
+            {campaigns.length > 0 && (
+              <NativeSelect
+                value={row.campaignId || ""}
+                onChange={(e) => onUpdate(row.key, { campaignId: e.target.value || undefined })}
+                aria-label="Kampania / akcja"
+                className="h-7 text-[11px]"
+              >
+                <option value="">-- Bez kampanii (opcjonalnie) --</option>
+                {campaigns.map((c) => (
+                  <option key={c.id} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            )}
             {!row.programId && (
               <Input
                 value={row.customTopic}

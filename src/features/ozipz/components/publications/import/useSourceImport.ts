@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useActions, usePrograms, usePublications, useStaff } from "../../../store/useOzipzDbStore";
+import { useActions, useDictionaries, usePrograms, usePublications, useStaff } from "../../../store/useOzipzDbStore";
 import { buildPublicationRegistry, linkKey } from "../matching/publicationMatcher";
 import type { ImportSourceId, ScrapedPublication } from "../sources/importTypes";
 import { DEFAULT_PUBLICATION_TOPIC } from "../sources/topicMatcher";
@@ -62,6 +62,8 @@ export function useSourceImport(source: ImportSourceId) {
   const actionsStore = useActions();
   const programs = usePrograms().programs || EMPTY_LIST;
   const staff = useStaff().staff || EMPTY_LIST;
+  const dictionaryItems = useDictionaries().dictionaryItems;
+  const campaigns = useMemo(() => dictionaryItems.filter((d) => d.dictType === "campaign"), [dictionaryItems]);
 
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [selection, setSelection] = useState<Map<string, boolean>>(new Map());
@@ -179,7 +181,7 @@ export function useSourceImport(source: ImportSourceId) {
     setIsSaving(true);
     const imported: string[] = [];
     try {
-      await importPublicationRows(toImport, author, programs, {
+      await importPublicationRows(toImport, author, programs, campaigns, {
         addAction: actionsStore.addAction,
         deleteAction: actionsStore.deleteAction,
         addPublication: publicationsStore.addPublication,
@@ -193,11 +195,12 @@ export function useSourceImport(source: ImportSourceId) {
       setIsSaving(false);
       if (imported.length) setSelected(imported, false);
     }
-  }, [selectedRows, author, programs, actionsStore, publicationsStore, setSelected]);
+  }, [selectedRows, author, programs, campaigns, actionsStore, publicationsStore, setSelected]);
 
   return {
     source,
     programs,
+    campaigns,
     staff,
     rows: evaluated,
     visibleRows,

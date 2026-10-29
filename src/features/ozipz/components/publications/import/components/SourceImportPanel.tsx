@@ -80,7 +80,7 @@ export function SourceImportPanel({ state, header, isLoading, error, loadingLabe
             />
             <span className="hidden w-[150px] lg:block">Data</span>
             <span className="flex-1">Publikacja i stan w systemie</span>
-            <span className="hidden w-[260px] lg:block">Program / tematyka</span>
+            <span className="hidden w-[260px] lg:block">Program / kampania / tematyka</span>
           </div>
 
           {visibleRows.length === 0 ? (
@@ -113,6 +113,7 @@ export function SourceImportPanel({ state, header, isLoading, error, loadingLabe
                   key={row.key}
                   row={row}
                   programs={state.programs}
+                  campaigns={state.campaigns}
                   canLink={linkable.has(row.key)}
                   onToggle={state.toggleRow}
                   onUpdate={state.updateRow}

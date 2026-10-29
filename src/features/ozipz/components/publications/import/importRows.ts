@@ -19,6 +19,8 @@ export type ImportRowStatus = "new" | "possible" | "probable" | "linked" | "exte
 export interface ImportRow extends ScrapedPublication {
   customTopic: string;
   customJrwa: string;
+  /** Kod kampanii ze słownika – opcjonalnie, niezależnie od programu. */
+  campaignId?: string;
 }
 
 export interface EvaluatedRow extends ImportRow {

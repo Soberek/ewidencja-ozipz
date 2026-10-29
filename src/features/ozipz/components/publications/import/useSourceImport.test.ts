@@ -12,6 +12,10 @@ const mockAddAction = vi.fn();
 const mockDeleteAction = vi.fn();
 const mockPublications: Partial<OzipzPublication>[] = [];
 const mockActions: Partial<OzipzAction>[] = [];
+const mockDictionaryItems = [
+  { id: "dict_camp_hpv", dictType: "campaign", code: "nie_odbieraj_sobie_glosu_hpv", label: "Nie odbieraj sobie głosu (HPV)", isSystem: true, createdAt: "", updatedAt: "" },
+  { id: "dict_topic", dictType: "topic", code: "szczepienia", label: "Szczepienia", isSystem: true, createdAt: "", updatedAt: "" },
+];
 
 vi.mock("../../../store/useOzipzDbStore", () => ({
   usePublications: () => ({
@@ -22,6 +26,7 @@ vi.mock("../../../store/useOzipzDbStore", () => ({
   useActions: () => ({ actions: mockActions, addAction: mockAddAction, deleteAction: mockDeleteAction }),
   usePrograms: () => ({ programs: [{ id: "prog-1", name: "Trzymaj Formę", jrwaSymbol: "966.1" }] }),
   useStaff: () => ({ staff: [{ id: "s1", fullName: "Jan Kowalski" }] }),
+  useDictionaries: () => ({ dictionaryItems: mockDictionaryItems }),
 }));
 
 const govItem = (slug: string, title: string, over: Partial<ScrapedPublication> = {}): ScrapedPublication => ({
@@ -95,6 +100,29 @@ describe("useSourceImport", () => {
     expect(actionPayload.facilityName).toBe("Portal X (@PSSEMysliborz)");
     expect(actionPayload.programId).toBe("prog-1");
     expect(actionPayload.programName).toBe("Trzymaj Formę");
+  });
+
+  it("saves an optional campaign from the dictionary next to the program", async () => {
+    const { result } = renderHook(() => useSourceImport("gov"));
+    act(() => result.current.addItems([govItem("hpv", "HPV – zaszczep się"), govItem("inny", "Inny wpis")]));
+
+    expect(result.current.campaigns.map((c) => c.code)).toEqual(["nie_odbieraj_sobie_glosu_hpv"]);
+    const [hpv] = result.current.rows.filter((r) => r.title.startsWith("HPV"));
+    act(() => {
+      result.current.selectProgram(hpv.key, "prog-1");
+      result.current.updateRow(hpv.key, { campaignId: "nie_odbieraj_sobie_glosu_hpv" });
+    });
+    await act(() => result.current.importSelected());
+
+    const payloads = mockAddAction.mock.calls.map(([action]) => action);
+    expect(payloads.find((a) => a.title.startsWith("HPV"))).toMatchObject({
+      programId: "prog-1",
+      campaignId: "nie_odbieraj_sobie_glosu_hpv",
+      campaignName: "Nie odbieraj sobie głosu (HPV)",
+    });
+    const other = payloads.find((a) => a.title === "Inny wpis");
+    expect(other.campaignId).toBeUndefined();
+    expect(other.campaignName).toBeUndefined();
   });
 
   it("rolls back the action when saving the publication fails", async () => {
@@ -186,7 +214,7 @@ it("reports only completed rows when a later import fails", async () => {
   const deleteAction = vi.fn().mockResolvedValue(undefined);
   const onImported = vi.fn();
 
-  await expect(importPublicationRows(rows, "", [], { addAction, addPublication, deleteAction }, onImported)).rejects.toThrow("Błąd bazy");
+  await expect(importPublicationRows(rows, "", [], [], { addAction, addPublication, deleteAction }, onImported)).rejects.toThrow("Błąd bazy");
 
   expect(onImported).toHaveBeenCalledExactlyOnceWith(rows[0].key);
   expect(deleteAction).toHaveBeenCalledExactlyOnceWith("act-2");

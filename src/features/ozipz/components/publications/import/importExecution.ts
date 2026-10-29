@@ -1,4 +1,4 @@
-import type { OzipzAction, OzipzProgram, OzipzPublication } from "../../../types/ozipz.types";
+import type { OzipzAction, OzipzDictionaryItem, OzipzProgram, OzipzPublication } from "../../../types/ozipz.types";
 import { PUBLICATION_DEFAULTS } from "../../../constants";
 import type { ImportSourceId } from "../sources/importTypes";
 import type { EvaluatedRow, ImportRow } from "./importRows";
@@ -37,7 +37,12 @@ export const IMPORT_SOURCE_CONFIG: Record<ImportSourceId, {
 
 export const canonicalLink = (row: ImportRow) => row.finalUrl || row.url;
 
-export function buildImportPayloads(row: ImportRow, author: string, programs: OzipzProgram[]): { action: NewAction; publication: NewPublication } {
+export function buildImportPayloads(
+  row: ImportRow,
+  author: string,
+  programs: OzipzProgram[],
+  campaigns: OzipzDictionaryItem[] = []
+): { action: NewAction; publication: NewPublication } {
   const config = IMPORT_SOURCE_CONFIG[row.source];
   const educator = author.trim() || DEFAULT_PUBLICATION_AUTHOR;
   const title = row.title.trim();
@@ -45,6 +50,7 @@ export function buildImportPayloads(row: ImportRow, author: string, programs: Oz
   const link = canonicalLink(row);
   const jrwa = row.customJrwa || "9011";
   const program = programs.find((p) => p.id === row.programId);
+  const campaign = row.campaignId ? campaigns.find((c) => c.code === row.campaignId) : undefined;
 
   return {
     publication: {
@@ -65,6 +71,8 @@ export function buildImportPayloads(row: ImportRow, author: string, programs: Oz
       municipality: PUBLICATION_DEFAULTS.municipality,
       programId: program?.id,
       programName: program?.name,
+      campaignId: campaign?.code,
+      campaignName: campaign?.label,
       topic,
       audienceGroup: PUBLICATION_DEFAULTS.audienceGroup,
       participantsCount: 0,
@@ -89,11 +97,12 @@ export async function importPublicationRows(
   rows: ImportRow[],
   author: string,
   programs: OzipzProgram[],
+  campaigns: OzipzDictionaryItem[],
   store: ImportStoreWriters,
   onImported: (key: string) => void
 ): Promise<void> {
   for (const row of rows) {
-    const { action, publication } = buildImportPayloads(row, author, programs);
+    const { action, publication } = buildImportPayloads(row, author, programs, campaigns);
     await saveImportedPublication({ action, publication, ...store });
     onImported(row.key);
   }
