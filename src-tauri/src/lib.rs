@@ -302,6 +302,24 @@ fn backup_database(destination_path: String) -> Result<(), String> {
     result
 }
 
+/// Zapisuje wygenerowany dokument (np. IZRZ .docx) w miejscu wskazanym w oknie „Zapisz jako”.
+#[tauri::command]
+fn save_generated_file(destination_path: String, contents: Vec<u8>) -> Result<(), String> {
+    let destination = PathBuf::from(destination_path);
+    if std::fs::canonicalize(&destination).ok() == database_path().ok().and_then(|path| std::fs::canonicalize(path).ok()) {
+        return Err("Nie można zapisać dokumentu w miejscu aktywnej bazy danych".into());
+    }
+    let temporary = temporary_path(&destination, "save-pending");
+    let result = std::fs::write(&temporary, contents).map_err(|e| e.to_string()).and_then(|_| replace_file(&temporary, &destination));
+    if temporary.exists() { let _ = std::fs::remove_file(temporary); }
+    result.map_err(|e| format!("Nie udało się zapisać pliku: {}", e))
+}
+
+#[tauri::command]
+fn reveal_saved_file(path: String) -> Result<(), String> {
+    open_in_file_manager(std::path::Path::new(&path), true)
+}
+
 #[tauri::command]
 fn has_restored_database() -> bool { RESTORED_DATABASE.load(Ordering::SeqCst) }
 
@@ -350,7 +368,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![publication_fetch::fetch_publication_source, open_local_database, get_database_path, set_database_location, reveal_database_file, backup_database, queue_database_restore, has_restored_database, acknowledge_database_restore,
+        .invoke_handler(tauri::generate_handler![publication_fetch::fetch_publication_source, open_local_database, get_database_path, set_database_location, reveal_database_file, backup_database, save_generated_file, reveal_saved_file, queue_database_restore, has_restored_database, acknowledge_database_restore,
             auto_backup::get_auto_backups, auto_backup::create_auto_backup_now, auto_backup::open_auto_backup_folder,
             db_lock::acquire_database_lock, db_lock::database_lock_status, db_lock::get_session_actor,
             storage_kind::get_database_storage_kind,

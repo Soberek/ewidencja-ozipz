@@ -4,9 +4,11 @@ import { buildIzrzAudienceDescription, sumAudienceCounts } from "./izrzAudience"
 import type { IzrzMaterialLine } from "./izrzContext";
 import { formatFullJrwaSign } from "./programJrwaUtils";
 import { getTodayIsoDate } from "./dateUtils";
+import { saveFileAs, type SavedFile } from "@/lib/saveFile";
 
 export const IZRZ_DRAFT_NUMBER = "[PROJEKT - przed zatwierdzeniem]";
 export const IZRZ_TEMPLATE_URL = "/generate-templates/izrz.docx";
+const IZRZ_DOCX_MIME_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 export const IZRZ_ATTACHMENT_LABELS = {
   attendance: "Potwierdzenie spotkania zał. F/PT/PZ/01/02",
@@ -208,25 +210,23 @@ export async function generateIzrzDocxBlob(
 
   return doc.getZip().generate({
     type: "blob",
-    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    mimeType: IZRZ_DOCX_MIME_TYPE,
   });
 }
 
-export async function downloadIzrzDocx(data: IzrzGeneratorData): Promise<string> {
+/** Generuje dokument i zapisuje go w miejscu wybranym przez użytkownika; null — anulowano wybór. */
+export async function saveIzrzDocx(data: IzrzGeneratorData): Promise<SavedFile | null> {
   const templateResponse = await fetch(IZRZ_TEMPLATE_URL);
   if (!templateResponse.ok) {
     throw new Error(`Brak szablonu IZRZ w aplikacji (${IZRZ_TEMPLATE_URL}).`);
   }
   const blob = await generateIzrzDocxBlob(await templateResponse.arrayBuffer(), data);
-  const fileName = buildIzrzDocxFileName(data);
 
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  link.click();
-  // Zwolnienie adresu dopiero po przejęciu pliku przez przeglądarkę.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-  return fileName;
+  return saveFileAs(blob, {
+    fileName: buildIzrzDocxFileName(data),
+    filterName: "Dokument Word",
+    extension: "docx",
+    mimeType: IZRZ_DOCX_MIME_TYPE,
+    title: "Zapisz informację z realizacji zadania",
+  });
 }

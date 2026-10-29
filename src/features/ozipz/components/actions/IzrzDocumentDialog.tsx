@@ -6,11 +6,12 @@ import { toast } from "sonner";
 import type { OzipzAction } from "../../types/ozipz.types";
 import { resolveIzrzContext } from "../../utils/izrzContext";
 import {
-  downloadIzrzDocx,
   getIzrzWarnings,
   prepareIzrzData,
+  saveIzrzDocx,
   type IzrzGeneratorData,
 } from "../../utils/izrzGenerator";
+import { revealSavedFile } from "@/lib/saveFile";
 import { useActions, useFacilities, useMaterials } from "../../store/useOzipzDbStore";
 import { IzrzSheetEditor } from "./IzrzSheetEditor";
 
@@ -48,11 +49,21 @@ export function IzrzDocumentDialog({ isOpen, onClose, action }: IzrzDocumentDial
 
   const handleChange = (patch: Partial<IzrzGeneratorData>) => setDraft((prev) => ({ ...prev, ...patch }));
 
-  const handleDownload = async () => {
+  const handleSave = async () => {
     try {
       setIsGenerating(true);
-      const fileName = await downloadIzrzDocx(draft);
-      toast.success(`Pobrano dokument IZRZ: ${fileName}`);
+      const saved = await saveIzrzDocx(draft);
+      if (!saved) return;
+      const { path } = saved;
+      toast.success(`Zapisano dokument IZRZ: ${saved.fileName}`, {
+        description: path,
+        action: path
+          ? {
+              label: "Pokaż w folderze",
+              onClick: () => revealSavedFile(path).catch((err) => toast.error(String(err))),
+            }
+          : undefined,
+      });
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Nie udało się wygenerować dokumentu DOCX.");
@@ -96,13 +107,13 @@ export function IzrzDocumentDialog({ isOpen, onClose, action }: IzrzDocumentDial
             <Button
               type="button"
               size="sm"
-              onClick={handleDownload}
+              onClick={handleSave}
               disabled={isGenerating}
               className="h-8.5 px-3.5 text-xs font-bold gap-2"
-              title="Generuj i pobierz dokument Word (.docx)"
+              title="Generuj dokument Word (.docx) i wybierz, gdzie go zapisać"
             >
               {isGenerating ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
-              {isGenerating ? "Generowanie..." : "Generuj dokument (.docx)"}
+              {isGenerating ? "Generowanie..." : "Zapisz dokument (.docx)…"}
             </Button>
           </div>
         </div>

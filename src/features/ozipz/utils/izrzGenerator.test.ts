@@ -4,7 +4,7 @@ import {
   prepareIzrzData,
   buildIzrzDocxFileName,
   generateIzrzDocxBlob,
-  downloadIzrzDocx,
+  saveIzrzDocx,
   getIzrzWarnings,
   composeIzrzRemarks,
   formatIzrzMaterials,
@@ -186,7 +186,7 @@ describe("IZRZ Generator", () => {
     expect(blob.size).toBeGreaterThan(0);
   });
 
-  it("downloads IZRZ docx by fetching template and triggering download", async () => {
+  it("falls back to a browser download of the IZRZ docx when no save picker is available", async () => {
     const templateBuffer = createMinimalDocxTemplate("{znak_sprawy}");
 
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
@@ -209,8 +209,9 @@ describe("IZRZ Generator", () => {
       return el;
     });
 
-    const fileName = await downloadIzrzDocx(prepareIzrzData(dummyAction, dummyFacility));
-    expect(fileName).toMatch(/^IZRZ_/);
+    const saved = await saveIzrzDocx(prepareIzrzData(dummyAction, dummyFacility));
+    expect(saved?.fileName).toMatch(/^IZRZ_.*\.docx$/);
+    expect(saved?.path).toBeUndefined();
     expect(clickMock).toHaveBeenCalledTimes(1);
 
     fetchSpy.mockRestore();
@@ -222,7 +223,7 @@ describe("IZRZ Generator", () => {
       ok: false,
     } as Response);
 
-    await expect(downloadIzrzDocx(prepareIzrzData(dummyAction, dummyFacility))).rejects.toThrow(
+    await expect(saveIzrzDocx(prepareIzrzData(dummyAction, dummyFacility))).rejects.toThrow(
       "Brak szablonu IZRZ w aplikacji (/generate-templates/izrz.docx)."
     );
 
