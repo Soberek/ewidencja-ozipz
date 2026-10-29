@@ -152,6 +152,7 @@ export function ProgramsSection(props: ProgramsSectionProps) {
           onEdit={onOpenEditProgram}
           onDelete={handleDeleteProgram}
           onOpenAddParticipation={onOpenAddParticipation}
+          jrwaKindMap={jrwaKindMap}
         />
       )}
 

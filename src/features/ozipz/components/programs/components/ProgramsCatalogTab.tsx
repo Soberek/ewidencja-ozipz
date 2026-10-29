@@ -8,6 +8,8 @@ import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { OzipzProgram } from "../../../types/ozipz.types";
 import { getProgramJrwaSymbol } from "../../../utils/programJrwaUtils";
+import { getProgramKind } from "../../../utils/calculators/jrwaClassification";
+import { ProgramKindBadge } from "./ProgramKindBadge";
 import { RowActionButton } from "@/components/ui/row-action-button";
 
 const PROGRAM_STATUS_LABELS: Record<string, string> = {
@@ -22,6 +24,8 @@ export interface ProgramsCatalogTabProps {
   onEdit: (program: OzipzProgram) => void;
   onDelete: (id: string) => void;
   onOpenAddParticipation?: (programId: string) => void;
+  /** Rodzaj symboli JRWA ze słownika – decyduje, czy działania programu są programowe w sprawozdaniach. */
+  jrwaKindMap?: ReadonlyMap<string, "PROGRAMOWE" | "NIEPROGRAMOWE">;
 }
 
 export function ProgramsCatalogTab({
@@ -30,6 +34,7 @@ export function ProgramsCatalogTab({
   onEdit,
   onDelete,
   onOpenAddParticipation,
+  jrwaKindMap,
 }: ProgramsCatalogTabProps) {
   const [search, setSearch] = useState("");
 
@@ -107,6 +112,22 @@ export function ProgramsCatalogTab({
         },
       },
       {
+        id: "kind",
+        header: "Rodzaj",
+        accessorFn: (row) => getProgramKind(getProgramJrwaSymbol(row), jrwaKindMap) ?? "",
+        sortable: true,
+        cell: ({ row }) => {
+          const kind = getProgramKind(getProgramJrwaSymbol(row), jrwaKindMap);
+          return kind ? (
+            <ProgramKindBadge kind={kind} />
+          ) : (
+            <span className="text-xs text-amber-700 dark:text-amber-400" title="Symbol bez rodzaju w słowniku JRWA – działania liczą się jako nieprogramowe">
+              brak rodzaju
+            </span>
+          );
+        },
+      },
+      {
         id: "targetAudience",
         header: "Grupa Docelowa / Odbiorcy",
         accessorKey: "targetAudience",
@@ -177,7 +198,7 @@ export function ProgramsCatalogTab({
         ),
       },
     ];
-  }, [onEdit, onDelete, onOpenAddParticipation]);
+  }, [onEdit, onDelete, onOpenAddParticipation, jrwaKindMap]);
 
   return (
     <div className="space-y-3">

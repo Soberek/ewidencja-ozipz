@@ -18,6 +18,7 @@ import { useActionsFiltering } from "./hooks/useActionsFiltering";
 import { selectMunicipalities, selectTopics } from "../../hooks/useOzipzDb";
 import { duplicateActionDraft } from "./editor/editorUtils";
 import { isMonthClosed } from "../../utils/dateUtils";
+import { buildJrwaInterventionKindMap } from "../../utils/calculators/jrwaClassification";
 
 export interface ActionsSectionProps {
   actions?: OzipzAction[];
@@ -73,6 +74,7 @@ export function ActionsSection(props: ActionsSectionProps) {
   const programs = useOzipzDbStore((s) => s.programs);
   const staff = useOzipzDbStore((s) => s.staff);
   const dictionaryItems = useOzipzDbStore((s) => s.dictionaryItems);
+  const jrwaKindMap = useMemo(() => buildJrwaInterventionKindMap(dictionaryItems), [dictionaryItems]);
   const dictionaries = useMemo(
     () => ({
       municipalities: selectMunicipalities(dictionaryItems),
@@ -200,6 +202,7 @@ export function ActionsSection(props: ActionsSectionProps) {
         onOpenIzrz: (action) => setSelectedIzrzAction(action),
         actionsById,
         linkedDistributionByActionId,
+        jrwaKindMap,
       }),
     [
       isAllSelected,
@@ -215,6 +218,7 @@ export function ActionsSection(props: ActionsSectionProps) {
       onDeleteAction,
       actionsById,
       linkedDistributionByActionId,
+      jrwaKindMap,
     ]
   );
 

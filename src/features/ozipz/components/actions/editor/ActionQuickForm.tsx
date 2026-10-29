@@ -11,7 +11,9 @@ import { ActionQuickStart } from "./ActionQuickStart";
 import { ActionQuickAudience } from "./ActionQuickAudience";
 import { ActionQuickMaterials } from "./ActionQuickMaterials";
 import { ActionQuickFacilityAdd } from "./ActionQuickFacilityAdd";
-import { buildClassificationOptions, classificationValue } from "../../../utils/programJrwaUtils";
+import { buildClassificationOptions, classificationValue, getProgramJrwaSymbol } from "../../../utils/programJrwaUtils";
+import { getProgramKind } from "../../../utils/calculators/jrwaClassification";
+import { ProgramKindBadge } from "../../programs/components/ProgramKindBadge";
 import type { ActionEditorSectionProps, ActionFormInput } from "./editor.types";
 import type { useActionEditorState } from "./useActionEditorState";
 import { DEFAULT_EZD_STATUS, findCampaign } from "./actionEditorSubmitUtils";
@@ -77,6 +79,10 @@ export function ActionQuickForm({ state: s, data }: {
     {children}{errors[key]?.message && <p role="alert" className="mt-1 text-sm text-destructive">{String(errors[key]?.message)}</p>}
   </div>;
   const programOptions = buildClassificationOptions(programs, s.jrwaSymbolsList);
+  // O programowe/nieprogramowe decyduje wybrany program (rodzaj jego symbolu); sama klasyfikacja – nieprogramowe.
+  const selectedProgram = s.programId ? programs.find((p) => p.id === s.programId) : undefined;
+  const reportKind = selectedProgram ? getProgramKind(getProgramJrwaSymbol(selectedProgram))
+    : s.selectedJrwaSymbol ? "NIEPROGRAMOWE" : undefined;
   const officeSummary = s.isNoJrwa ? "Nie dotyczy" : [s.jrwaSign, s.izrzSign && `IZRZ: ${s.izrzSign}`,
     EZD_STATUS_LABELS[s.ezdStatus || DEFAULT_EZD_STATUS] || s.ezdStatus].filter(Boolean).join(" · ");
   const materialsSummary = [Number(s.materialsDistributedCount) > 0 && `MAT: ${s.materialsDistributedCount} szt.`,
@@ -102,9 +108,17 @@ export function ActionQuickForm({ state: s, data }: {
         {field("actionType", <Select label="Forma działania *" value={s.actionType}
           options={s.activityTypeDict.map((d) => ({ value: d.label, label: d.label }))} triggerClassName={FIELD_INPUT}
           onChange={(v) => s.setValue("actionType", v)} placeholder="Wybierz formę działania" autoFocus />)}
-        <Select label="Program lub klasyfikacja" value={classificationValue(s.programId, s.selectedJrwaSymbol)}
-          options={programOptions} onChange={s.handleProgramOrJrwaSelect} clearable placeholder="Wybierz, jeśli dotyczy"
-          triggerClassName={FIELD_INPUT} dropdownClassName="sm:min-w-[26rem]" />
+        <div>
+          <Select label="Program lub klasyfikacja" value={classificationValue(s.programId, s.selectedJrwaSymbol)}
+            options={programOptions} onChange={s.handleProgramOrJrwaSelect} clearable placeholder="Wybierz, jeśli dotyczy"
+            triggerClassName={FIELD_INPUT} dropdownClassName="sm:min-w-[26rem]" />
+          {reportKind && <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground" data-testid="program-kind-hint">
+            W sprawozdaniach: <ProgramKindBadge kind={reportKind} />
+          </p>}
+          {selectedProgram && !reportKind && <p className="mt-1 text-xs text-amber-700 dark:text-amber-400" data-testid="program-kind-hint">
+            Program nie ma symbolu JRWA z rodzajem w słowniku – w sprawozdaniach liczy się jako nieprogramowe.
+          </p>}
+        </div>
         <div className="sm:col-span-2 lg:col-span-1">
           <Select label="Kampania / akcja" value={campaign?.code || s.campaignId}
             options={s.campaignDict.map((c) => ({ value: c.code, label: c.label }))} triggerClassName={FIELD_INPUT}

@@ -8,6 +8,7 @@ import type { OzipzDictionaryItem } from "../../../types/ozipz.types";
 import { GIS_CATEGORY_LABELS } from "../../../utils/gis/gisCategories";
 import type { DictionaryUsageIndex } from "../../../utils/dictionaryUsage";
 import { getCategoryDef } from "../dictionaryCategoryMeta";
+import { ProgramKindBadge } from "../../programs/components/ProgramKindBadge";
 import { RowActionButton } from "@/components/ui/row-action-button";
 
 export interface DictionariesTableViewProps {
@@ -30,13 +31,6 @@ export interface DictionariesTableViewProps {
   exportFileName?: string;
   defaultSortField?: string;
 }
-
-const KIND_BADGE: Record<string, string> = {
-  PROGRAMOWE:
-    "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800",
-  NIEPROGRAMOWE:
-    "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800",
-};
 
 export function DictionariesTableView({
   items,
@@ -121,9 +115,7 @@ export function DictionariesTableView({
         cell: ({ row }) =>
           row.kind ? (
             <div className="flex flex-col items-start gap-1">
-              <Badge variant="outline" className={`font-mono text-[10px] px-1.5 py-0.5 font-semibold ${KIND_BADGE[row.kind] ?? ""}`}>
-                {row.kind}
-              </Badge>
+              <ProgramKindBadge kind={row.kind} />
               {row.gisCategory && (
                 <span className="text-[10px] font-semibold text-muted-foreground" title="Obszar sprawozdania GIS">
                   GIS: {GIS_CATEGORY_LABELS[row.gisCategory]}

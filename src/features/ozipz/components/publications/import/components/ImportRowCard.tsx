@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import type { OzipzDictionaryItem, OzipzProgram } from "../../../../types/ozipz.types";
 import { formatDatePl } from "../../../../utils/dateUtils";
+import { getProgramKind } from "../../../../utils/calculators/jrwaClassification";
 import type { EvaluatedRow, ImportRow } from "../importRows";
 import { IMPORT_STATUS_META } from "../importStatusMeta";
 
@@ -163,7 +164,7 @@ function ImportRowCardInner({ row, programs, campaigns, canLink, onToggle, onUpd
               {programs.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
-                  {p.jrwaSymbol ? ` [JRWA ${p.jrwaSymbol}]` : ""}
+                  {p.jrwaSymbol ? ` [JRWA ${p.jrwaSymbol}${getProgramKind(p.jrwaSymbol) ? ` · ${getProgramKind(p.jrwaSymbol)?.toLowerCase()}` : ""}]` : ""}
                 </option>
               ))}
             </NativeSelect>

@@ -1,5 +1,5 @@
 import type { OzipzProgram, OzipzDictionaryItem } from "../types/ozipz.types";
-import { compareJrwa } from "./ozipzCalculations";
+import { compareJrwa, getProgramKind } from "./ozipzCalculations";
 
 /**
  * Symbol JRWA programu — wyłącznie wartość przypisana w bazie (katalog programów).
@@ -29,16 +29,40 @@ export function getAllJrwaSymbols(dictionaryItems: OzipzDictionaryItem[] = []): 
     .sort((a, b) => compareJrwa(a.symbol, b.symbol));
 }
 
-/** Opcje pola „Program lub klasyfikacja” (wartości `prog:<id>` / `jrwa:<symbol>`) — wspólne dla działania i szablonu. */
-export function buildClassificationOptions(programs: OzipzProgram[], jrwaSymbols: { symbol: string; label: string }[]) {
+const KIND_GROUPS = {
+  PROGRAMOWE: "Programy – PROGRAMOWE",
+  NIEPROGRAMOWE: "Programy – NIEPROGRAMOWE",
+  none: "Programy – bez rodzaju w słowniku JRWA",
+} as const;
+
+/**
+ * Opcje pola „Program lub klasyfikacja” (wartości `prog:<id>` / `jrwa:<symbol>`) — wspólne dla działania i szablonu.
+ * Programy są pogrupowane według rodzaju ze słownika JRWA, bo to on decyduje o programowe/nieprogramowe w sprawozdaniach;
+ * sama klasyfikacja bez programu liczy się jako nieprogramowa.
+ */
+export function buildClassificationOptions(
+  programs: OzipzProgram[],
+  jrwaSymbols: { symbol: string; label: string }[],
+  kindMap?: ReadonlyMap<string, "PROGRAMOWE" | "NIEPROGRAMOWE">
+) {
+  const kindOrder = (p: OzipzProgram) => {
+    const kind = getProgramKind(getProgramJrwaSymbol(p), kindMap);
+    return kind === "PROGRAMOWE" ? 0 : kind === "NIEPROGRAMOWE" ? 1 : 2;
+  };
   return [
     // Symbol JRWA odróżnia programy o podobnych nazwach i pozwala szukać po numerze teczki.
-    ...programs.map((p) => {
+    ...[...programs].sort((a, b) => kindOrder(a) - kindOrder(b)).map((p) => {
       const symbol = getProgramJrwaSymbol(p);
-      return { value: `prog:${p.id}`, label: p.name, description: symbol ? `JRWA ${symbol}` : undefined, group: "Programy" };
+      const kind = getProgramKind(symbol, kindMap);
+      return {
+        value: `prog:${p.id}`,
+        label: p.name,
+        description: [symbol && `JRWA ${symbol}`, kind?.toLowerCase()].filter(Boolean).join(" · ") || undefined,
+        group: KIND_GROUPS[kind ?? "none"],
+      };
     }),
     ...jrwaSymbols.filter((j) => !programs.some((p) => getProgramJrwaSymbol(p) === j.symbol))
-      .map((j) => ({ value: `jrwa:${j.symbol}`, label: `${j.symbol} — ${j.label}`, group: "Klasyfikacja" })),
+      .map((j) => ({ value: `jrwa:${j.symbol}`, label: `${j.symbol} — ${j.label}`, description: "bez programu · nieprogramowe", group: "Klasyfikacja bez programu" })),
   ];
 }
 

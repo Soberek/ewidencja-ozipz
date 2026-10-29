@@ -4,6 +4,8 @@ import type { ColumnDef, TableDensity } from "@/components/ui/data-table";
 import type { OzipzAction } from "../../../types/ozipz.types";
 import { formatDatePl, isMonthClosed } from "../../../utils/dateUtils";
 import { isActionCancelled } from "../../../utils/calculators/actionMetrics";
+import { isProgramAction } from "../../../utils/calculators/jrwaClassification";
+import { ProgramKindBadge } from "../../programs/components/ProgramKindBadge";
 import { isPublicationActionType, normalizeActionType } from "../editor/editorUtils";
 import { ActionRowActionButtons } from "./ActionRowActionButtons";
 import { ActionTypeCell, FacilityCell, JrwaSignCell, ParticipantsCell } from "./ActionTableCells";
@@ -25,6 +27,8 @@ export interface CreateActionColumnsOptions {
   actionsById?: ReadonlyMap<string, OzipzAction>;
   /** Dystrybucja zapisana razem z działaniem, po id działania głównego. */
   linkedDistributionByActionId?: ReadonlyMap<string, OzipzAction>;
+  /** Rodzaj symboli JRWA ze słownika – oznaczenie programowe/nieprogramowe jak w sprawozdaniach. */
+  jrwaKindMap?: ReadonlyMap<string, "PROGRAMOWE" | "NIEPROGRAMOWE">;
 }
 
 export function createActionColumns(options: CreateActionColumnsOptions): ColumnDef<OzipzAction>[] {
@@ -43,6 +47,7 @@ export function createActionColumns(options: CreateActionColumnsOptions): Column
     density = "normal",
     actionsById,
     linkedDistributionByActionId,
+    jrwaKindMap,
   } = options;
 
   return [
@@ -145,6 +150,7 @@ export function createActionColumns(options: CreateActionColumnsOptions): Column
           {row.programName && !row.campaignName && row.title && row.title !== row.programName && row.title !== normalizeActionType(row.actionType) && (
             <div className="text-muted-foreground break-words">{row.title}</div>
           )}
+          <ProgramKindBadge kind={isProgramAction(row, jrwaKindMap) ? "PROGRAMOWE" : "NIEPROGRAMOWE"} className="mt-0.5" />
         </div>
       ),
     },

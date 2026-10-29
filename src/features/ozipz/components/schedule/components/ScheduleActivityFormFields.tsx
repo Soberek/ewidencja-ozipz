@@ -5,6 +5,8 @@ import { Select, SearchableSelect, type SelectOption } from "@/components/ui/sel
 import type { UseFormRegister, FieldErrors } from "react-hook-form";
 import type { OzipzDictionaryItem, OzipzProgram } from "../../../types/ozipz.types";
 import type { ScheduleFormInput } from "../ScheduleDialog";
+import { useOzipzDbStore } from "../../../store/useOzipzDbStore";
+import { buildJrwaInterventionKindMap, getProgramKind } from "../../../utils/calculators/jrwaClassification";
 
 interface ScheduleActivityFormFieldsProps {
   register: UseFormRegister<ScheduleFormInput>;
@@ -39,14 +41,24 @@ export function ScheduleActivityFormFields({
     description: act.description || undefined,
   })), [activityTypes]);
 
-  const programOptions: SelectOption[] = useMemo(() => programs.map((prog) => ({
-    value: prog.id,
-    label: prog.name,
-    description: `Edycja: ${prog.editionYear || "ciągła"}`,
-    badge: prog.jrwaSymbol || undefined,
-    badgeVariant: "secondary",
-    icon: GraduationCap,
-  })), [programs]);
+  const dictionaryItems = useOzipzDbStore((s) => s.dictionaryItems);
+  // Rodzaj programu ze słownika JRWA – tak samo liczony w sprawozdaniach po wykonaniu zadania.
+  const programOptions: SelectOption[] = useMemo(() => {
+    const kindMap = buildJrwaInterventionKindMap(dictionaryItems);
+    return programs.map((prog) => {
+      const kind = getProgramKind(prog.jrwaSymbol, kindMap);
+      return {
+        value: prog.id,
+        label: prog.name,
+        description: [`Edycja: ${prog.editionYear || "ciągła"}`, kind?.toLowerCase()].filter(Boolean).join(" · "),
+        group: kind ? `Programy – ${kind}` : "Programy – bez rodzaju w słowniku JRWA",
+        badge: prog.jrwaSymbol || undefined,
+        badgeVariant: "secondary" as const,
+        icon: GraduationCap,
+        order: kind === "PROGRAMOWE" ? 0 : kind === "NIEPROGRAMOWE" ? 1 : 2,
+      };
+    }).sort((a, b) => a.order - b.order).map(({ order: _order, ...option }) => option);
+  }, [programs, dictionaryItems]);
 
   const campaignOptions: SelectOption[] = useMemo(() => campaigns.map((camp) => ({
     value: camp.code,
