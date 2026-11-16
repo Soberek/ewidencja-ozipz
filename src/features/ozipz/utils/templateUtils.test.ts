@@ -69,6 +69,7 @@ describe("templateUtils", () => {
     const summary = describeTemplateContent(content, { programs: [program], materials: [] });
     expect(summary).toEqual({
       programName: program.name,
+      jrwaSymbol: "966.8",
       classification: "Profilaktyka chorób zakaźnych (JRWA 966.8)",
       count: "4 działania",
       audience: "2 grupy: Uczniowie, Rodzice",

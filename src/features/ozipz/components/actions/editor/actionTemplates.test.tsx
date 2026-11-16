@@ -72,6 +72,20 @@ describe("Action templates and repeated entry", () => {
     await waitFor(() => expect(store.updateTemplate).toHaveBeenCalledWith("t-a", { pinned: true }));
   });
 
+  it("lists templates as compact rows: sorts by column and moves between rows with arrow keys", () => {
+    const other = { ...fullTemplate, id: "t-b", title: "Apteczka", actionType: "Wykład" };
+    render(<Harness {...data} templates={[fullTemplate, other]} />);
+    const rowNames = () => templatesRegion().getAllByRole("button", { pressed: false, name: /^(4 prelekcje|Apteczka)/ }).map((b) => b.textContent?.slice(0, 6));
+    expect(rowNames()).toEqual(["4 prel", "Apteczka".slice(0, 6)]);
+    fireEvent.click(templatesRegion().getByRole("button", { name: /^Sortuj według: Forma/ }));
+    fireEvent.click(templatesRegion().getByRole("button", { name: /^Sortuj według: Forma/ }));
+    expect(rowNames()).toEqual(["Apteczka".slice(0, 6), "4 prel"]);
+    const [first, second] = templatesRegion().getAllByRole("button", { pressed: false, name: /^(4 prelekcje|Apteczka)/ });
+    first.focus();
+    fireEvent.keyDown(first, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(second);
+  });
+
   it("without templates explains how to create the first one", () => {
     render(<Harness templates={[]} />);
     expect(templatesRegion().getByText(/Nie masz jeszcze szablonów/)).toBeInTheDocument();

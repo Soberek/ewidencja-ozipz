@@ -51,14 +51,14 @@ describe("Templates Module Components", () => {
     it("shows what each template fills in: form, program, audience and materials", () => {
       renderSection(<TemplatesSection templates={[fullTemplate, legacyTemplate]} onOpenAdd={vi.fn()} onOpenEdit={vi.fn()} onDelete={vi.fn()} />);
       const row = screen.getByText("Trzymaj Formę — 2 klasy").closest("tr")!;
-      expect(row).toHaveTextContent("2 działania");
-      expect(row).toHaveTextContent("Trzymaj Formę! (JRWA 966.1)");
+      // Zwarty wiersz: liczba działań jako „×2”, symbol JRWA przed nazwą programu; prowadzący i opis są w podglądzie.
+      expect(row).toHaveTextContent("Prelekcja (warsztat)×2");
+      expect(row).toHaveTextContent("966.1Trzymaj Formę!");
       expect(row).toHaveTextContent("2 grupy: Uczniowie, Rodzice");
       expect(row).toHaveTextContent("Ulotka antynikotynowa");
-      expect(row).toHaveTextContent("Prowadzi: Anna Nowak");
       // Starszy szablon czytany tak samo: program po nazwie, odbiorcy bez powtórzeń.
       const oldRow = screen.getByText("Punkt informacyjny").closest("tr")!;
-      expect(oldRow).toHaveTextContent("Trzymaj Formę! (JRWA 966.1)");
+      expect(oldRow).toHaveTextContent("966.1Trzymaj Formę!");
       expect(oldRow).toHaveTextContent("Uczniowie, Rodzice");
     });
 

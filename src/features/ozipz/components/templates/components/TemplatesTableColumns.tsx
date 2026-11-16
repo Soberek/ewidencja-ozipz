@@ -33,21 +33,14 @@ export function createTemplateColumns({ onUse, onEdit, onDelete, onTogglePin }: 
       sortable: true,
       accessorKey: "title",
       minWidth: "220px",
+      // Jeden wiersz na szablon — tytuł działania, prowadzący i opis są w podglądzie po najechaniu.
       cell: ({ row }) => (
-        <div className="flex flex-col gap-0.5">
-          <TemplatePreviewTooltip name={row.title} rows={row.details} side="right">
-            <span className="flex w-fit items-start gap-1">
-              {row.pinned && <Pin aria-label="Przypięty" className="mt-0.5 size-3.5 shrink-0 fill-current text-primary" />}
-              <span className="w-fit cursor-help font-semibold leading-snug text-foreground decoration-dotted underline-offset-2 hover:underline">{row.title}</span>
-            </span>
-          </TemplatePreviewTooltip>
-          {/* Tytuł równy nazwie programu widać już w kolumnie programu. */}
-          {row.content.title && row.content.title !== row.title && row.content.title !== row.summary.programName && (
-            <span className="text-[11px] text-muted-foreground">Tytuł działania: {row.content.title}</span>
-          )}
-          {row.content.leadEducator && <span className="text-[11px] text-muted-foreground">Prowadzi: {row.content.leadEducator}</span>}
-          {row.content.description.trim() && <span className="line-clamp-1 text-[11px] text-muted-foreground">Opis: {row.content.description.trim()}</span>}
-        </div>
+        <TemplatePreviewTooltip name={row.title} rows={row.details} side="right">
+          <span className="flex min-w-0 max-w-[24rem] items-center gap-1">
+            {row.pinned && <Pin aria-label="Przypięty" className="size-3 shrink-0 fill-current text-primary" />}
+            <span className="cursor-help truncate font-medium text-foreground decoration-dotted underline-offset-2 hover:underline">{row.title}</span>
+          </span>
+        </TemplatePreviewTooltip>
       ),
     },
     {
@@ -57,7 +50,7 @@ export function createTemplateColumns({ onUse, onEdit, onDelete, onTogglePin }: 
       accessorKey: "actionType",
       width: "150px",
       cell: ({ row }) => (
-        <span>{row.actionType}{row.summary.count && <span className="block text-[11px] text-muted-foreground">{row.summary.count}</span>}</span>
+        <span className="block truncate">{row.actionType}{row.content.numberOfActions > 1 && <span className="ml-1 tabular-nums text-muted-foreground">×{row.content.numberOfActions}</span>}</span>
       ),
     },
     {
@@ -66,21 +59,26 @@ export function createTemplateColumns({ onUse, onEdit, onDelete, onTogglePin }: 
       sortable: true,
       accessorFn: (row) => row.summary.classification,
       minWidth: "180px",
-      cell: ({ row }) => <span className="line-clamp-2">{muted(row.summary.classification)}</span>,
+      cell: ({ row }) => (
+        <span className="flex min-w-0 max-w-[17rem] items-baseline gap-1.5" title={row.summary.classification}>
+          {row.summary.jrwaSymbol && <span className="shrink-0 tabular-nums text-muted-foreground">{row.summary.jrwaSymbol}</span>}
+          <span className="truncate">{muted(row.summary.programName || row.summary.classification)}</span>
+        </span>
+      ),
     },
     {
       id: "audience",
       header: "Odbiorcy",
       accessorFn: (row) => row.summary.audience,
       minWidth: "180px",
-      cell: ({ row }) => <span className="line-clamp-2">{muted(row.summary.audience)}</span>,
+      cell: ({ row }) => <span className="block max-w-[13rem] truncate" title={row.summary.audience}>{muted(row.summary.audience)}</span>,
     },
     {
       id: "materials",
       header: "Materiały",
       accessorFn: (row) => row.summary.materials,
       minWidth: "140px",
-      cell: ({ row }) => <span className="line-clamp-2">{muted(row.summary.materials)}</span>,
+      cell: ({ row }) => <span className="block max-w-[10rem] truncate text-muted-foreground" title={row.summary.materials}>{muted(row.summary.materials)}</span>,
     },
     {
       id: "actions",
