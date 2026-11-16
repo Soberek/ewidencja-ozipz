@@ -85,6 +85,8 @@ export const TemplateSchema = z.object({
   descriptionTemplate: z.string().optional().default(""),
   defaultAudience: z.string(),
   suggestedMaterials: z.string().optional(),
+  /** Przypięte szablony stoją na początku listy w formularzu działania. */
+  pinned: z.boolean().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

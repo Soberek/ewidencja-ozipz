@@ -256,6 +256,24 @@ describe("versioned database migration", () => {
     expect((await service.getPrograms())[0].acceptsParticipations).toBe(false);
   });
 
+  it("adds the pin flag to existing templates (unpinned) and stores it without touching the content", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "ozipz-v16-templates-")); directories.push(directory);
+    const raw = new DatabaseSync(join(directory, "v16.db")); databases.push(raw);
+    raw.exec(SCHEMA_SQL.replace(" pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1)),", ""));
+    raw.exec("PRAGMA user_version = 16");
+    insert(raw, "ozipz_templates", { id: "t", title: "Prelekcja", action_defaults: '{"title":"","leadEducator":"","campaignId":""}' });
+
+    expect((await migrateDatabase(adapter(raw))).migrated).toBe(true);
+    expect(raw.prepare("SELECT pinned FROM ozipz_templates WHERE id = 't'").get()).toEqual({ pinned: 0 });
+
+    const service = new SqliteDatabaseService(adapter(raw));
+    expect((await service.getTemplates())[0]).toMatchObject({ pinned: false, title: "Prelekcja" });
+    await service.updateTemplate("t", { pinned: true });
+    expect((await service.getTemplates())[0]).toMatchObject({ pinned: true, actionDefaults: { title: "" } });
+    const added = await service.addTemplate({ title: "Nowy", topic: "", actionType: "Prelekcja", defaultAudience: "", descriptionTemplate: "" });
+    expect((await service.getTemplates()).find((t) => t.id === added.id)?.pinned).toBe(false);
+  });
+
   it("persists month locks across reopening and allows unlocking", async () => {
     const directory = mkdtempSync(join(tmpdir(), "ozipz-month-lock-")); directories.push(directory);
     const file = join(directory, "locks.db");

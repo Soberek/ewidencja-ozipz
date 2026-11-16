@@ -9,7 +9,7 @@ import { useModalStore } from "../../store/useModalStore";
 import { TemplatesFilterBar } from "./components/TemplatesFilterBar";
 import { TemplatesTableView } from "./components/TemplatesTableView";
 import type { TemplateListRow } from "./components/TemplatesTableColumns";
-import { describeTemplateContent, isEmptyImportedTemplate, resolveTemplateContent } from "../../utils/templateUtils";
+import { describeTemplateContent, isEmptyImportedTemplate, resolveTemplateContent, templateDetailRows } from "../../utils/templateUtils";
 
 export interface TemplatesSectionProps {
   templates?: OzipzTemplate[];
@@ -18,6 +18,7 @@ export interface TemplatesSectionProps {
   onDelete?: (id: string) => void;
   onDeleteEmptyImports?: (ids: string[]) => Promise<void>;
   onUse?: (tpl: OzipzTemplate) => void;
+  onTogglePin?: (tpl: OzipzTemplate) => void;
 }
 
 export function TemplatesSection(props: TemplatesSectionProps) {
@@ -42,6 +43,16 @@ export function TemplatesSection(props: TemplatesSectionProps) {
         toast.error("Błąd podczas usuwania szablonu");
       }
     });
+  const onTogglePin =
+    props.onTogglePin ??
+    (async (tpl: OzipzTemplate) => {
+      try {
+        await templatesStore.updateTemplate(tpl.id, { pinned: !tpl.pinned });
+        toast.success(tpl.pinned ? `Odpięto szablon „${tpl.title}”` : `Przypięto szablon „${tpl.title}” na początek listy`);
+      } catch {
+        toast.error("Nie udało się zmienić przypięcia szablonu");
+      }
+    });
   // Jeden komunikat na całą operację — zwykłe onDelete pokazałoby osobny toast dla każdego rekordu.
   const onDeleteEmptyImports =
     props.onDeleteEmptyImports ??
@@ -63,11 +74,13 @@ export function TemplatesSection(props: TemplatesSectionProps) {
 
   const rows = useMemo<TemplateListRow[]>(() => {
     const jrwaSymbols = dictionaryItems.filter((d) => d.dictType === "jrwaSymbol");
+    const campaigns = dictionaryItems.filter((d) => d.dictType === "campaign");
     return templates
       .filter((template) => showEmptyImports || !isEmptyImportedTemplate(template))
       .map((template) => {
         const content = resolveTemplateContent(template, programs);
-        return { ...template, content, summary: describeTemplateContent(content, { programs, materials, jrwaSymbols }) };
+        const lookups = { programs, materials, jrwaSymbols, campaigns };
+        return { ...template, content, summary: describeTemplateContent(content, lookups), details: templateDetailRows(content, lookups) };
       });
   }, [templates, showEmptyImports, programs, materials, dictionaryItems]);
 
@@ -123,6 +136,7 @@ export function TemplatesSection(props: TemplatesSectionProps) {
           onUse={onUse}
           onOpenEdit={onOpenEdit}
           onDelete={onDelete}
+          onTogglePin={onTogglePin}
           onClearFilters={handleClearFilters}
           isFiltered={!!search.trim() || formFilter !== "all"}
         />

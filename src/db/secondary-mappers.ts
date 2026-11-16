@@ -84,6 +84,7 @@ export const SecondaryMappers = {
             }
           })()
         : undefined,
+      pinned: Boolean(row.pinned),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

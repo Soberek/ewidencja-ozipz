@@ -84,8 +84,8 @@ export class SqliteRegistryRepository implements IRegistryRepository {
     const now = new Date().toISOString();
     const newTpl: OzipzTemplate = { ...tpl, id, createdAt: now, updatedAt: now };
     await this.db.execute(
-      "INSERT INTO ozipz_templates (id, title, topic, action_type, description_template, default_audience, suggested_materials, created_at, updated_at, action_defaults) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
-      [newTpl.id, newTpl.title, newTpl.topic, newTpl.actionType, newTpl.descriptionTemplate, newTpl.defaultAudience, newTpl.suggestedMaterials || null, newTpl.createdAt, newTpl.updatedAt, newTpl.actionDefaults ? JSON.stringify(newTpl.actionDefaults) : null]
+      "INSERT INTO ozipz_templates (id, title, topic, action_type, description_template, default_audience, suggested_materials, created_at, updated_at, action_defaults, pinned) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+      [newTpl.id, newTpl.title, newTpl.topic, newTpl.actionType, newTpl.descriptionTemplate, newTpl.defaultAudience, newTpl.suggestedMaterials || null, newTpl.createdAt, newTpl.updatedAt, newTpl.actionDefaults ? JSON.stringify(newTpl.actionDefaults) : null, newTpl.pinned ? 1 : 0]
     );
     return newTpl;
   }
@@ -96,8 +96,8 @@ export class SqliteRegistryRepository implements IRegistryRepository {
     if (!current) return;
     const merged = { ...current, ...updates, updatedAt: now };
     await this.db.execute(
-      "UPDATE ozipz_templates SET title = $1, topic = $2, action_type = $3, description_template = $4, default_audience = $5, suggested_materials = $6, updated_at = $7, action_defaults = $8 WHERE id = $9",
-      [merged.title, merged.topic, merged.actionType, merged.descriptionTemplate, merged.defaultAudience, merged.suggestedMaterials || null, merged.updatedAt, merged.actionDefaults ? JSON.stringify(merged.actionDefaults) : null, id]
+      "UPDATE ozipz_templates SET title = $1, topic = $2, action_type = $3, description_template = $4, default_audience = $5, suggested_materials = $6, updated_at = $7, action_defaults = $8, pinned = $9 WHERE id = $10",
+      [merged.title, merged.topic, merged.actionType, merged.descriptionTemplate, merged.defaultAudience, merged.suggestedMaterials || null, merged.updatedAt, merged.actionDefaults ? JSON.stringify(merged.actionDefaults) : null, merged.pinned ? 1 : 0, id]
     );
   }
 

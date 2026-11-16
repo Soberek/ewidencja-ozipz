@@ -145,11 +145,11 @@ export function templateContentKey(content: TemplateContent): string {
   return JSON.stringify(rest);
 }
 
-/** Szablony w kolejności alfabetycznej, bez pustych rekordów z importu. */
+/** Szablony bez pustych rekordów z importu: najpierw przypięte, w obu grupach alfabetycznie. */
 export function usableTemplates(templates: OzipzTemplate[]): OzipzTemplate[] {
   return templates
     .filter((template) => !isEmptyImportedTemplate(template))
-    .sort((a, b) => a.title.localeCompare(b.title, "pl"));
+    .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || a.title.localeCompare(b.title, "pl"));
 }
 
 export interface TemplateDescription {
@@ -184,4 +184,46 @@ export function describeTemplateContent(
     audience,
     materials: materialNames.join(", "),
   };
+}
+
+export interface TemplateDetailRow {
+  label: string;
+  /** Jedna linia albo kilka (np. każda grupa odbiorców osobno). */
+  lines: string[];
+}
+
+const ageRange = (from: number | null | undefined, to: number | null | undefined) =>
+  from != null && to != null ? ` (${from}–${to} lat)` : from != null ? ` (od ${from} lat)` : to != null ? ` (do ${to} lat)` : "";
+
+/**
+ * Pełna lista tego, co szablon wpisze do formularza — do podglądu po najechaniu na szablon.
+ * Pomija pola, których szablon nie ustawia.
+ */
+export function templateDetailRows(
+  content: TemplateContent,
+  lookups: { programs?: OzipzProgram[]; materials?: OzipzMaterial[]; jrwaSymbols?: OzipzDictionaryItem[]; campaigns?: OzipzDictionaryItem[] } = {}
+): TemplateDetailRow[] {
+  const c = normalizeTemplateContent(content);
+  const d = describeTemplateContent(c, lookups);
+  const campaign = c.campaignId
+    ? (lookups.campaigns ?? []).find((x) => x.code === c.campaignId || x.id === c.campaignId || x.label === c.campaignId)?.label || c.campaignId
+    : "";
+  const groups = c.audienceGroups.map((group, index) => {
+    const items = group.items.map((item) => `${item.name}${ageRange(item.ageFrom, item.ageTo)}`).join(", ");
+    return c.audienceGroups.length > 1 ? `${group.name || `Grupa ${index + 1}`}: ${items}` : items;
+  });
+  const rows: TemplateDetailRow[] = [
+    { label: "Forma", lines: [c.actionType] },
+    { label: "Tytuł działania", lines: [c.title && c.title !== d.programName ? c.title : ""] },
+    { label: c.programId ? "Program" : "Klasyfikacja", lines: [d.classification] },
+    { label: "Liczba działań", lines: [c.numberOfActions > 1 ? String(c.numberOfActions) : ""] },
+    { label: "Prowadzący", lines: [c.leadEducator] },
+    { label: "Kampania / akcja", lines: [campaign] },
+    { label: "Odbiorcy", lines: groups },
+    { label: "Materiały", lines: c.materialIds.map((id) => (lookups.materials ?? []).find((m) => m.id === id)?.title || "materiał usunięty z katalogu") },
+    { label: "Opis czynności", lines: [c.description] },
+  ];
+  return rows
+    .map((row) => ({ ...row, lines: row.lines.filter((line) => line.trim()) }))
+    .filter((row) => row.lines.length > 0);
 }

@@ -273,6 +273,7 @@ export interface ScanSqlRow {
 
 export interface TemplateSqlRow {
   action_defaults?: string | null;
+  pinned?: number | null;
   id: string;
   title: string;
   topic: string;

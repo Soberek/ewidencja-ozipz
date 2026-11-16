@@ -11,6 +11,7 @@ interface TemplatesTableViewProps {
   onUse: (template: OzipzTemplate) => void;
   onOpenEdit: (template: OzipzTemplate) => void;
   onDelete: (id: string) => void;
+  onTogglePin?: (template: OzipzTemplate) => void;
   onClearFilters?: () => void;
   isFiltered?: boolean;
 }
@@ -21,12 +22,13 @@ export function TemplatesTableView({
   onUse,
   onOpenEdit,
   onDelete,
+  onTogglePin,
   onClearFilters,
   isFiltered,
 }: TemplatesTableViewProps) {
   const columns = useMemo(
-    () => createTemplateColumns({ onUse, onEdit: onOpenEdit, onDelete }),
-    [onUse, onOpenEdit, onDelete]
+    () => createTemplateColumns({ onUse, onEdit: onOpenEdit, onDelete, onTogglePin }),
+    [onUse, onOpenEdit, onDelete, onTogglePin]
   );
 
   return (

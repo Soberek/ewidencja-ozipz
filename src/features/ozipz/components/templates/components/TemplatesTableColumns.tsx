@@ -1,28 +1,31 @@
 import { useState } from "react";
-import { Edit, FilePlus2, Trash2 } from "lucide-react";
+import { Edit, FilePlus2, Pin, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { executeConfirmedAction } from "@/components/ui/confirmHelper";
 import type { ColumnDef } from "@/components/ui/data-table";
 import { RowActionButton } from "@/components/ui/row-action-button";
 import type { OzipzTemplate } from "../../../types/ozipz.types";
-import type { TemplateContent, TemplateDescription } from "../../../utils/templateUtils";
+import type { TemplateContent, TemplateDescription, TemplateDetailRow } from "../../../utils/templateUtils";
+import { TemplatePreviewTooltip } from "./TemplatePreview";
 
 /** Wiersz tabeli: szablon z odczytaną treścią i opisem (program, odbiorcy, materiały po nazwach z katalogów). */
 export interface TemplateListRow extends OzipzTemplate {
   content: TemplateContent;
   summary: TemplateDescription;
+  details: TemplateDetailRow[];
 }
 
 interface CreateTemplateColumnsOptions {
   onUse: (template: OzipzTemplate) => void;
   onEdit: (template: OzipzTemplate) => void;
   onDelete: (id: string) => void;
+  onTogglePin?: (template: OzipzTemplate) => void;
 }
 
 const muted = (text: string) => text || <span className="text-muted-foreground">—</span>;
 
-export function createTemplateColumns({ onUse, onEdit, onDelete }: CreateTemplateColumnsOptions): ColumnDef<TemplateListRow>[] {
+export function createTemplateColumns({ onUse, onEdit, onDelete, onTogglePin }: CreateTemplateColumnsOptions): ColumnDef<TemplateListRow>[] {
   return [
     {
       id: "title",
@@ -32,12 +35,18 @@ export function createTemplateColumns({ onUse, onEdit, onDelete }: CreateTemplat
       minWidth: "220px",
       cell: ({ row }) => (
         <div className="flex flex-col gap-0.5">
-          <span className="font-semibold leading-snug text-foreground">{row.title}</span>
+          <TemplatePreviewTooltip name={row.title} rows={row.details} side="right">
+            <span className="flex w-fit items-start gap-1">
+              {row.pinned && <Pin aria-label="Przypięty" className="mt-0.5 size-3.5 shrink-0 fill-current text-primary" />}
+              <span className="w-fit cursor-help font-semibold leading-snug text-foreground decoration-dotted underline-offset-2 hover:underline">{row.title}</span>
+            </span>
+          </TemplatePreviewTooltip>
           {/* Tytuł równy nazwie programu widać już w kolumnie programu. */}
           {row.content.title && row.content.title !== row.title && row.content.title !== row.summary.programName && (
             <span className="text-[11px] text-muted-foreground">Tytuł działania: {row.content.title}</span>
           )}
           {row.content.leadEducator && <span className="text-[11px] text-muted-foreground">Prowadzi: {row.content.leadEducator}</span>}
+          {row.content.description.trim() && <span className="line-clamp-1 text-[11px] text-muted-foreground">Opis: {row.content.description.trim()}</span>}
         </div>
       ),
     },
@@ -77,13 +86,13 @@ export function createTemplateColumns({ onUse, onEdit, onDelete }: CreateTemplat
       id: "actions",
       header: "Akcje",
       align: "right",
-      width: "150px",
-      cell: ({ row }) => <TemplateActionButtons row={row} onUse={onUse} onEdit={onEdit} onDelete={onDelete} />,
+      width: "180px",
+      cell: ({ row }) => <TemplateActionButtons row={row} onUse={onUse} onEdit={onEdit} onDelete={onDelete} onTogglePin={onTogglePin} />,
     },
   ];
 }
 
-function TemplateActionButtons({ row, onUse, onEdit, onDelete }: { row: TemplateListRow } & CreateTemplateColumnsOptions) {
+function TemplateActionButtons({ row, onUse, onEdit, onDelete, onTogglePin }: { row: TemplateListRow } & CreateTemplateColumnsOptions) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   return (
@@ -93,6 +102,8 @@ function TemplateActionButtons({ row, onUse, onEdit, onDelete }: { row: Template
           aria-label={`Użyj szablonu ${row.title}`} title="Otwórz nowe działanie wypełnione tym szablonem">
           <FilePlus2 className="size-3.5" /> Użyj
         </Button>
+        {onTogglePin && <RowActionButton label={row.pinned ? "Odepnij z początku listy szablonów" : "Przypnij na początek listy szablonów"}
+          icon={Pin} onClick={() => onTogglePin(row)} />}
         <RowActionButton label="Edytuj szablon" icon={Edit} onClick={() => onEdit(row)} />
         <RowActionButton
           label="Usuń szablon"

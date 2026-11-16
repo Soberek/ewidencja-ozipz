@@ -1,22 +1,26 @@
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { BookmarkPlus, Check } from "lucide-react";
+import { BookmarkPlus, Check, Pencil, Pin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchInput } from "@/components/ui/search-input";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useTemplates } from "../../../store/useOzipzDbStore";
+import { TemplatePreviewTooltip } from "../../templates/components/TemplatePreview";
+import { TemplateDialog } from "../../templates/TemplateDialog";
 import type { OzipzTemplate } from "../../../types/ozipz.types";
 import type { ActionEditorSectionProps } from "./editor.types";
 import type { useActionEditorState } from "./useActionEditorState";
 import {
-  buildTemplatePayload, describeTemplateContent, isEmptyImportedTemplate, resolveTemplateContent, usableTemplates,
+  buildTemplatePayload, describeTemplateContent, isEmptyImportedTemplate, resolveTemplateContent, templateDetailRows, usableTemplates,
   type TemplateContent,
 } from "../../../utils/templateUtils";
 import { FIELD_INPUT, FIELD_LABEL } from "./formStyles";
 
 /** Od tylu szablonów pokazujemy wyszukiwarkę — mniejszą listę ogarnia się wzrokiem. */
 const SEARCH_FROM = 9;
+const TILE_ICON = "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100";
 
 /**
  * Szablony nad formularzem: kliknięcie kafelka wypełnia formularz, „Cofnij” przywraca poprzedni stan,
@@ -34,7 +38,10 @@ export function ActionQuickStart({ state: s, data }: {
     programs,
     materials: data.materials ?? [],
     jrwaSymbols: (data.dictionaryItems ?? []).filter((d) => d.dictType === "jrwaSymbol"),
+    campaigns: (data.dictionaryItems ?? []).filter((d) => d.dictType === "campaign"),
   };
+  // Edycja w lokalnym oknie: modal z globalnego store zastąpiłby otwarty formularz działania.
+  const [editing, setEditing] = useState<OzipzTemplate | null>(null);
   const [query, setQuery] = useState("");
   const [saveOpen, setSaveOpen] = useState(false);
   const [name, setName] = useState("");
@@ -68,6 +75,14 @@ export function ActionQuickStart({ state: s, data }: {
     } finally { busy.current = false; setSaving(false); }
   };
 
+  const togglePin = async (template: OzipzTemplate) => {
+    try {
+      await store.updateTemplate(template.id, { pinned: !template.pinned });
+    } catch {
+      toast.error("Nie udało się zmienić przypięcia szablonu.");
+    }
+  };
+
   const saveAsNew = () => {
     const trimmed = name.trim();
     if (!trimmed || !s.actionType) { setError("Podaj nazwę szablonu i wybierz formę działania."); return; }
@@ -83,10 +98,10 @@ export function ActionQuickStart({ state: s, data }: {
     `Zapisano zmiany w szablonie „${template.title}”.`
   );
 
-  return <section aria-label="Szablony" className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
+  return <TooltipProvider delayDuration={250}><section aria-label="Szablony" className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
     <div className="flex flex-wrap items-center gap-2">
       <h2 className="text-sm font-semibold">Szablony</h2>
-      {list.length > 0 && <span className="text-xs text-muted-foreground">Kliknij szablon, aby wypełnić formularz.</span>}
+      {list.length > 0 && <span className="text-xs text-muted-foreground">Najedź na szablon, aby zobaczyć, co wpisze; kliknij, aby wypełnić formularz.</span>}
       <div className="ml-auto flex flex-wrap items-center gap-2">
         {list.length >= SEARCH_FROM && <SearchInput value={query} onValueChange={setQuery} placeholder="Szukaj szablonu…" />}
         <Button type="button" variant="outline" size="sm" className="gap-1.5" aria-expanded={saveOpen}
@@ -102,20 +117,40 @@ export function ActionQuickStart({ state: s, data }: {
         {visible.map((t) => {
           const active = t.id === s.selectedTemplateId;
           const content = resolveTemplateContent(t, programs);
-          return <button key={t.id} type="button" aria-pressed={active} title={summarize(content, true)}
-            onClick={() => s.applyTemplate(t.id)}
-            className={cn(
-              "flex min-w-0 flex-col items-start gap-0.5 rounded-md border bg-background px-3 py-2 text-left transition-colors",
-              "hover:border-primary/60 hover:bg-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary",
-              active ? "border-primary bg-primary/10" : "border-border"
-            )}>
-            <span className="flex w-full items-start gap-1.5 text-sm font-medium leading-snug">
-              {/* Pełna nazwa (najwyżej dwie linie) — ucięte nazwy podobnych szablonów wyglądałyby tak samo. */}
-              <span className="line-clamp-2 break-words">{t.title}</span>
-              {active && <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-primary" />}
-            </span>
-            <span className="w-full truncate text-xs text-muted-foreground">{summarize(content, false)}</span>
-          </button>;
+          const d = describeTemplateContent(content, lookups);
+          return <div key={t.id} className="group relative min-w-0">
+            <TemplatePreviewTooltip name={t.title} rows={templateDetailRows(content, lookups)}>
+              <button type="button" aria-pressed={active}
+                onClick={() => s.applyTemplate(t.id)}
+                className={cn(
+                  "flex h-full w-full min-w-0 flex-col items-start gap-0.5 rounded-md border bg-background py-2 pl-3 pr-8 text-left transition-colors",
+                  "hover:border-primary/60 hover:bg-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary",
+                  active ? "border-primary bg-primary/10" : "border-border"
+                )}>
+                <span className="flex w-full items-start gap-1.5 text-sm font-medium leading-snug">
+                  {/* Pełna nazwa (najwyżej dwie linie) — ucięte nazwy podobnych szablonów wyglądałyby tak samo. */}
+                  <span className="line-clamp-2 break-words">{t.title}</span>
+                  {active && <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-primary" />}
+                </span>
+                <span className="w-full truncate text-xs text-muted-foreground">{summarize(content, false)}</span>
+                {d.classification && <span className="w-full truncate text-[11px] text-muted-foreground/80">{d.classification}</span>}
+              </button>
+            </TemplatePreviewTooltip>
+            {/* Przypięty szablon ma pinezkę zawsze widoczną; pozostałe akcje pokazują się po najechaniu. */}
+            <div className="absolute right-1.5 top-1.5 flex flex-col gap-0.5">
+              <button type="button" aria-pressed={Boolean(t.pinned)}
+                aria-label={`${t.pinned ? "Odepnij" : "Przypnij"} szablon ${t.title}`}
+                title={t.pinned ? "Odepnij — szablon wróci na swoje miejsce w kolejności alfabetycznej" : "Przypnij na początek listy"}
+                onClick={() => void togglePin(t)}
+                className={cn(TILE_ICON, t.pinned ? "text-primary opacity-100" : "opacity-0")}>
+                <Pin className={cn("size-3.5", t.pinned && "fill-current")} />
+              </button>
+              <button type="button" aria-label={`Edytuj szablon ${t.title}`} title="Edytuj szablon"
+                onClick={() => setEditing(t)} className={cn(TILE_ICON, "opacity-0")}>
+                <Pencil className="size-3.5" />
+              </button>
+            </div>
+          </div>;
         })}
         {visible.length === 0 && <p className="text-sm text-muted-foreground">Żaden szablon nie pasuje do „{query.trim()}”.</p>}
       </div>}
@@ -145,5 +180,17 @@ export function ActionQuickStart({ state: s, data }: {
         <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={() => setSaveOpen(false)}>Anuluj</Button>
       </div>
     </div>}
-  </section>;
+    {editing && <TemplateDialog isOpen onClose={() => setEditing(null)} editingTemplate={editing}
+      programs={programs} materials={lookups.materials} jrwaSymbols={lookups.jrwaSymbols} templates={templates}
+      onSave={(payload) => store.addTemplate(payload)}
+      onUpdate={async (id, payload) => {
+        try {
+          await store.updateTemplate(id, payload);
+          toast.success(`Zapisano szablon „${payload.title ?? editing.title}”.`);
+        } catch (err) {
+          toast.error("Nie udało się zapisać szablonu.");
+          throw err;
+        }
+      }} />}
+  </section></TooltipProvider>;
 }

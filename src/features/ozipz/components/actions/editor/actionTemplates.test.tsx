@@ -43,10 +43,33 @@ describe("Action templates and repeated entry", () => {
       { ...empty, id: "empty-label", actionType: "Prelekcja (warsztat)" },
       { id: "real", title: "Prelekcja — higiena", topic: "", actionType: "Prelekcja (warsztat)", defaultAudience: "Uczniowie", descriptionTemplate: "", createdAt: "", updatedAt: "" },
     ]} />);
-    const chips = templatesRegion().getAllByRole("button", { pressed: false });
+    const chips = templatesRegion().getAllByRole("button", { pressed: false, name: /^(?!Przypnij|Odepnij)/ });
     expect(chips).toHaveLength(1);
     expect(chips[0]).toHaveTextContent("Prelekcja — higiena");
     expect(screen.getByText(/Pominięto puste rekordy z importu/)).toHaveTextContent("(2)");
+  });
+
+  it("shows everything the template presets when the tile gets focus", async () => {
+    render(<Harness {...data} />);
+    fireEvent.focus(templatesRegion().getByRole("button", { name: /^4 prelekcje/ }));
+    const preview = await screen.findByRole("tooltip");
+    expect(preview).toHaveTextContent("Program testowy (JRWA 966.1)");
+    expect(preview).toHaveTextContent("Prowadzący");
+    expect(preview).toHaveTextContent("Grupa 1: Uczniowie, Rodzice");
+    expect(preview).toHaveTextContent("Ulotka o higienie");
+    expect(preview).toHaveTextContent("Opis wzorcowy");
+    expect(templatesRegion().getByRole("button", { name: "Edytuj szablon 4 prelekcje" })).toBeInTheDocument();
+  });
+
+  it("pins a template from its tile and lists pinned templates first", async () => {
+    store.updateTemplate.mockResolvedValue(undefined);
+    const other = { ...fullTemplate, id: "t-a", title: "Apteczka", pinned: false };
+    render(<Harness {...data} templates={[other, { ...fullTemplate, pinned: true }]} />);
+    const tiles = templatesRegion().getAllByRole("button", { pressed: false, name: /^(4 prelekcje|Apteczka)/ });
+    expect(tiles.map((t) => t.textContent?.split("·")[0])).toEqual([expect.stringMatching(/^4 prelekcje/), expect.stringMatching(/^Apteczka/)]);
+    expect(templatesRegion().getByRole("button", { name: "Odepnij szablon 4 prelekcje" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(templatesRegion().getByRole("button", { name: "Przypnij szablon Apteczka" }));
+    await waitFor(() => expect(store.updateTemplate).toHaveBeenCalledWith("t-a", { pinned: true }));
   });
 
   it("without templates explains how to create the first one", () => {
@@ -101,8 +124,8 @@ describe("Action templates and repeated entry", () => {
   it("offers saving form changes back into the loaded template", async () => {
     store.updateTemplate.mockResolvedValue(undefined);
     render(<Harness {...data} />);
-    fireEvent.click(templatesRegion().getByRole("button", { name: /4 prelekcje/ }));
-    expect(templatesRegion().getByRole("button", { name: /4 prelekcje/ })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(templatesRegion().getByRole("button", { name: /^4 prelekcje/ }));
+    expect(templatesRegion().getByRole("button", { name: /^4 prelekcje/ })).toHaveAttribute("aria-pressed", "true");
     expect(templatesRegion().queryByRole("button", { name: "Zapisz zmiany w szablonie" })).toBeNull();
 
     fireEvent.change(screen.getByLabelText("Liczba działań [DZ] *"), { target: { value: "3" } });

@@ -191,8 +191,8 @@ describe("Stopka i podpowiedzi", () => {
       defaultAudience: "Uczniowie", descriptionTemplate: "Opis z szablonu", actionDefaults: { title: "Higiena rąk", leadEducator: "", campaignId: "" } }];
     render(<Harness {...data} templates={templates} />);
     const region = within(screen.getByRole("region", { name: "Szablony" }));
-    expect(region.getAllByRole("button", { pressed: false })).toHaveLength(1);
-    fireEvent.click(region.getByRole("button", { name: /Higiena rąk — prelekcja/ }));
+    expect(region.getAllByRole("button", { pressed: false, name: /^(?!Przypnij|Odepnij)/ })).toHaveLength(1);
+    fireEvent.click(region.getByRole("button", { name: /^Higiena rąk — prelekcja/ }));
     expect(screen.getByLabelText("Tytuł działania *")).toHaveValue("Higiena rąk");
     expect(screen.getByLabelText("Program lub klasyfikacja")).toHaveTextContent("Program testowy");
     expect(region.getByRole("status")).toHaveTextContent("Wczytano „Higiena rąk — prelekcja”");

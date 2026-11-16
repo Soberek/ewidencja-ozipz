@@ -1,6 +1,6 @@
 # Schemat Relacyjnej Bazy Danych SQLite (Ewidencja OZiPZ)
 
-Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VERSION = 16`). Zarówno aplikacja, jak i skrypt inicjalizacji używają tej samej migracji. Poniższy opis encji należy czytać wraz z ograniczeniami opisanymi niżej.
+Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VERSION = 17`). Zarówno aplikacja, jak i skrypt inicjalizacji używają tej samej migracji. Poniższy opis encji należy czytać wraz z ograniczeniami opisanymi niżej.
 
 ## Aktualizacja i integralność
 
@@ -433,6 +433,7 @@ Silnik SQLite działa z aktywnym `PRAGMA foreign_keys = ON;` w trybie `WAL` (`PR
 | `default_audience` | `TEXT` | `NOT NULL` | Starszy zapis: odbiorcy jako tekst po średniku; nowe szablony zapisują pusty tekst | `defaultAudience: string` |
 | `suggested_materials` | `TEXT` | | Starszy zapis: materiały jako tekst; nowe szablony go nie zapisują | `suggestedMaterials?: string` |
 | `action_defaults` | `TEXT` | `CHECK (json_valid(...))` | Treść szablonu (JSON) — zob. niżej | `actionDefaults?: ActionTemplateDefaults` |
+| `pinned` | `INTEGER` | `NOT NULL DEFAULT 0`, `CHECK (pinned IN (0, 1))` | Szablon przypięty na początek listy w formularzu działania (od v17) | `pinned?: boolean` |
 | `created_at` | `TEXT` | `NOT NULL` | Timestamp ISO 8601 | `createdAt: string` |
 | `updated_at` | `TEXT` | `NOT NULL` | Timestamp ISO 8601 | `updatedAt: string` |
 

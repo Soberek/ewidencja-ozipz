@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { OzipzProgram, OzipzTemplate } from "../types/ozipz.types";
+import type { OzipzDictionaryItem, OzipzMaterial, OzipzProgram, OzipzTemplate } from "../types/ozipz.types";
 import {
-  buildTemplatePayload, describeTemplateContent, resolveTemplateContent, templateContentKey, usableTemplates, type TemplateContent,
+  buildTemplatePayload, describeTemplateContent, resolveTemplateContent, templateContentKey, templateDetailRows, usableTemplates,
+  type TemplateContent,
 } from "./templateUtils";
 
 const program = { id: "prog-wzw", name: "Profilaktyka chorób zakaźnych", jrwaSymbol: "966.8" } as OzipzProgram;
@@ -80,5 +81,37 @@ describe("templateUtils", () => {
     const empty = legacy({ id: "e", title: "Szablon zadania", topic: "inne", defaultAudience: "uczniowie_sp" });
     const list = usableTemplates([legacy({ id: "b", title: "Zdrowe zęby" }), empty, legacy({ id: "a", title: "Ćwiczenia" })]);
     expect(list.map((t) => t.id)).toEqual(["a", "b"]);
+  });
+
+  it("przypięte szablony stoją na początku listy, w obu grupach alfabetycznie", () => {
+    const list = usableTemplates([
+      legacy({ id: "b", title: "Zdrowe zęby" }), legacy({ id: "p2", title: "Szczepienia", pinned: true }),
+      legacy({ id: "a", title: "Ćwiczenia" }), legacy({ id: "p1", title: "Higiena", pinned: true }),
+    ]);
+    expect(list.map((t) => t.id)).toEqual(["p1", "p2", "a", "b"]);
+  });
+
+  it("podgląd szczegółów pokazuje wszystkie ustawione pola, grupy osobno i pomija puste", () => {
+    const rows = templateDetailRows(
+      { ...content, campaignId: "kamp-1", description: "Opis wzorcowy",
+        audienceGroups: [...content.audienceGroups, { name: "", items: [{ name: "Nauczyciele", ageFrom: 25, ageTo: 60 }] }] },
+      {
+        programs: [program],
+        materials: [{ id: "mat-1", title: "Ulotka, wersja 2" } as OzipzMaterial],
+        campaigns: [{ id: "c1", dictType: "campaign", code: "kamp-1", label: "Światowy Dzień Zdrowia" } as OzipzDictionaryItem],
+      }
+    );
+    expect(rows).toEqual([
+      { label: "Forma", lines: ["Prelekcja (warsztat)"] },
+      { label: "Program", lines: ["Profilaktyka chorób zakaźnych (JRWA 966.8)"] },
+      { label: "Liczba działań", lines: ["4"] },
+      { label: "Prowadzący", lines: ["Anna"] },
+      { label: "Kampania / akcja", lines: ["Światowy Dzień Zdrowia"] },
+      { label: "Odbiorcy", lines: ["Grupa 1: Uczniowie", "Klasa 7B: Rodzice", "Grupa 3: Nauczyciele (25–60 lat)"] },
+      { label: "Materiały", lines: ["Ulotka, wersja 2"] },
+      { label: "Opis czynności", lines: ["Opis wzorcowy"] },
+    ]);
+    expect(templateDetailRows({ ...content, programId: "", jrwaSymbol: "", numberOfActions: 1, leadEducator: "", audienceGroups: [], materialIds: [] }))
+      .toEqual([{ label: "Forma", lines: ["Prelekcja (warsztat)"] }]);
   });
 });
