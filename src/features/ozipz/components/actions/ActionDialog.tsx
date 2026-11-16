@@ -57,6 +57,7 @@ export interface ActionDialogProps {
     linkedDistribution?: LinkedDistributionPayload
   ) => void | Promise<void>;
   onAddFacility?: ActionEditorSectionProps["onAddFacility"];
+  onAddMaterial?: ActionEditorSectionProps["onAddMaterial"];
 }
 
 export function ActionDialog(props: ActionDialogProps) {

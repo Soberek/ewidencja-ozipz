@@ -184,7 +184,8 @@ export function ActionQuickForm({ state: s, data }: {
       </Disclosure>
       {!s.isPublication && <Disclosure title="Materiały" summary={materialsSummary} reveal={s.isDistribution || Boolean(s.linkedDistribution) || s.materialItems.length > 0 || Boolean(s.materialsDistributedCount)}>
         <div data-field-error={Boolean(errors.materialsDistributedCount || errors.materialId)}>
-          <ActionQuickMaterials state={s} materials={data.materials ?? []} />
+          <ActionQuickMaterials state={s} materials={data.materials ?? []} onAddMaterial={data.onAddMaterial}
+            materialTypes={dictionaries.filter((d) => d.dictType === "materialType")} />
           {errors.materialId && <p role="alert" className="text-sm text-destructive">{errors.materialId.message}</p>}
         </div>
       </Disclosure>}

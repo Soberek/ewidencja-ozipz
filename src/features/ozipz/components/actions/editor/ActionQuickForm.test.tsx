@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
@@ -84,6 +85,35 @@ describe("Quick action form", () => {
     expect(screen.queryByText(/Miejsce spoza bazy placówek/)).toBeNull();
     // Zapis okna placówki nie może uruchomić walidacji ani zapisu formularza działania.
     expect(screen.queryAllByRole("alert")).toHaveLength(0);
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it("adds a new material to the catalog from the form and puts it in the distribution", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const onAddMaterial = vi.fn(async (payload) => ({ ...payload, ...timestamps, id: "m-new" }));
+    const dictionaryItems = [...data.dictionaryItems!,
+      { ...timestamps, id: "mt1", code: "plakat", label: "Plakat", dictType: "materialType", isSystem: false }];
+    // Jak store w aplikacji: nowy materiał trafia do katalogu przekazywanego do formularza.
+    function WithCatalog() {
+      const [materials, setMaterials] = useState(data.materials!);
+      return <Harness {...data} materials={materials} dictionaryItems={dictionaryItems} onSave={onSave}
+        onAddMaterial={async (payload) => { const created = await onAddMaterial(payload); setMaterials((prev) => [created, ...prev]); return created; }} />;
+    }
+    render(<WithCatalog />);
+    fireEvent.click(screen.getByText("Materiały", { exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Dodaj materiał" }));
+    fireEvent.click(screen.getByRole("button", { name: "Nowy materiał do katalogu" }));
+    const dialog = await screen.findByRole("dialog", { name: "Nowy Materiał Oświatowy OZiPZ" });
+    fireEvent.change(screen.getByLabelText(/Tytuł Materiału/), { target: { value: "Plakat o szczepieniach" } });
+    fireEvent.click(screen.getByLabelText(/Typ \/ Nośnik Materiału/));
+    fireEvent.click(screen.getByRole("option", { name: "Plakat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dodaj Materiał do Katalogu" }));
+    await waitFor(() => expect(onAddMaterial).toHaveBeenCalledTimes(1));
+    expect(onAddMaterial.mock.calls[0][0]).toMatchObject({ title: "Plakat o szczepieniach", materialType: "plakat" });
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
+    // Pusta pozycja dostała nowy materiał (nie powstała druga), a zapis okna nie zapisał działania.
+    expect(screen.getAllByLabelText(/^Materiał \d/)).toHaveLength(1);
+    expect(screen.getByLabelText("Materiał 1")).toHaveTextContent("Plakat o szczepieniach");
     expect(onSave).not.toHaveBeenCalled();
   });
 

@@ -2,13 +2,16 @@ import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import type { OzipzMaterial } from "../../../types/ozipz.types";
+import type { OzipzDictionaryItem, OzipzMaterial } from "../../../types/ozipz.types";
 import type { useActionEditorState } from "./useActionEditorState";
 import { FIELD_INPUT, FIELD_LABEL } from "./formStyles";
+import { ActionQuickMaterialAdd } from "./ActionQuickMaterialAdd";
 
-export function ActionQuickMaterials({ state: s, materials }: {
+export function ActionQuickMaterials({ state: s, materials, materialTypes = [], onAddMaterial }: {
   state: ReturnType<typeof useActionEditorState>;
   materials: OzipzMaterial[];
+  materialTypes?: OzipzDictionaryItem[];
+  onAddMaterial?: (data: Omit<OzipzMaterial, "id" | "createdAt" | "updatedAt">) => Promise<OzipzMaterial>;
 }) {
   const { errors } = s.form.formState;
   const hasItems = s.materialItems.length > 0;
@@ -36,6 +39,12 @@ export function ActionQuickMaterials({ state: s, materials }: {
         <Button type="button" variant="outline" className={`${FIELD_INPUT} gap-1.5`} onClick={() => s.handleAddMaterialItem()}>
           <Plus className="size-3.5" /> Dodaj materiał
         </Button>
+        {onAddMaterial && <ActionQuickMaterialAdd materialTypes={materialTypes} onAddMaterial={onAddMaterial} onCreated={(created) => {
+          // Pusta pozycja „Wybierz materiał” dostaje nowy materiał zamiast zostawać obok niego.
+          const emptyIndex = s.materialItems.findIndex((item) => !item.materialId);
+          if (emptyIndex >= 0) s.handleUpdateMaterialItem(emptyIndex, { materialId: created.id });
+          else s.handleAddMaterialItem(created.id);
+        }} />}
         {hasItems
           ? <p className="text-sm">Razem: <strong className="font-mono">{s.materialsDistributedCount ?? 0}</strong> szt.</p>
           : <div><label htmlFor="materials-total" className={FIELD_LABEL}>Łączna liczba materiałów</label>

@@ -86,4 +86,6 @@ export interface ActionEditorSectionProps {
   onCancel?: () => void;
   /** Szybkie dodanie miejsca do bazy placówek z formularza działania; bez tej funkcji przycisk jest ukryty. */
   onAddFacility?: (data: Omit<OzipzFacility, "id" | "createdAt" | "updatedAt">) => Promise<OzipzFacility>;
+  /** Szybkie dodanie materiału do katalogu z formularza działania; bez tej funkcji przycisk jest ukryty. */
+  onAddMaterial?: (data: Omit<OzipzMaterial, "id" | "createdAt" | "updatedAt">) => Promise<OzipzMaterial>;
 }
