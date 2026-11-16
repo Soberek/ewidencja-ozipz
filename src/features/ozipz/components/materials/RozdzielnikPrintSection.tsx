@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Building2, CalendarDays, ClipboardList, GraduationCap, Package, Printer, School } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { SearchableSelect, type SelectOption } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useOzipzDbStore } from "../../store/useOzipzDbStore";
-import { buildRozdzielnikHtml, collectActionMaterials, type RozdzielnikItem } from "../../utils/rozdzielnikPrint";
+import { buildRozdzielnikHtml, listRozdzielnikTasks, type RozdzielnikItem } from "../../utils/rozdzielnikPrint";
 import { formatFacilityAddress } from "../../utils/facilityUtils";
 import { compareDatesDesc, formatDatePl } from "../../utils/dateUtils";
 import { A4PrintPreview, printPreviewFrame } from "../print/A4PrintPreview";
@@ -31,12 +32,7 @@ export function RozdzielnikPrintSection() {
   // Zadania, przy których wydano materiały (wraz z wyliczonymi pozycjami), od najnowszych.
   // Dystrybucja zapisana razem z innym działaniem jest liczona przy nim, więc nie dublujemy jej na liście.
   const tasksWithMaterials = useMemo(() => {
-    const sources = { actions, distributions, materials };
-    const actionIds = new Set(actions.map((a) => a.id));
-    return actions
-      .filter((action) => !action.linkedActionId || !actionIds.has(action.linkedActionId))
-      .map((action) => ({ action, items: collectActionMaterials(action, sources) }))
-      .filter((task) => task.items.length > 0)
+    return listRozdzielnikTasks({ actions, distributions, materials })
       .sort((a, b) => compareDatesDesc(a.action.date, b.action.date));
   }, [actions, distributions, materials]);
 
@@ -97,6 +93,19 @@ export function RozdzielnikPrintSection() {
     setInstitutionText(facilityLine(action.facilityId) ?? action.facilityName);
     setItems(task.items);
   };
+
+  // Link z rejestru działań (?dzialanie=ID) otwiera druk od razu z wybranym zadaniem – raz, żeby nie nadpisywać ręcznych poprawek.
+  const [searchParams] = useSearchParams();
+  const requestedTaskId = searchParams.get("dzialanie");
+  const appliedTaskId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!requestedTaskId || appliedTaskId.current === requestedTaskId) return;
+    if (!tasksWithMaterials.some((t) => t.action.id === requestedTaskId)) return;
+    appliedTaskId.current = requestedTaskId;
+    handleTaskSelect(requestedTaskId);
+    // handleTaskSelect zależy od tych samych danych co lista zadań, którą już sprawdziliśmy.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedTaskId, tasksWithMaterials]);
 
   const html = useMemo(
     () => buildRozdzielnikHtml({ date, programName: programText, institution: institutionText, items }),

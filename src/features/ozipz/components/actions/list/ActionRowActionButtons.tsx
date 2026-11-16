@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FileText, Copy, Edit, Trash2 } from "lucide-react";
+import { FileText, Copy, Edit, Package, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -13,6 +13,8 @@ export interface ActionRowActionButtonsProps {
   isPub: boolean;
   isCancelled: boolean;
   onOpenIzrz: (action: OzipzAction) => void;
+  /** Podane tylko dla działań z wydanymi materiałami – otwiera druk rozdzielnika z tym działaniem. */
+  onPrintRozdzielnik?: (action: OzipzAction) => void;
   onEdit: (action: OzipzAction) => void;
   onDuplicate?: (action: OzipzAction) => void;
   onDelete: (id: string) => void | Promise<void>;
@@ -26,6 +28,7 @@ export function ActionRowActionButtons({
   isPub,
   isCancelled,
   onOpenIzrz,
+  onPrintRozdzielnik,
   onEdit,
   onDuplicate,
   onDelete,
@@ -60,6 +63,26 @@ export function ActionRowActionButtons({
               : "Karta IZRZ / Drukuj"}
           </TooltipContent>
         </Tooltip>
+
+        {onPrintRozdzielnik && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label="Drukuj rozdzielnik"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPrintRozdzielnik(row);
+                }}
+                className="h-6 w-6 p-0 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 cursor-pointer"
+              >
+                <Package className="size-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Drukuj rozdzielnik materiałów</TooltipContent>
+          </Tooltip>
+        )}
 
         <Tooltip>
           <TooltipTrigger asChild>

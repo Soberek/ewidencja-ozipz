@@ -19,6 +19,8 @@ export interface CreateActionColumnsOptions {
   copiedSignId: string | null;
   onCopySign: (id: string, sign: string) => void;
   onOpenIzrz: (action: OzipzAction) => void;
+  /** Zwraca funkcję druku rozdzielnika dla wiersza z wydanymi materiałami albo undefined. */
+  getRozdzielnikPrinter?: (action: OzipzAction) => (() => void) | undefined;
   onEdit: (action: OzipzAction) => void;
   onDuplicate?: (action: OzipzAction) => void;
   onDelete: (id: string) => void;
@@ -41,6 +43,7 @@ export function createActionColumns(options: CreateActionColumnsOptions): Column
     copiedSignId,
     onCopySign,
     onOpenIzrz,
+    getRozdzielnikPrinter,
     onEdit,
     onDuplicate,
     onDelete,
@@ -261,6 +264,7 @@ export function createActionColumns(options: CreateActionColumnsOptions): Column
             isPub={isPub}
             isCancelled={isCancelled}
             onOpenIzrz={onOpenIzrz}
+            onPrintRozdzielnik={getRozdzielnikPrinter?.(row) ? () => getRozdzielnikPrinter(row)?.() : undefined}
             onEdit={onEdit}
             onDuplicate={onDuplicate}
             onDelete={onDelete}

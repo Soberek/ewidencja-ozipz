@@ -44,6 +44,30 @@ export function collectActionMaterials(action: OzipzAction, sources: Rozdzielnik
   return [...totals].map(([title, quantity]) => ({ title, quantity }));
 }
 
+export interface RozdzielnikTask {
+  action: OzipzAction;
+  items: RozdzielnikItem[];
+}
+
+/**
+ * Zadania, przy których wydano materiały. Dystrybucja zapisana razem z innym działaniem jest liczona przy nim,
+ * więc nie jest osobnym zadaniem – druk otwiera się z działania nadrzędnego.
+ */
+export function listRozdzielnikTasks(sources: RozdzielnikSources): RozdzielnikTask[] {
+  const actionIds = new Set(sources.actions.map((a) => a.id));
+  return sources.actions
+    .filter((action) => !action.linkedActionId || !actionIds.has(action.linkedActionId))
+    .map((action) => ({ action, items: collectActionMaterials(action, sources) }))
+    .filter((task) => task.items.length > 0);
+}
+
+/** Identyfikator zadania, z którego drukuje się rozdzielnik dla danego wiersza rejestru; brak = nie ma czego drukować. */
+export function rozdzielnikTaskIdFor(action: OzipzAction, tasks: RozdzielnikTask[]): string | undefined {
+  const own = tasks.find((task) => task.action.id === action.id);
+  if (own) return own.action.id;
+  return action.linkedActionId ? tasks.find((task) => task.action.id === action.linkedActionId)?.action.id : undefined;
+}
+
 export interface RozdzielnikPrintOptions {
   /** Data w formacie ISO (YYYY-MM-DD); pusta = miejsce do wpisania ręcznie. */
   date?: string;

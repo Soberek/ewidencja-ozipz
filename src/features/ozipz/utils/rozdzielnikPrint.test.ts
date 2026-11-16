@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { OzipzAction, OzipzDistribution, OzipzMaterial } from "../types/ozipz.types";
-import { buildRozdzielnikHtml, collectActionMaterials } from "./rozdzielnikPrint";
+import { buildRozdzielnikHtml, collectActionMaterials, listRozdzielnikTasks, rozdzielnikTaskIdFor } from "./rozdzielnikPrint";
 
 const action = (overrides: Partial<OzipzAction>): OzipzAction => ({
   id: "a1",
@@ -85,5 +85,30 @@ describe("buildRozdzielnikHtml", () => {
     const html = buildRozdzielnikHtml({ programName: "", institution: "", items: [] });
     expect(html).toContain("ROZDZIELNIK z dn. .................... r.");
     expect(html.match(/class="col-material"/g)).toHaveLength(2);
+  });
+});
+
+describe("zadania do druku rozdzielnika", () => {
+  const parent = action({ id: "p1", actionType: "Prelekcja" });
+  const linked = action({ id: "d1", actionType: "Dystrybucja", linkedActionId: "p1" });
+  const standalone = action({ id: "d2", actionType: "Dystrybucja" });
+  const empty = action({ id: "e1" });
+  const sources = {
+    actions: [parent, linked, standalone, empty],
+    distributions: [distribution("p1", "Ulotka", 10), distribution("d1", "Plakat", 2), distribution("d2", "Broszura", 5)],
+    materials,
+  };
+
+  it("pomija działania bez materiałów i dystrybucję zapisaną razem z działaniem", () => {
+    const tasks = listRozdzielnikTasks(sources);
+    expect(tasks.map((t) => t.action.id).sort()).toEqual(["d2", "p1"]);
+    expect(tasks.find((t) => t.action.id === "p1")?.items.map((i) => i.title).sort()).toEqual(["Plakat", "Ulotka"]);
+  });
+
+  it("dla dystrybucji z działania wskazuje zadanie nadrzędne, dla samodzielnej – ją samą, dla pustego – nic", () => {
+    const tasks = listRozdzielnikTasks(sources);
+    expect(rozdzielnikTaskIdFor(linked, tasks)).toBe("p1");
+    expect(rozdzielnikTaskIdFor(standalone, tasks)).toBe("d2");
+    expect(rozdzielnikTaskIdFor(empty, tasks)).toBeUndefined();
   });
 });
