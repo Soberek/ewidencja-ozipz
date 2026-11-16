@@ -8,6 +8,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { pipeline } from "node:stream/promises";
 import { migrateDatabase, staleMigrationBackups } from "./sqlite-migrations";
 import { fetchAllowedWebPage } from "./vite-web-fetch";
+import { generateAiDescription } from "./vite-ai-description";
 
 const isLoopback = (address: string | undefined) =>
   address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1";
@@ -148,9 +149,26 @@ export function viteSqlitePlugin(dbPath = defaultDatabasePath()): Plugin {
     }
   }
 
+  async function handleAiDescription(req: IncomingMessage, res: ServerResponse) {
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Cache-Control", "no-store");
+    const reply = (status: number, value: unknown) => { res.writeHead(status); res.end(JSON.stringify(value)); };
+    if (req.method !== "POST" || !["local", "lan"].includes(authorize(req, false) ?? "")) {
+      reply(403, { error: "Generowanie opisów jest dozwolone wyłącznie z lokalnej aplikacji." });
+      return;
+    }
+    try {
+      const data = JSON.parse((await readBody(req, 64 * 1024)).toString());
+      reply(200, { text: await generateAiDescription(data) });
+    } catch (error) {
+      reply(502, { error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
   async function handleHttp(req: IncomingMessage, res: ServerResponse, next: () => void) {
     const url = req.url?.split("?")[0] || "";
     if (url === "/api/web/fetch") { await handleWebFetch(req, res); return; }
+    if (url === "/api/ai/describe") { await handleAiDescription(req, res); return; }
     if (!url.startsWith("/api/db")) { next(); return; }
     res.setHeader("Content-Type", "application/json");
     res.setHeader("Cache-Control", "no-store");

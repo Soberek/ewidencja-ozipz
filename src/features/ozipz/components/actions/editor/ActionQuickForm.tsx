@@ -20,6 +20,8 @@ import { DEFAULT_EZD_STATUS, findCampaign } from "./actionEditorSubmitUtils";
 import { EZD_STATUS_LABELS } from "../actionEzdStatus";
 import type { ActionDraft } from "./actionDraft";
 import { FIELD_INPUT, FIELD_LABEL, SECTION_HEADING } from "./formStyles";
+import { AiDescriptionButton } from "../../ai/AiDescriptionButton";
+import { buildActionFacts } from "../../../utils/aiDescriptionFacts";
 import { municipalityName } from "../../../utils/facilityUtils";
 import type { OzipzFacility } from "../../../types/ozipz.types";
 
@@ -188,7 +190,16 @@ export function ActionQuickForm({ state: s, data }: {
       </Disclosure>}
       <Disclosure title="Opis i dodatkowe informacje" summary={descriptionSummary} reveal={Boolean(s.activitiesDescription || s.additionalNotes)}>
         <div className="space-y-3">
-          <div><label htmlFor="action-description" className={FIELD_LABEL}>Opis czynności</label>
+          <div><div className="flex items-center justify-between gap-2">
+              <label htmlFor="action-description" className={FIELD_LABEL}>Opis czynności</label>
+              <AiDescriptionButton mode="action" value={s.activitiesDescription} onChange={s.setActivitiesDescription} getFacts={() => buildActionFacts({
+                actionType: s.actionType, title: s.title,
+                program: selectedProgram?.name || s.jrwaSymbolsList.find((j) => j.symbol === s.selectedJrwaSymbol)?.label || "",
+                campaign: campaign?.label ?? "", date: s.date, facilityName: s.facilityName, municipality: s.municipality,
+                audience: s.formattedAudienceString, participantsCount: s.totalDirectParticipants, numberOfActions: s.numberOfActions || 1,
+                materials: s.materialItems.map((item) => (data.materials ?? []).find((m) => m.id === item.materialId)?.title || item.customTitle || "").filter(Boolean),
+              })} />
+            </div>
             <Textarea id="action-description" rows={3} value={s.activitiesDescription} onChange={(e) => s.setActivitiesDescription(e.target.value)} /></div>
           <div><label htmlFor="action-notes" className={FIELD_LABEL}>Uwagi i wnioski</label>
             <Textarea id="action-notes" rows={2} value={s.additionalNotes} onChange={(e) => s.setAdditionalNotes(e.target.value)} /></div>

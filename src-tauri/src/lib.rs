@@ -1,3 +1,4 @@
+mod ai_description;
 mod auto_backup;
 mod attachment_backups;
 mod db_lock;
@@ -368,7 +369,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![publication_fetch::fetch_publication_source, open_local_database, get_database_path, set_database_location, reveal_database_file, backup_database, save_generated_file, reveal_saved_file, queue_database_restore, has_restored_database, acknowledge_database_restore,
+        .invoke_handler(tauri::generate_handler![publication_fetch::fetch_publication_source, ai_description::generate_ai_description, open_local_database, get_database_path, set_database_location, reveal_database_file, backup_database, save_generated_file, reveal_saved_file, queue_database_restore, has_restored_database, acknowledge_database_restore,
             auto_backup::get_auto_backups, auto_backup::create_auto_backup_now, auto_backup::open_auto_backup_folder,
             db_lock::acquire_database_lock, db_lock::database_lock_status, db_lock::get_session_actor,
             storage_kind::get_database_storage_kind,

@@ -13,6 +13,7 @@ import {
 } from "../../../../db/client";
 import { AppUpdateCard } from "./AppUpdateCard";
 import { AutoBackupCard } from "./AutoBackupCard";
+import { AiSettingsCard } from "./AiSettingsCard";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { executeConfirmedAction } from "@/components/ui/confirmHelper";
@@ -150,6 +151,8 @@ export function SettingsSection() {
       </Card>
 
       <AppUpdateCard />
+
+      <AiSettingsCard />
 
       {databaseInfo?.mode === "tauri-sqlite" && <AutoBackupCard />}
 

@@ -16,6 +16,8 @@ import { buildTemplatePayload, resolveTemplateContent, type TemplateAudienceGrou
 import { findCampaign } from "../actions/editor/actionEditorSubmitUtils";
 import { FIELD_LABEL } from "../actions/editor/formStyles";
 import { TemplateAudienceEditor, TemplateMaterialsEditor } from "./components/TemplateContentEditors";
+import { AiDescriptionButton } from "../ai/AiDescriptionButton";
+import { buildTemplateFacts } from "../../utils/aiDescriptionFacts";
 
 export const TemplateFormSchema = z.object({
   name: z.string().trim().min(1, "Wpisz nazwę szablonu."),
@@ -216,7 +218,19 @@ export function TemplateDialog({
         </section>
 
         <div className="border-t border-border pt-3">
-          <label htmlFor="template-description" className={FIELD_LABEL}>Opis czynności</label>
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="template-description" className={FIELD_LABEL}>Opis czynności</label>
+            <AiDescriptionButton mode="template" value={values.description} onChange={(text) => setValue("description", text, { shouldDirty: true })}
+              getFacts={() => {
+                const [kind, ref = ""] = values.classification.split(/:(.*)/s);
+                const program = kind === "prog" ? programs.find((p) => p.id === ref)?.name : kind === "jrwa" ? getAllJrwaSymbols(jrwaSymbols).find((j) => j.symbol === ref)?.label : "";
+                return buildTemplateFacts({
+                  actionType: values.actionType, title: values.title, name: values.name, program: program ?? "",
+                  campaign: findCampaign(campaigns, values.campaignId)?.label ?? "", audienceGroups: audienceGroups,
+                  materials: materialIds.map((id) => materials.find((m) => m.id === id)?.title ?? "").filter(Boolean),
+                });
+              }} />
+          </div>
           <Textarea id="template-description" rows={4} {...register("description")} placeholder="Przebieg działania, który chcesz powtarzać" />
         </div>
       </div>
