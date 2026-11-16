@@ -154,6 +154,8 @@ export function usableTemplates(templates: OzipzTemplate[]): OzipzTemplate[] {
 
 export interface TemplateDescription {
   programName: string;
+  /** Symbol JRWA z programu albo z klasyfikacji bez programu — do zwartych list. */
+  jrwaSymbol: string;
   classification: string;
   count: string;
   audience: string;
@@ -179,6 +181,7 @@ export function describeTemplateContent(
   const materialNames = c.materialIds.map((id) => materials.find((m) => m.id === id)?.title || "materiał usunięty z katalogu");
   return {
     programName: program?.name || "",
+    jrwaSymbol: symbol || "",
     classification,
     count: c.numberOfActions > 1 ? plural(c.numberOfActions, ["działanie", "działania", "działań"]) : "",
     audience,

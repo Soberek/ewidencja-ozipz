@@ -40,8 +40,11 @@ export function TemplatesTableView({
       defaultSortDirection="asc"
       entityLabel="szablonów"
       totalCount={totalCount}
+      density="compact"
+      showDensityToggle={false}
+      className="text-xs"
       enablePagination={true}
-      defaultPageSize={25}
+      defaultPageSize={50}
       enableExport={true}
       exportFileName="szablony_zadan_ozipz.csv"
       onRowClick={onOpenEdit}
