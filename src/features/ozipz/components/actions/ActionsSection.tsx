@@ -19,6 +19,7 @@ import { selectMunicipalities, selectTopics } from "../../hooks/useOzipzDb";
 import { duplicateActionDraft } from "./editor/editorUtils";
 import { isMonthClosed } from "../../utils/dateUtils";
 import { buildJrwaInterventionKindMap } from "../../utils/calculators/jrwaClassification";
+import { listRozdzielnikTasks, rozdzielnikTaskIdFor } from "../../utils/rozdzielnikPrint";
 
 export interface ActionsSectionProps {
   actions?: OzipzAction[];
@@ -172,6 +173,18 @@ export function ActionsSection(props: ActionsSectionProps) {
     [onDuplicateAction, propDistributions, navigate]
   );
 
+  // Przycisk druku rozdzielnika pokazujemy tylko przy działaniach, przy których wydano materiały.
+  const storeDistributions = useOzipzDbStore((s) => s.distributions);
+  const storeMaterials = useOzipzDbStore((s) => s.materials);
+  const rozdzielnikTasks = useMemo(
+    () => listRozdzielnikTasks({ actions, distributions: propDistributions ?? storeDistributions, materials: storeMaterials }),
+    [actions, propDistributions, storeDistributions, storeMaterials]
+  );
+  const getRozdzielnikPrinter = useCallback((action: OzipzAction) => {
+    const taskId = rozdzielnikTaskIdFor(action, rozdzielnikTasks);
+    return taskId ? () => navigate(`/narzedzia/druk-rozdzielnika?dzialanie=${encodeURIComponent(taskId)}`) : undefined;
+  }, [rozdzielnikTasks, navigate]);
+
   const tableDensity = useUIStore((s) => s.tableDensity);
   const bulkMutationsDisabled = locksStatus !== "ready" || actions.some((action) => selectedActionIds.has(action.id) && isMonthClosed(action.date, closedMonths));
 
@@ -200,6 +213,7 @@ export function ActionsSection(props: ActionsSectionProps) {
         onDuplicate: handleDuplicateAction,
         onDelete: onDeleteAction,
         onOpenIzrz: (action) => setSelectedIzrzAction(action),
+        getRozdzielnikPrinter,
         actionsById,
         linkedDistributionByActionId,
         jrwaKindMap,
@@ -216,6 +230,7 @@ export function ActionsSection(props: ActionsSectionProps) {
       onOpenEdit,
       handleDuplicateAction,
       onDeleteAction,
+      getRozdzielnikPrinter,
       actionsById,
       linkedDistributionByActionId,
       jrwaKindMap,
