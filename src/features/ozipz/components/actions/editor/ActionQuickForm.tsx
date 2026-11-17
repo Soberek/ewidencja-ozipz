@@ -103,7 +103,7 @@ export function ActionQuickForm({ state: s, data }: {
   return <div ref={root} className="space-y-4">
     {s.pendingDraft && <DraftBanner draft={s.pendingDraft} onRestore={s.restoreDraft} onDismiss={s.dismissDraft} />}
     <ActionQuickStart state={s} data={data} />
-    <p className="text-sm text-muted-foreground">Uzupełnij podstawowe dane. Pola oznaczone * są wymagane.</p>
+    {!data.editingAction?.id && <p className="text-sm text-muted-foreground">Uzupełnij podstawowe dane. Pola oznaczone * są wymagane.</p>}
     <section className="space-y-3" aria-label="Działanie">
       <h2 className={SECTION_HEADING}>Działanie</h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -136,9 +136,9 @@ export function ActionQuickForm({ state: s, data }: {
       {/* Data i krotność to krótkie wartości — wąskie pola zamiast połowy szerokości formularza. */}
       <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
         {field("date", <><label htmlFor="action-date" className={FIELD_LABEL}>Data realizacji *</label>
-          <div className="flex flex-wrap items-center gap-1"><DatePicker id="action-date" value={s.date} onChange={s.handleDateChange} size="md" className="w-48" showShortcuts={false} />
-            <Button type="button" variant="ghost" size="sm" onClick={() => s.setQuickDate("today")}>Dziś</Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => s.setQuickDate("yesterday")}>Wczoraj</Button>
+          <div className="flex flex-wrap items-center gap-1.5"><DatePicker id="action-date" value={s.date} onChange={s.handleDateChange} size="md" className="w-48" showShortcuts={false} />
+            <Button type="button" variant="outline" size="sm" className="h-9" onClick={() => s.setQuickDate("today")}>Dziś</Button>
+            <Button type="button" variant="outline" size="sm" className="h-9" onClick={() => s.setQuickDate("yesterday")}>Wczoraj</Button>
           </div></>)}
         <div className="w-36">
           {field("numberOfActions", <><label htmlFor="action-count" className={FIELD_LABEL}>Liczba działań [DZ] *</label>

@@ -1,3 +1,4 @@
+import { ActionEzdTitles } from "./editor/ActionEzdTitles";
 import { combineActionNotes, describeSaveError, DEFAULT_EZD_STATUS } from "./editor/actionEditorSubmitUtils";
 import { handleActionSaveShortcut } from "./editor/editorShortcuts";
 import { useDiscardConfirmation } from "./editor/useDiscardConfirmation";
@@ -202,6 +203,8 @@ export function ActionEditorSection(props: ActionEditorSectionProps) {
         onDuplicate={handleDuplicateFromEditor}
         isDuplicate={isDuplicate}
       />
+
+      <ActionEzdTitles state={state} programs={programs} />
 
       {isSelectedMonthClosed && <p role="alert" className="text-sm text-destructive">Miesiąc wybranej daty jest zamknięty. Wybierz datę z otwartego miesiąca, aby zapisać działanie.</p>}
 

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, FileDown, FileText, Info, Loader2, RotateCcw } from "lucide-react";
+import { AlertTriangle, FileDown, FileText, Info, Loader2, Printer, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import type { OzipzAction } from "../../types/ozipz.types";
 import { resolveIzrzContext } from "../../utils/izrzContext";
@@ -11,9 +11,17 @@ import {
   saveIzrzDocx,
   type IzrzGeneratorData,
 } from "../../utils/izrzGenerator";
+import { buildIzrzHtml } from "../../utils/izrzPrint";
+import { buildEzdTitles } from "../../utils/ezdTitles";
 import { revealSavedFile } from "@/lib/saveFile";
 import { useActions, useFacilities, useMaterials } from "../../store/useOzipzDbStore";
+import { A4PrintPreview, printHtmlDocument } from "../print/A4PrintPreview";
+import { IzrzEzdTitles } from "./IzrzEzdTitles";
 import { IzrzSheetEditor } from "./IzrzSheetEditor";
+
+type IzrzView = "sheet" | "preview";
+
+const VIEW_LABELS: Record<IzrzView, string> = { sheet: "Arkusz do edycji", preview: "Podgląd wydruku" };
 
 export interface IzrzDocumentDialogProps {
   isOpen: boolean;
@@ -42,10 +50,14 @@ export function IzrzDocumentDialog({ isOpen, onClose, action }: IzrzDocumentDial
 
   const [draft, setDraft] = useState<IzrzGeneratorData>(initialData);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [view, setView] = useState<IzrzView>("sheet");
 
   const warnings = useMemo(() => getIzrzWarnings(draft), [draft]);
   const isEdited = useMemo(() => JSON.stringify(draft) !== JSON.stringify(initialData), [draft, initialData]);
   const isParentDocument = context.action.id !== action.id;
+
+  const ezdTitles = useMemo(() => buildEzdTitles(draft), [draft]);
+  const printHtml = useMemo(() => buildIzrzHtml(draft), [draft]);
 
   const handleChange = (patch: Partial<IzrzGeneratorData>) => setDraft((prev) => ({ ...prev, ...patch }));
 
@@ -107,6 +119,17 @@ export function IzrzDocumentDialog({ isOpen, onClose, action }: IzrzDocumentDial
             <Button
               type="button"
               size="sm"
+              variant="outline"
+              onClick={() => printHtmlDocument(printHtml)}
+              className="h-8.5 px-3 text-xs gap-1.5"
+              title="Wydrukuj informację z realizacji zadania"
+            >
+              <Printer className="size-4" />
+              Drukuj
+            </Button>
+            <Button
+              type="button"
+              size="sm"
               onClick={handleSave}
               disabled={isGenerating}
               className="h-8.5 px-3.5 text-xs font-bold gap-2"
@@ -117,6 +140,8 @@ export function IzrzDocumentDialog({ isOpen, onClose, action }: IzrzDocumentDial
             </Button>
           </div>
         </div>
+
+        <IzrzEzdTitles titles={ezdTitles} />
 
         {(isParentDocument || context.relatedActions.length > 0 || warnings.length > 0) && (
           <div className="px-4 py-3 space-y-2 border-b border-border bg-muted/30 text-xs">
@@ -150,7 +175,30 @@ export function IzrzDocumentDialog({ isOpen, onClose, action }: IzrzDocumentDial
           </div>
         )}
 
-        <IzrzSheetEditor data={draft} onChange={handleChange} />
+        <div className="px-4 py-2 border-b border-border flex items-center gap-1" role="tablist" aria-label="Widok dokumentu">
+          {(Object.keys(VIEW_LABELS) as IzrzView[]).map((key) => (
+            <Button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={view === key}
+              size="sm"
+              variant={view === key ? "secondary" : "ghost"}
+              onClick={() => setView(key)}
+              className="h-7 px-3 text-xs"
+            >
+              {VIEW_LABELS[key]}
+            </Button>
+          ))}
+        </div>
+
+        {view === "sheet" ? (
+          <IzrzSheetEditor data={draft} onChange={handleChange} />
+        ) : (
+          <div className="p-4 bg-muted/40 flex justify-center">
+            <A4PrintPreview html={printHtml} title="Podgląd informacji z realizacji zadania" scale={0.95} fitContent />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

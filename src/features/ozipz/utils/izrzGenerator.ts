@@ -59,6 +59,29 @@ function resolveInterventionName(action: Partial<OzipzAction>): string {
   return candidates.map((c) => (c || "").trim()).find((c) => c.length > 0) ?? "";
 }
 
+const REMARKS_MARKER = /(?:^|\n\s*\n)Uwagi:[ \t]*/;
+
+/**
+ * Pole „notes” działania trzyma opis czynności i uwagi razem („Opis\n\nUwagi: …”).
+ * W IZRZ opis idzie do pkt 6, a uwagi do pkt 7.
+ */
+export function splitActionNotes(notes: string | null | undefined): { description: string; remarks: string } {
+  const text = (notes || "").trim();
+  const match = REMARKS_MARKER.exec(text);
+  if (!match) return { description: text, remarks: "" };
+  return {
+    description: text.slice(0, match.index).trim(),
+    remarks: text.slice(match.index + match[0].length).trim(),
+  };
+}
+
+/** Forma zadania; gdy przy działaniu wydano materiały – z dopiskiem „dystrybucja” (np. „Stoisko edukacyjne, dystrybucja”). */
+export function formatIzrzTaskType(actionType: string | undefined, hasDistribution: boolean): string {
+  const type = (actionType || "").trim();
+  if (!hasDistribution || !type || /dystrybucj/i.test(type)) return type;
+  return `${type}, dystrybucja`;
+}
+
 export function formatIzrzMaterials(lines: IzrzMaterialLine[]): string {
   const valid = lines.filter((l) => l.quantity > 0);
   if (valid.length === 0) return "";
@@ -100,12 +123,14 @@ export function prepareIzrzData(
   const materialsCount = Number(action.materialsDistributedCount) || 0;
   const materials =
     options.materials ?? (materialsCount > 0 ? [{ title: "", quantity: materialsCount }] : []);
+  const hasDistributionList = materials.some((m) => m.quantity > 0);
+  const { description, remarks } = splitActionNotes(action.notes);
 
   return {
     caseNumber: formatFullJrwaSign(action),
     reportNumber: (action.izrzSign || "").replace(/^IZRZ:\s*/i, "").trim() || IZRZ_DRAFT_NUMBER,
     programName: resolveInterventionName(action),
-    taskType: action.actionType || "",
+    taskType: formatIzrzTaskType(action.actionType, hasDistributionList),
     address,
     city,
     dateIso,
@@ -115,10 +140,10 @@ export function prepareIzrzData(
       actionType: action.actionType,
       participantsCount: viewerCount,
     }),
-    taskDescription: (action.notes || "").trim(),
-    additionalInfo: formatIzrzMaterials(materials),
+    taskDescription: description,
+    additionalInfo: [formatIzrzMaterials(materials), remarks].filter(Boolean).join("\n\n"),
     hasAttendanceList: false,
-    hasDistributionList: materials.some((m) => m.quantity > 0),
+    hasDistributionList,
     leadEducator: action.leadEducator || "",
   };
 }
@@ -165,13 +190,40 @@ export function getIzrzWarnings(data: IzrzGeneratorData): string[] {
   return warnings;
 }
 
+/** Nazwa placówki z pkt 3 IZRZ (adres zaczyna się od nazwy instytucji). */
+export function izrzInstitutionName(data: Pick<IzrzGeneratorData, "address">): string {
+  return (data.address.split(",")[0] ?? "").trim();
+}
+
+/** Slug ograniczony do `max` znaków, ucinany na granicy słowa (bez urwanych wyrazów w nazwie pliku). */
+function fileNamePart(text: string, max: number): string {
+  const slug = toAsciiSlug(text);
+  if (slug.length <= max) return slug;
+  const cut = slug.slice(0, max);
+  const lastDash = cut.lastIndexOf("-");
+  const wholeWords = slug[max] === "-" || lastDash < max / 2 ? cut : cut.slice(0, lastDash);
+  // Bez wiszących spójników i skrótów („…-i”, „…-im”, „…-nr”) na końcu członu.
+  return wholeWords.replace(/(?:-(?:i|w|z|o|u|na|im|nr))+$/i, "").replace(/-$/, "");
+}
+
+/**
+ * Nazwa pliku IZRZ: IZRZ_numer_data_miejscowość_placówka_forma-zadania_program, np.
+ * IZRZ_12-2026_2026-05-14_Mysliborz_Szkola-Podstawowa-nr-1-im-Tadeusza-Kosciuszki_Prelekcja-warsztat_Trzymaj-Forme.docx.
+ * Bez polskich znaków i spacji (bezpieczna w EZD i poczcie); puste i powtarzające się człony są pomijane.
+ */
 export function buildIzrzDocxFileName(data: IzrzGeneratorData): string {
+  const institution = izrzInstitutionName(data);
+  const taskType = fileNamePart(data.taskType, 32);
+  const program = fileNamePart(data.programName, 36);
+
   const segments = [
     "IZRZ",
     isIzrzDraftNumber(data.reportNumber) ? "PROJEKT" : toAsciiSlug(data.reportNumber),
     data.dateIso,
-    toAsciiSlug(data.city),
-    toAsciiSlug(data.programName || data.taskType, 40),
+    fileNamePart(data.city, 24),
+    fileNamePart(institution, 44),
+    taskType,
+    program !== taskType ? program : "",
   ].filter((segment) => segment.length > 0);
 
   return segments.join("_") + ".docx";
