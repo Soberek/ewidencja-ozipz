@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import PizZip from "pizzip";
@@ -89,6 +89,32 @@ describe("IzrzDocumentDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: /Przywróć dane z działania/ }));
     expect(valueOf(screen.getByLabelText("Zakres czynności"))).toBe(prelekcja.notes);
     expect(screen.queryByRole("button", { name: /Przywróć dane z działania/ })).toBeNull();
+  });
+
+  it("offers ready EZD titles at the top and copies one to the clipboard", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    render(<IzrzDocumentDialog isOpen onClose={() => {}} action={prelekcja} />);
+
+    const section = screen.getByRole("region", { name: "Tytuły do EZD" });
+    expect(section.textContent).toContain("Tytuł sprawy");
+    expect(section.textContent).toContain("IZRZ 87/2026 – Prelekcja (warsztat), dystrybucja – Półkolonie w Myśliborzu");
+
+    fireEvent.click(screen.getByRole("button", { name: "Kopiuj: Tytuł sprawy" }));
+    await screen.findByText("Skopiowano");
+    expect(writeText).toHaveBeenCalledWith(expect.stringMatching(/^Prelekcja \(warsztat\), dystrybucja – Półkolonie w Myśliborzu – Bezpieczeństwo dzieci .* – 24\.07\.2026$/));
+  });
+
+  it("switches to the print preview built from the edited sheet and offers printing", () => {
+    render(<IzrzDocumentDialog isOpen onClose={() => {}} action={prelekcja} />);
+
+    fireEvent.change(screen.getByLabelText("Forma zadania"), { target: { value: "Stoisko edukacyjne" } });
+    expect(screen.getByRole("button", { name: /Drukuj/ })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Podgląd wydruku" }));
+    const frame = screen.getByTitle("Podgląd informacji z realizacji zadania") as HTMLIFrameElement;
+    expect(frame.getAttribute("srcdoc")).toContain("Stoisko edukacyjne");
+    expect(screen.queryByLabelText("Forma zadania")).toBeNull();
   });
 });
 

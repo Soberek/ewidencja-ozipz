@@ -298,25 +298,3 @@ export function buildLiczbaOsobOpis(
 
   return blocks.join('\n');
 }
-
-export function buildIzrzFileName(
-  data: {
-    numer_izrz?: string;
-    miasto?: string;
-    nazwa_programu?: string;
-    data?: string;
-  },
-  isoDate?: string
-): string {
-  const dateIso =
-    String(isoDate || '').match(/^\d{4}-\d{2}-\d{2}/)?.[0] ||
-    String(data.data || '').split('.').reverse().join('-');
-  const segments = [
-    'IZRZ',
-    toAsciiSlug(data.numer_izrz),
-    dateIso,
-    toAsciiSlug(data.miasto),
-    toAsciiSlug(data.nazwa_programu, 40),
-  ].filter((s) => s && s.length > 0);
-  return segments.join('_') || 'IZRZ';
-}

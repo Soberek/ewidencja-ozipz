@@ -8,7 +8,6 @@ import {
   extractLocalityFromFacilityName,
   formatOdbiorcaLine,
   buildLiczbaOsobOpis,
-  buildIzrzFileName,
   toAsciiSlug,
 } from "./izrzUtils";
 
@@ -99,17 +98,7 @@ describe("izrzUtils", () => {
     expect(desc).toContain("Uczniowie klasy 8a - 20");
   });
 
-  it("should create ascii slug and file name", () => {
+  it("should create ascii slug", () => {
     expect(toAsciiSlug("Zażółć gęślą jaźń")).toBe("Zazolc-gesla-jazn");
-    const name = buildIzrzFileName(
-      {
-        numer_izrz: "66/2026",
-        miasto: "Myślibórz",
-        nazwa_programu: "Trzymaj Formę!",
-        data: "2026-05-15",
-      },
-      "2026-05-15"
-    );
-    expect(name).toBe("IZRZ_66-2026_2026-05-15_Mysliborz_Trzymaj-Forme");
   });
 });

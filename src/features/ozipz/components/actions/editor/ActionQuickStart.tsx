@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { BookmarkPlus } from "lucide-react";
+import { BookmarkPlus, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchInput } from "@/components/ui/search-input";
@@ -42,6 +42,8 @@ export function ActionQuickStart({ state: s, data }: {
   const [editing, setEditing] = useState<OzipzTemplate | null>(null);
   const [query, setQuery] = useState("");
   const [saveOpen, setSaveOpen] = useState(false);
+  // Szablony służą do wypełnienia nowego działania — przy edycji istniejącego lista jest domyślnie zwinięta.
+  const [listOpen, setListOpen] = useState(!data.editingAction?.id);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -105,10 +107,16 @@ export function ActionQuickStart({ state: s, data }: {
 
   return <TooltipProvider delayDuration={600}><section aria-label="Szablony" className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
     <div className="flex flex-wrap items-center gap-2">
-      <h2 className="text-sm font-semibold">Szablony</h2>
-      {list.length > 0 && <span className="text-xs text-muted-foreground">Kliknij wiersz, aby wypełnić formularz; przytrzymaj kursor, aby zobaczyć wszystko, co wpisze.</span>}
+      <h2 className="text-sm font-semibold">
+        <button type="button" className="flex items-center gap-1 rounded-[2px] hover:text-primary" aria-expanded={listOpen}
+          onClick={() => setListOpen(!listOpen)}>
+          {listOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}Szablony
+          {!listOpen && list.length > 0 && <span className="text-xs font-normal text-muted-foreground">({list.length})</span>}
+        </button>
+      </h2>
+      {listOpen && list.length > 0 && <span className="text-xs text-muted-foreground">Kliknij wiersz, aby wypełnić formularz; przytrzymaj kursor, aby zobaczyć wszystko, co wpisze.</span>}
       <div className="ml-auto flex flex-wrap items-center gap-2">
-        {list.length >= SEARCH_FROM && <SearchInput value={query} onValueChange={setQuery} placeholder="Szukaj szablonu…" />}
+        {listOpen && list.length >= SEARCH_FROM && <SearchInput value={query} onValueChange={setQuery} placeholder="Szukaj szablonu…" />}
         <Button type="button" variant="outline" size="sm" className="gap-1.5" aria-expanded={saveOpen}
           onClick={() => { setName(s.selectedTemplate ? "" : s.title); setError(""); setSaveOpen(!saveOpen); }}>
           <BookmarkPlus className="size-3.5" /> Zapisz jako szablon
@@ -116,12 +124,12 @@ export function ActionQuickStart({ state: s, data }: {
       </div>
     </div>
 
-    {list.length === 0
+    {listOpen && (list.length === 0
       ? <p className="text-sm text-muted-foreground">Nie masz jeszcze szablonów. Wypełnij pola, które się powtarzają (formę, program, odbiorców, materiały), i kliknij „Zapisz jako szablon”.</p>
       : visible.length > 0
         ? <TemplateCompactList rows={visible} activeId={s.selectedTemplateId ?? undefined}
           onApply={(t) => s.applyTemplate(t.id)} onTogglePin={(t) => void togglePin(t)} onEdit={setEditing} />
-        : <p className="text-sm text-muted-foreground">Żaden szablon nie pasuje do „{query.trim()}”.</p>}
+        : <p className="text-sm text-muted-foreground">Żaden szablon nie pasuje do „{query.trim()}”.</p>)}
 
     {s.selectedTemplate && <div role="status" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
       <span>Wczytano „<strong>{s.selectedTemplate.title}</strong>”. Uzupełnij datę, miejsce i liczby.</span>

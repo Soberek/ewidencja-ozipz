@@ -907,7 +907,7 @@ describe("Ewidencja OZiPZ - Pełne Testy JRWA i IZRZ", () => {
       expect(data.caseNumber).toBe("OZiPZ.966.1.12.2026");
       expect(data.reportNumber).toBe("12/2026");
       expect(data.programName).toBe("Trzymaj Formę!");
-      expect(data.taskType).toBe("Prelekcja (warsztat)");
+      expect(data.taskType).toBe("Prelekcja (warsztat), dystrybucja");
       expect(data.city).toBe("Myślibórz");
       expect(data.address).toContain("ul. Kombatantów 1");
       expect(data.dateIso).toBe("2026-05-14");
@@ -935,7 +935,7 @@ describe("Ewidencja OZiPZ - Pełne Testy JRWA i IZRZ", () => {
       const data = prepareIzrzData(sampleAction, sampleFacility);
       const fileName = buildIzrzDocxFileName(data);
 
-      expect(fileName).toMatch(/^IZRZ_12-2026_2026-05-14_Mysliborz_Trzymaj-Forme\.docx$/);
+      expect(fileName).toMatch(/^IZRZ_12-2026_2026-05-14_Mysliborz_.*_Trzymaj-Forme\.docx$/);
       // Brak znaków spoza ASCII w nazwie pliku
       expect(fileName).not.toMatch(/[ąćęłńóśżźĄĆĘŁŃÓŚŻŹ]/);
     });

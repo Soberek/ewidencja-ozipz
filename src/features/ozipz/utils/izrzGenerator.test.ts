@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import PizZip from "pizzip";
 import {
   prepareIzrzData,
+  splitActionNotes,
   buildIzrzDocxFileName,
   generateIzrzDocxBlob,
   saveIzrzDocx,
@@ -87,7 +88,7 @@ describe("IZRZ Generator", () => {
     expect(data.caseNumber).toBe("OZiPZ.966.1.12.2026");
     expect(data.reportNumber).toBe("12/2026");
     expect(data.programName).toBe("Trzymaj Formę!");
-    expect(data.taskType).toBe("Prelekcja (warsztat)");
+    expect(data.taskType).toBe("Prelekcja (warsztat), dystrybucja");
     expect(data.city).toBe("Myślibórz");
     expect(data.address).toContain("ul. Kombatantów 1");
     expect(data.address).toContain("74-300 Myślibórz");
@@ -102,6 +103,31 @@ describe("IZRZ Generator", () => {
     );
     expect(data.hasDistributionList).toBe(true);
     expect(data.leadEducator).toBe("Krzysztof Palpuchowski");
+  });
+
+  it("puts action remarks in pkt 7 and the description in pkt 6", () => {
+    const data = prepareIzrzData(
+      { ...dummyAction, notes: "Opis przebiegu.\n\nUwagi: Kolonia organizowana przez AZAM" },
+      dummyFacility,
+      { materials: [{ title: "Ulotka", quantity: 42 }] }
+    );
+    expect(data.taskDescription).toBe("Opis przebiegu.");
+    expect(data.additionalInfo).toBe(
+      "Przekazano materiały edukacyjne: Ulotka – 42 szt.\n\nKolonia organizowana przez AZAM"
+    );
+    expect(splitActionNotes("Same uwagi bez opisu")).toEqual({ description: "Same uwagi bez opisu", remarks: "" });
+    expect(splitActionNotes("Uwagi: tylko uwagi")).toEqual({ description: "", remarks: "tylko uwagi" });
+  });
+
+  it("appends dystrybucja to the task type only when materials were handed out", () => {
+    const stall = { ...dummyAction, actionType: "Stoisko edukacyjne", materialsDistributedCount: 0 };
+    expect(prepareIzrzData(stall, dummyFacility).taskType).toBe("Stoisko edukacyjne");
+    expect(prepareIzrzData(stall, dummyFacility, { materials: [{ title: "Ulotka", quantity: 5 }] }).taskType).toBe(
+      "Stoisko edukacyjne, dystrybucja"
+    );
+    expect(
+      prepareIzrzData({ ...stall, actionType: "Dystrybucja" }, dummyFacility, { materials: [{ title: "U", quantity: 5 }] }).taskType
+    ).toBe("Dystrybucja");
   });
 
   it("uses the local day in a report when the action has no date", () => {
@@ -168,7 +194,33 @@ describe("IZRZ Generator", () => {
     const data = prepareIzrzData(dummyAction, dummyFacility);
     const fileName = buildIzrzDocxFileName(data);
 
-    expect(fileName).toMatch(/^IZRZ_12-2026_2026-05-14_Mysliborz_Trzymaj-Forme\.docx$/);
+    expect(fileName).toBe(
+      "IZRZ_12-2026_2026-05-14_Mysliborz_Szkola-Podstawowa-nr-1-im-Tadeusza_Prelekcja-warsztat-dystrybucja_Trzymaj-Forme.docx"
+    );
+  });
+
+  it("keeps file name parts whole-word, skips empty/duplicate parts and stays filesystem-safe", () => {
+    const data = prepareIzrzData(
+      {
+        actionType: "Stoisko edukacyjne",
+        title: "Stoisko edukacyjne",
+        date: "2026-06-01",
+        izrzSign: "7/2026",
+        facilityName: "Zespół Szkół Ogólnokształcących i Technicznych / Liceum",
+        programName: "Stoisko edukacyjne",
+        municipality: "Barlinek",
+      },
+      null
+    );
+    const fileName = buildIzrzDocxFileName(data);
+    expect(fileName).toBe("IZRZ_7-2026_2026-06-01_Barlinek_Zespol-Szkol-Ogolnoksztalcacych_Stoisko-edukacyjne.docx");
+    expect(fileName).not.toMatch(/[^A-Za-z0-9_.-]/);
+
+    const long = buildIzrzDocxFileName({
+      ...data,
+      address: "Zespół Szkół Ogólnokształcących i Technicznych im. Bohaterów Westerplatte, ul. Długa 1, 74-300 Myślibórz",
+    });
+    expect(long).toContain("_Zespol-Szkol-Ogolnoksztalcacych_");
   });
 
   it("generates valid Word docx Blob from template and data", async () => {
