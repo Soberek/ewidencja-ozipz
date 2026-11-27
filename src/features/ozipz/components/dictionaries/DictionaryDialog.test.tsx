@@ -196,4 +196,51 @@ describe("DictionaryDialog Component", () => {
     cleanup();
     useOzipzDbStore.setState({ dictionaryItems: [] });
   });
+
+  it("freezes the name and code of a recipient group used in actions but still lets the description change", async () => {
+    const group: OzipzDictionaryItem = {
+      id: "rg-uczniowie", dictType: "recipientGroup", code: "uczniowie", label: "Uczniowie", description: "Stary opis",
+      isSystem: false, createdAt: "2026-01-01", updatedAt: "2026-01-01",
+    };
+    useOzipzDbStore.setState({
+      dictionaryItems: [group],
+      actions: [{
+        id: "a1", title: "Prelekcja", actionType: "Prelekcja", date: "2026-09-10", facilityName: "SP1", municipality: "Myślibórz",
+        topic: "", audienceGroup: "Uczniowie - 10", recipientGroupIds: ["rg-uczniowie"], participantsCount: 10,
+        leadEducator: "Jan", ezdStatus: "do_ezd", status: "wykonane", materialsDistributedCount: 0,
+        createdAt: "2026-01-01", updatedAt: "2026-01-01",
+      }],
+    });
+    const handleUpdate = vi.fn();
+    render(
+      <DictionaryDialog isOpen onClose={vi.fn()} onSave={vi.fn()} onUpdate={handleUpdate} editingItem={group} defaultCategory="recipientGroup" />
+    );
+
+    const name = screen.getByPlaceholderText("np. Prelekcja multimedialna, Spotkanie z rodzicami...");
+    expect(name).toHaveProperty("readOnly", true);
+    expect(screen.getByDisplayValue("uczniowie")).toHaveProperty("readOnly", true);
+    expect(screen.getByText(/Grupa jest użyta w 1 działaniach/)).toBeDefined();
+    expect(screen.queryByText(/nie zaktualizuje ich automatycznie/)).toBeNull();
+
+    fireEvent.change(screen.getByDisplayValue("Stary opis"), { target: { value: "Nowy opis" } });
+    fireEvent.click(screen.getByRole("button", { name: /Zapisz zmiany/i }));
+    await waitFor(() => expect(handleUpdate).toHaveBeenCalledWith(
+      "rg-uczniowie", expect.objectContaining({ label: "Uczniowie", code: "uczniowie", description: "Nowy opis" })));
+    cleanup();
+    useOzipzDbStore.setState({ dictionaryItems: [], actions: [] });
+  });
+
+  it("rejects a recipient group whose name already exists", async () => {
+    useOzipzDbStore.setState({
+      dictionaryItems: [{ id: "rg1", dictType: "recipientGroup", code: "uczniowie", label: "Uczniowie", isSystem: false, createdAt: "2026-01-01", updatedAt: "2026-01-01" }],
+    });
+    const handleSave = vi.fn();
+    render(<DictionaryDialog isOpen onClose={vi.fn()} onSave={handleSave} onUpdate={vi.fn()} editingItem={null} defaultCategory="recipientGroup" />);
+    fireEvent.change(screen.getByPlaceholderText("np. Prelekcja multimedialna, Spotkanie z rodzicami..."), { target: { value: " uczniowie " } });
+    fireEvent.click(screen.getByRole("button", { name: /Dodaj do Słownika/i }));
+    await waitFor(() => expect(screen.getAllByText(/Grupa odbiorców „uczniowie” już istnieje/).length).toBeGreaterThan(0));
+    expect(handleSave).not.toHaveBeenCalled();
+    cleanup();
+    useOzipzDbStore.setState({ dictionaryItems: [] });
+  });
 });

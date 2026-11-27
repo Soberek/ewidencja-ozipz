@@ -35,6 +35,8 @@ export function Select({
   required,
   autoFocus,
   emptyText = "Brak pasujących wyników",
+  onCreate,
+  createLabel,
 }: SelectProps) {
   const generatedId = useId();
   const selectId = id || generatedId;
@@ -153,6 +155,15 @@ export function Select({
     [onChange]
   );
 
+  const handleCreate = useCallback(
+    (query: string) => {
+      setIsOpen(false);
+      setSearchQuery("");
+      onCreate?.(query);
+    },
+    [onCreate]
+  );
+
   // Wyczyszczenie wartości
   const handleClear = useCallback(
     (e: React.MouseEvent) => {
@@ -191,6 +202,9 @@ export function Select({
         e.preventDefault();
         if (highlightedIndex >= 0 && highlightedIndex < flatSelectableOptions.length) {
           handleSelect(flatSelectableOptions[highlightedIndex].value);
+        } else if (onCreate && flatSelectableOptions.length === 0 && searchQuery.trim()) {
+          // Wpisana fraza niczego nie znalazła – Enter dodaje ją jako nową pozycję.
+          handleCreate(searchQuery.trim());
         }
         break;
       case "Escape":
@@ -348,6 +362,8 @@ export function Select({
           highlightedIndex={highlightedIndex}
           handleSelect={handleSelect}
           emptyText={emptyText}
+          onCreate={onCreate ? handleCreate : undefined}
+          createLabel={createLabel}
         />
       )}
     </div>

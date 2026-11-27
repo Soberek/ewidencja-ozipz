@@ -3,6 +3,13 @@ import type { ISqlDatabase, DictionarySqlRow, RegisterMappingSave } from "../../
 import { Mappers } from "../../mappers";
 import type { IDictionariesRepository } from "../interfaces";
 import { generateId } from "../id-generator";
+import {
+  RECIPIENT_GROUP_DELETE_MESSAGE,
+  RECIPIENT_GROUP_LOCKED_MESSAGE,
+  RECIPIENT_GROUP_TYPE,
+  changesRecipientGroupIdentity,
+  recipientGroupConflict,
+} from "../../../features/ozipz/utils/recipientGroups";
 
 export class SqliteDictionariesRepository implements IDictionariesRepository {
   constructor(private readonly db: ISqlDatabase) {}
@@ -13,6 +20,10 @@ export class SqliteDictionariesRepository implements IDictionariesRepository {
   }
 
   async addDictionaryItem(item: Omit<OzipzDictionaryItem, "id" | "createdAt" | "updatedAt">): Promise<OzipzDictionaryItem> {
+    if (item.dictType === RECIPIENT_GROUP_TYPE) {
+      const conflict = recipientGroupConflict(await this.getDictionaryItems(), item);
+      if (conflict) throw new Error(conflict);
+    }
     const id = generateId("dict");
     const now = new Date().toISOString();
     const newItem: OzipzDictionaryItem = { ...item, id, createdAt: now, updatedAt: now };
@@ -31,13 +42,33 @@ export class SqliteDictionariesRepository implements IDictionariesRepository {
       Object.entries(updates).filter(([, v]) => v !== undefined)
     );
     const merged = { ...current, ...cleanUpdates, updatedAt: now };
+    if (current.dictType === RECIPIENT_GROUP_TYPE || merged.dictType === RECIPIENT_GROUP_TYPE) {
+      const conflict = recipientGroupConflict(await this.getDictionaryItems(), { id, label: merged.label, code: merged.code });
+      if (conflict && merged.dictType === RECIPIENT_GROUP_TYPE) throw new Error(conflict);
+      if (current.dictType === RECIPIENT_GROUP_TYPE && changesRecipientGroupIdentity(current, merged) && await this.isRecipientGroupUsed(id)) {
+        throw new Error(RECIPIENT_GROUP_LOCKED_MESSAGE);
+      }
+    }
     await this.db.execute(
       "UPDATE ozipz_dictionaries SET code = $1, label = $2, description = $3, postal_code = $4, kind = $5, gis_category = $6, updated_at = $7 WHERE id = $8",
       [merged.code, merged.label, merged.description || null, merged.postalCode || null, merged.kind || null, merged.gisCategory || null, merged.updatedAt, id]
     );
   }
 
+  /** Czy jakiekolwiek działanie wskazuje tę grupę odbiorców (to samo sprawdza wyzwalacz w bazie). */
+  private async isRecipientGroupUsed(id: string): Promise<boolean> {
+    const rows = await this.db.select<Array<{ used: number }>>(
+      "SELECT EXISTS (SELECT 1 FROM ozipz_actions a, json_each(a.recipient_group_ids) j WHERE j.value = $1) AS used",
+      [id]
+    );
+    return Boolean(rows[0]?.used);
+  }
+
   async deleteDictionaryItem(id: string): Promise<void> {
+    const current = (await this.getDictionaryItems()).find((d) => d.id === id);
+    if (current?.dictType === RECIPIENT_GROUP_TYPE && await this.isRecipientGroupUsed(id)) {
+      throw new Error(RECIPIENT_GROUP_DELETE_MESSAGE);
+    }
     await this.db.execute("DELETE FROM ozipz_dictionaries WHERE id = $1 AND is_system = 0", [id]);
   }
 

@@ -9,6 +9,14 @@ import {
 } from "./editor.types";
 import { formatAudienceString, parseAudienceGroups } from "./audienceUtils";
 import {
+  RECIPIENT_GROUP_TYPE,
+  audienceRecipientGroupIds,
+  duplicatedAudienceNames,
+  linkAudienceGroups,
+  unlinkedAudienceNames,
+} from "../../../utils/recipientGroups";
+import type { AudienceGroupBlock } from "./editor.types";
+import {
   getDefaultActionFormValues,
   mapActionToFormValues,
   isPublicationActionType,
@@ -75,6 +83,16 @@ export function useActionEditorState({
   const savedAudienceText = audienceUntouched ? loadedAudience!.text : formattedAudienceString;
   const savedParticipants = audienceUntouched ? loadedAudience!.count : totalDirectParticipants;
 
+  // Grupy odbiorców to zamknięty słownik – nazwy z szablonów, szkiców i starszych zapisów łączymy z pozycjami słownika.
+  const recipientGroupDict = useMemo(
+    () => dictionaryItems.filter((d) => d.dictType === RECIPIENT_GROUP_TYPE),
+    [dictionaryItems]
+  );
+  const recipientGroupDictRef = useRef(recipientGroupDict); recipientGroupDictRef.current = recipientGroupDict;
+  const linkGroups = (groups: AudienceGroupBlock[]) => linkAudienceGroups(groups, recipientGroupDictRef.current);
+  // Odbiorcy z wartością spoza słownika: starszy, nieruszany zapis zostaje, nowy wpis wymaga wyboru ze słownika.
+  const hasUnlinkedAudience = !audienceUntouched && unlinkedAudienceNames(audience.audienceGroups).length > 0;
+
   const activityTypeDict = useMemo(
     () => dictionaryItems.filter((d) => d.dictType === "activityType" || d.dictType === "formy_dzialan"),
     [dictionaryItems]
@@ -125,7 +143,7 @@ export function useActionEditorState({
   const allValues = watch();
   const restoreFromDraft = (saved: ActionDraft) => {
     reset(saved.values);
-    setAudienceGroups(saved.audienceGroups);
+    setAudienceGroups(linkGroups(saved.audienceGroups));
     mats.setMaterialItems(saved.materialItems);
     setActivitiesDescription(saved.activitiesDescription);
     setAdditionalNotes(saved.additionalNotes);
@@ -133,7 +151,7 @@ export function useActionEditorState({
     jrwa.restoreClassification(saved.selectedJrwaSymbol, saved.autoSign);
   };
   const tpl = useActionEditorTemplates({
-    templates, programs, materials, activityTypeDict, setValue, setAudienceGroups, setActivitiesDescription,
+    templates, programs, materials, activityTypeDict, setValue, setAudienceGroups: (groups) => setAudienceGroups(linkGroups(groups)), setActivitiesDescription,
     setMaterialItems: mats.setMaterialItems,
     selectClassification: jrwa.handleProgramOrJrwaSelect,
     takeSnapshot: () => ({
@@ -160,7 +178,7 @@ export function useActionEditorState({
   });
   const hasIncompleteMaterials = !isPublication &&
     mats.materialItems.some((item) => !item.materialId || !Number.isInteger(item.quantity) || item.quantity < 1);
-  const missingFields = getMissingActionFields(allValues, { isPublication, hasNamedAudience, hasIncompleteMaterials });
+  const missingFields = getMissingActionFields(allValues, { isPublication, hasNamedAudience, hasIncompleteMaterials, hasUnlinkedAudience });
   // Zero osób bywa poprawne (np. konkurs ogłoszony w mediach), więc tylko przypominamy — zwłaszcza po wczytaniu szablonu,
   // który wpisuje kategorie odbiorców bez liczb.
   const saveWarnings = !isPublication && hasNamedAudience && savedParticipants === 0 ? ["liczba osób w odbiorcach to 0"] : [];
@@ -232,7 +250,7 @@ export function useActionEditorState({
       setSeparateDistribution(!editingAction?.id || (initialMaterials.length === 0 && !(Number(editingAction.materialsDistributedCount) > 0)));
       if (editingAction) {
         reset(mapActionToFormValues(editingAction, staffRef.current));
-        const loadedGroups = parseAudienceGroups(editingAction.audienceGroup, editingAction.participantsCount);
+        const loadedGroups = linkGroups(parseAudienceGroups(editingAction.audienceGroup, editingAction.participantsCount));
         loadedAudienceRef.current = editingAction.audienceGroup?.trim()
           ? { text: editingAction.audienceGroup, count: Number(editingAction.participantsCount) || 0, formatted: formatAudienceString(loadedGroups) }
           : null;
@@ -304,6 +322,22 @@ export function useActionEditorState({
       form.setError("materialId", { message: "Wybierz materiał i podaj dodatnią, całkowitą liczbę sztuk albo usuń pustą pozycję." });
       return;
     }
+    if (!isPublication && !audienceUntouched) {
+      const unlinked = unlinkedAudienceNames(audience.audienceGroups);
+      if (unlinked.length > 0) {
+        form.setError("audienceGroup", {
+          message: `Wybierz grupę odbiorców ze słownika (${unlinked.map((n) => `„${n}”`).join(", ")}) albo dodaj ją jako nową.`,
+        });
+        return;
+      }
+      const duplicated = duplicatedAudienceNames(audience.audienceGroups);
+      if (duplicated.length > 0) {
+        form.setError("audienceGroup", {
+          message: `Ta sama kategoria odbiorców występuje dwa razy w jednej grupie (${duplicated.map((n) => `„${n}”`).join(", ")}). Zsumuj liczby w jednym wierszu.`,
+        });
+        return;
+      }
+    }
     const cleanPayload = buildActionCleanPayload({
       data,
       campaignDict,
@@ -312,6 +346,7 @@ export function useActionEditorState({
       isPublication,
       isNoJrwa,
       formattedAudienceString: savedAudienceText,
+      recipientGroupIds: audienceRecipientGroupIds(audience.audienceGroups),
       totalDirectParticipants: savedParticipants,
       // Program sam klasyfikuje działanie; symbol JRWA zapisujemy tylko dla klasyfikacji bez programu.
       classificationSymbol: programId ? undefined : jrwa.selectedJrwaSymbol,
@@ -400,7 +435,7 @@ export function useActionEditorState({
     handleProgramSelect: jrwa.handleProgramSelect, handleJrwaSymbolChange: jrwa.handleJrwaSymbolChange,
     handleProgramOrJrwaSelect: jrwa.handleProgramOrJrwaSelect, setQuickDate: jrwa.setQuickDate, handleDateChange: jrwa.handleDateChange,
     handleGenerateJrwaSign: jrwa.handleGenerateJrwaSign, handleJrwaSignChange: jrwa.handleJrwaSignChange,
-    missingFields, saveWarnings, pendingDraft: draft.pendingDraft, restoreDraft: draft.restoreDraft,
+    audienceUntouched, recipientGroupDict, missingFields, saveWarnings, pendingDraft: draft.pendingDraft, restoreDraft: draft.restoreDraft,
     dismissDraft: draft.dismissDraft, hasUnsavedContent: draft.hasUnsavedContent, discardDraft: draft.discardDraft,
     onSubmit: (data: ActionFormOutput) => onSubmit(data),
     onSaveAndAddSimilar: form.handleSubmit((data) => onSubmit(data, true)), ...audience,

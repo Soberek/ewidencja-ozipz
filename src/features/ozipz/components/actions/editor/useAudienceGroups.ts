@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import type { AudienceGroupBlock } from "./editor.types";
+import type { OzipzDictionaryItem } from "../../../types/ozipz.types";
 import {
   calculateTotalParticipants,
   formatAudienceString,
@@ -91,6 +92,7 @@ export function useAudienceGroups(initialGroups?: AudienceGroupBlock[]) {
         items: sourceGroup.items.map((item, idx) => ({
           id: `item-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
           name: item.name,
+          recipientGroupId: item.recipientGroupId,
           count: item.count,
           ageFrom: item.ageFrom ?? null,
           ageTo: item.ageTo ?? null,
@@ -152,6 +154,22 @@ export function useAudienceGroups(initialGroups?: AudienceGroupBlock[]) {
     );
   };
 
+  /** Wybór pozycji słownika „Kto?” dla kategorii odbiorców (nazwa i powiązanie ze słownikiem zmieniają się razem). */
+  const handleSelectRecipientGroup = (groupId: string, itemId: string, group: Pick<OzipzDictionaryItem, "id" | "label"> | null) => {
+    setAudienceGroups((prev) =>
+      prev.map((g) =>
+        g.id !== groupId
+          ? g
+          : {
+              ...g,
+              items: g.items.map((item) =>
+                item.id === itemId ? { ...item, name: group?.label ?? "", recipientGroupId: group?.id } : item
+              ),
+            }
+      )
+    );
+  };
+
   const handleSetAgeRange = (
     groupId: string,
     itemId: string,
@@ -182,6 +200,7 @@ export function useAudienceGroups(initialGroups?: AudienceGroupBlock[]) {
     handleAddItemToGroup,
     handleDeleteItemFromGroup,
     handleUpdateGroupItem,
+    handleSelectRecipientGroup,
     handleSetAgeRange,
   };
 }

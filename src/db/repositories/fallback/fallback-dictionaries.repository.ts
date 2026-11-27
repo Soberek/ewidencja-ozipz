@@ -3,6 +3,17 @@ import type { IDictionariesRepository } from "../interfaces";
 import { generateId } from "../id-generator";
 import { loadFromStorage, saveToStorage, withStorageRollback } from "./storage";
 import type { RegisterMappingSave } from "../../types";
+import type { OzipzAction } from "../../../features/ozipz/types/ozipz.types";
+import {
+  RECIPIENT_GROUP_DELETE_MESSAGE,
+  RECIPIENT_GROUP_LOCKED_MESSAGE,
+  RECIPIENT_GROUP_TYPE,
+  changesRecipientGroupIdentity,
+  recipientGroupConflict,
+} from "../../../features/ozipz/utils/recipientGroups";
+
+const isRecipientGroupUsed = (id: string): boolean =>
+  loadFromStorage<OzipzAction[]>("actions", []).some((action) => action.recipientGroupIds?.includes(id));
 
 export class FallbackDictionariesRepository implements IDictionariesRepository {
   async getDictionaryItems(): Promise<OzipzDictionaryItem[]> {
@@ -20,6 +31,10 @@ export class FallbackDictionariesRepository implements IDictionariesRepository {
     const list = await this.getDictionaryItems();
     if (list.some((entry) => entry.dictType === item.dictType && entry.code === item.code)) {
       throw new Error("Pozycja słownika o tym typie i kodzie już istnieje.");
+    }
+    if (item.dictType === RECIPIENT_GROUP_TYPE) {
+      const conflict = recipientGroupConflict(list, item);
+      if (conflict) throw new Error(conflict);
     }
     const id = generateId("dict");
     const now = new Date().toISOString();
@@ -40,6 +55,13 @@ export class FallbackDictionariesRepository implements IDictionariesRepository {
         list.some((entry) => entry.id !== id && entry.dictType === updated.dictType && entry.code === updated.code)) {
       throw new Error("Pozycja słownika o tym typie i kodzie już istnieje.");
     }
+    if (current.dictType === RECIPIENT_GROUP_TYPE || updated.dictType === RECIPIENT_GROUP_TYPE) {
+      const conflict = recipientGroupConflict(list, { id, label: updated.label, code: updated.code });
+      if (conflict && updated.dictType === RECIPIENT_GROUP_TYPE) throw new Error(conflict);
+      if (current.dictType === RECIPIENT_GROUP_TYPE && changesRecipientGroupIdentity(current, updated) && isRecipientGroupUsed(id)) {
+        throw new Error(RECIPIENT_GROUP_LOCKED_MESSAGE);
+      }
+    }
     const now = new Date().toISOString();
     saveToStorage("dictionaries", list.map((d) => (d.id === id ? { ...d, ...cleanUpdates, updatedAt: now } : d)));
   }
@@ -48,6 +70,7 @@ export class FallbackDictionariesRepository implements IDictionariesRepository {
     const list = await this.getDictionaryItems();
     const item = list.find((d) => d.id === id);
     if (item?.isSystem) return;
+    if (item?.dictType === RECIPIENT_GROUP_TYPE && isRecipientGroupUsed(id)) throw new Error(RECIPIENT_GROUP_DELETE_MESSAGE);
     saveToStorage("dictionaries", list.filter((d) => d.id !== id));
   }
 

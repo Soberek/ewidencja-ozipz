@@ -4,11 +4,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ModalDialog } from "@/components/ui/modal-dialog";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect, type SelectOption } from "@/components/ui/select";
-import { BookOpen, FileText, AlertTriangle, Info } from "lucide-react";
+import { BookOpen, FileText, AlertTriangle, Info, Lock } from "lucide-react";
 import type { OzipzDictionaryItem, OzipzDictionaryType } from "../../types/ozipz.types";
 import { DICTIONARY_CATEGORIES_CONFIG } from "../../constants";
 import { useOzipzDbStore } from "../../store/useOzipzDbStore";
-import { normalizeDictionaryValue } from "../../utils/dictionaryUsage";
+import { normalizeDictionaryValue, recipientGroupLockCount } from "../../utils/dictionaryUsage";
+import { RECIPIENT_GROUP_TYPE, recipientGroupConflict } from "../../utils/recipientGroups";
 import { JrwaClassificationFields } from "./components/JrwaClassificationFields";
 import { DictionaryCodeField, DictionaryPostalCodeField, DictionarySystemToggle } from "./components/DictionaryDialogFields";
 import { DictionaryItemSchema } from "../../schemas/ozipz.schemas";
@@ -109,7 +110,10 @@ export function DictionaryDialog({
   const isSystem = watch("isSystem");
 
   const effectiveType = isCustomType ? customType.trim() : dictType;
-  const isCodeLocked = !!editingItem?.isSystem;
+  // Grupa odbiorców użyta w działaniach: nazwa i kod są zamrożone (zmiana przepisałaby wstecz sprawozdania), opis można poprawiać.
+  const recipientLockCount = editingItem ? recipientGroupLockCount(editingItem, editingUsage) : 0;
+  const isIdentityLocked = recipientLockCount > 0;
+  const isCodeLocked = !!editingItem?.isSystem || isIdentityLocked;
 
   const categoryOptions: SelectOption[] = useMemo(() => {
     const list: SelectOption[] = Object.entries(DICTIONARY_CATEGORIES_CONFIG).map(([key, config]) => ({
@@ -164,6 +168,7 @@ export function DictionaryDialog({
 
   const renamedWhileUsed =
     !!editingItem &&
+    !isIdentityLocked &&
     !!editingUsage?.total &&
     (normalizeDictionaryValue(label) !== normalizeDictionaryValue(editingItem.label) ||
       normalizeDictionaryValue(code) !== normalizeDictionaryValue(editingItem.code));
@@ -180,6 +185,10 @@ export function DictionaryDialog({
     if (isCustomType && !customType.trim()) {
       setSubmitError("Podaj identyfikator nowego typu słownika");
       return;
+    }
+    if (effectiveType === RECIPIENT_GROUP_TYPE) {
+      const conflict = recipientGroupConflict(allItems, { id: editingItem?.id, label: data.label, code: data.code });
+      if (conflict) { setError("label", { message: conflict }); return; }
     }
     if (duplicateCode) {
       setError("code", { message: `Kod „${duplicateCode.code}” jest już używany przez pozycję „${duplicateCode.label}”` });
@@ -308,13 +317,26 @@ export function DictionaryDialog({
               Nazwa Wartości Słownikowej <span className="text-destructive">*</span>
             </span>
           </label>
-          <Input
-            type="text"
-            placeholder="np. Prelekcja multimedialna, Spotkanie z rodzicami..."
-            {...register("label")}
-            className="h-9 text-xs font-medium"
-            autoFocus
-          />
+          <div className="relative">
+            <Input
+              type="text"
+              placeholder="np. Prelekcja multimedialna, Spotkanie z rodzicami..."
+              {...register("label")}
+              readOnly={isIdentityLocked}
+              className={`h-9 text-xs font-medium ${isIdentityLocked ? "pr-8 bg-muted/50 text-muted-foreground" : ""}`}
+              autoFocus={!isIdentityLocked}
+            />
+            {isIdentityLocked && <Lock className="absolute right-2.5 top-2.5 size-4 text-muted-foreground" aria-hidden />}
+          </div>
+          {isIdentityLocked && (
+            <p className="flex gap-1.5 text-[11px] text-muted-foreground leading-tight">
+              <Lock className="mt-px size-3 shrink-0" aria-hidden />
+              <span>
+                Grupa jest użyta w {recipientLockCount} działaniach – nazwy i kodu nie można zmienić ani usunąć grupy
+                (zmiana przepisałaby wstecz dotychczasowe sprawozdania). Potrzebna inna nazwa? Dodaj nową grupę.
+              </span>
+            </p>
+          )}
           {errors.label && <p className="text-[10px] text-destructive font-semibold">{errors.label.message}</p>}
           {duplicateLabel && (
             <p className="text-[10.5px] text-amber-700 dark:text-amber-400 font-medium">

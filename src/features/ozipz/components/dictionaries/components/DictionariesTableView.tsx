@@ -6,7 +6,7 @@ import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { OzipzDictionaryItem } from "../../../types/ozipz.types";
 import { GIS_CATEGORY_LABELS } from "../../../utils/gis/gisCategories";
-import type { DictionaryUsageIndex } from "../../../utils/dictionaryUsage";
+import { recipientGroupLockCount, type DictionaryUsageIndex } from "../../../utils/dictionaryUsage";
 import { getCategoryDef } from "../dictionaryCategoryMeta";
 import { ProgramKindBadge } from "../../programs/components/ProgramKindBadge";
 import { RowActionButton } from "@/components/ui/row-action-button";
@@ -220,14 +220,19 @@ export function DictionariesTableView({
               />
             )}
 
-            {row.isSystem ? (
+            {row.isSystem || recipientGroupLockCount(row, usageIndex?.get(row.id)) > 0 ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="inline-flex h-7 w-7 items-center justify-center text-muted-foreground/70">
+                  <span className="inline-flex h-7 w-7 items-center justify-center text-muted-foreground/70" role="img"
+                    aria-label={row.isSystem ? "Pozycja systemowa" : "Grupa użyta w działaniach"}>
                     <Lock className="size-3.5" />
                   </span>
                 </TooltipTrigger>
-                <TooltipContent>Pozycja systemowa — nie można jej usunąć</TooltipContent>
+                <TooltipContent>
+                  {row.isSystem
+                    ? "Pozycja systemowa — nie można jej usunąć"
+                    : `Grupa użyta w działaniach (${recipientGroupLockCount(row, usageIndex?.get(row.id))}) — nie można jej usunąć ani zmienić jej nazwy`}
+                </TooltipContent>
               </Tooltip>
             ) : (
               <RowActionButton

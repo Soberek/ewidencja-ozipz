@@ -13,6 +13,7 @@ const data: ActionEditorSectionProps = {
   dictionaryItems: [
     ...["Prelekcja", "Publikacja media (Facebook)", "Dystrybucja"].map((label, i) => ({ ...timestamps, id: `a${i}`, code: `a${i}`, label, dictType: "activityType", isSystem: false })),
     { ...timestamps, id: "r1", code: "r1", label: "Uczniowie", dictType: "recipientGroup", isSystem: false },
+    { ...timestamps, id: "r2", code: "r2", label: "Opiekunowie", dictType: "recipientGroup", isSystem: false },
   ],
   programs: [{ ...timestamps, id: "p1", code: "p1", name: "Program testowy", editionYear: "2026", jrwaSymbol: "966.1", targetAudience: "", description: "", status: "aktywny", participatingSchoolsCount: 0, totalPupilsReached: 0 }],
   facilities: [{ ...timestamps, id: "f1", name: "Szkoła testowa", type: "szkola", municipality: "Testowo", county: "", address: "Szkolna 1", city: "Miasto", postalCode: "00-001", leadingAuthority: "", isComplex: false }],
@@ -50,7 +51,7 @@ describe("Quick action form", () => {
     fireEvent.click(screen.getByRole("option", { name: /Szkoła testowa/ }));
     expect(screen.getByLabelText("Gmina *")).toHaveTextContent("Testowo");
     fill("Osoba prowadząca *", "Osoba testowa");
-    fill("Kto? *", "Uczniowie");
+    select("Kto? *", "Uczniowie");
     fill("Ile osób? *", "12");
     fireEvent.click(screen.getByRole("button", { name: "Zapisz działanie" }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
@@ -128,7 +129,7 @@ describe("Quick action form", () => {
 
   it("keeps group details and counts when collapsed and expanded", () => {
     render(<Harness {...data} />);
-    fill("Kto? *", "Uczniowie"); fill("Ile osób? *", "12");
+    select("Kto? *", "Uczniowie"); fill("Ile osób? *", "12");
     fireEvent.click(screen.getByRole("button", { name: "Dodaj wiek odbiorców" }));
     fill("Wiek od", "10"); fill("Wiek do", "12");
     fireEvent.click(screen.getByRole("button", { name: "Ukryj wiek odbiorców" }));
@@ -226,12 +227,12 @@ describe("Quick action form", () => {
     fill("Osoba prowadząca *", "Osoba testowa");
 
     // Grupa 1 kategoria 1: Uczniowie - 18
-    fill("Kto? *", "Uczniowie");
+    select("Kto? *", "Uczniowie");
     fill("Ile osób? *", "18");
 
     // Dodaj kategorię 2 do Grupy 1: Opiekunowie - 2
     fireEvent.click(screen.getByRole("button", { name: "Dodaj kategorię odbiorców do grupy Grupa 1" }));
-    fill("Kolejna kategoria *", "Opiekunowie");
+    select("Kolejna kategoria *", "Opiekunowie");
     const countInputs = screen.getAllByLabelText("Ile osób? *");
     expect(countInputs).toHaveLength(2);
     fireEvent.change(countInputs[1], { target: { value: "2" } });
@@ -253,6 +254,105 @@ describe("Quick action form", () => {
     expect(saved.audienceGroup).toContain("Grupa 1: Uczniowie - 18, Opiekunowie - 2");
     expect(saved.audienceGroup).toContain("Grupa 2: Uczniowie - 18, Opiekunowie - 2");
     expect(saved.audienceGroup).toContain("Grupa 3: Uczniowie - 18, Opiekunowie - 2");
+  });
+});
+
+describe("Grupy odbiorców („Kto?”) jako zamknięty słownik", () => {
+  const fillBasics = () => {
+    select("Forma działania *", "Prelekcja");
+    fill("Tytuł działania *", "Działanie ze słownikiem");
+    fill("Placówka lub miejsce *", "Szkoła");
+    fireEvent.click(screen.getByRole("option", { name: /Szkoła testowa/ }));
+    fill("Osoba prowadząca *", "Osoba testowa");
+  };
+  const searchWho = (query: string) => {
+    fireEvent.click(screen.getByLabelText("Kto? *"));
+    fireEvent.change(screen.getByPlaceholderText("Szukaj grupy odbiorców..."), { target: { value: query } });
+  };
+
+  it("lists only dictionary groups and does not accept free text", () => {
+    render(<Harness {...data} />);
+    fireEvent.click(screen.getByLabelText("Kto? *"));
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Opiekunowie", "Uczniowie"]);
+    fireEvent.change(screen.getByPlaceholderText("Szukaj grupy odbiorców..."), { target: { value: "Dyrektorzy" } });
+    expect(screen.queryByRole("option")).toBeNull();
+    expect(screen.getByText("Nie ma takiej grupy w słowniku")).toBeInTheDocument();
+  });
+
+  it("adds a new group to the dictionary from the list, selects it and links it to the action", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const onAddRecipientGroup = vi.fn(async (item) => ({ ...timestamps, ...item, id: "r-new" }));
+    render(<Harness {...data} onSave={onSave} onAddRecipientGroup={onAddRecipientGroup} />);
+    fillBasics();
+    searchWho("Seniorzy klubowi");
+    fireEvent.click(screen.getByRole("button", { name: "Dodaj „Seniorzy klubowi” jako nową grupę odbiorców" }));
+    expect(screen.getByLabelText("Nazwa grupy odbiorców *")).toHaveValue("Seniorzy klubowi");
+    expect(screen.getByText("seniorzy_klubowi")).toBeInTheDocument();
+    expect(screen.getByText(/nazwy i kodu nie da się zmienić/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Dodaj i wybierz" }));
+
+    await waitFor(() => expect(onAddRecipientGroup).toHaveBeenCalledWith(
+      expect.objectContaining({ dictType: "recipientGroup", code: "seniorzy_klubowi", label: "Seniorzy klubowi", isSystem: false })));
+    await waitFor(() => expect(screen.getByLabelText("Kto? *")).toHaveTextContent("Seniorzy klubowi"));
+    fill("Ile osób? *", "15");
+    fireEvent.click(screen.getByRole("button", { name: "Zapisz działanie" }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0]).toMatchObject({ audienceGroup: "Seniorzy klubowi - 15", recipientGroupIds: ["r-new"], participantsCount: 15 });
+  });
+
+  it("recognises an existing group when adding and offers it instead of a duplicate", () => {
+    const onAddRecipientGroup = vi.fn();
+    render(<Harness {...data} onAddRecipientGroup={onAddRecipientGroup} />);
+    searchWho("  uczniowie ");
+    fireEvent.click(screen.getByRole("button", { name: /jako nową grupę odbiorców/ }));
+    expect(screen.getByText(/Taka grupa już jest w słowniku/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Dodaj i wybierz" }));
+    expect(onAddRecipientGroup).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Użyj istniejącej" }));
+    expect(screen.getByLabelText("Kto? *")).toHaveTextContent("Uczniowie");
+  });
+
+  it("warns about similar names when adding a new group", () => {
+    render(<Harness {...data} onAddRecipientGroup={vi.fn()} />);
+    searchWho("Uczniowie szkół");
+    fireEvent.click(screen.getByRole("button", { name: /jako nową grupę odbiorców/ }));
+    expect(screen.getByText(/Podobne grupy w słowniku/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Uczniowie" })).toBeInTheDocument();
+  });
+
+  it("links an edited action's categories with the dictionary and saves the links", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<Harness {...data} editingAction={{ ...validAction, audienceGroup: "Uczniowie - 12, Opiekunowie - 2", participantsCount: 14 }} onSave={onSave} />);
+    expect(screen.getByLabelText("Kto? *")).toHaveTextContent("Uczniowie");
+    expect(screen.getByLabelText("Kolejna kategoria *")).toHaveTextContent("Opiekunowie");
+    fireEvent.click(screen.getByRole("button", { name: "Zapisz działanie" }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0]).toMatchObject({ audienceGroup: "Uczniowie - 12, Opiekunowie - 2", recipientGroupIds: ["r1", "r2"] });
+  });
+
+  it("keeps an untouched legacy value outside the dictionary but requires a dictionary group once recipients change", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<Harness {...data} editingAction={{ ...validAction, audienceGroup: "Dyrektor - 1", participantsCount: 1 }} onSave={onSave} onAddRecipientGroup={vi.fn()} />);
+    expect(screen.getByRole("status")).toHaveTextContent(/„Dyrektor” – wartość spoza słownika \(zapis archiwalny/);
+    fireEvent.click(screen.getByRole("button", { name: "Zapisz działanie" }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0]).toMatchObject({ audienceGroup: "Dyrektor - 1" });
+    expect(onSave.mock.calls[0][0].recipientGroupIds).toBeUndefined();
+
+    fill("Ile osób? *", "2");
+    expect(screen.getByRole("status")).not.toHaveTextContent(/zapis archiwalny/);
+    fireEvent.click(screen.getByRole("button", { name: "Zapisz działanie" }));
+    await waitFor(() => expect(screen.getByText(/Wybierz grupę odbiorców ze słownika \(„Dyrektor”\)/)).toBeInTheDocument());
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it("blocks selecting the same category twice in one group", () => {
+    render(<Harness {...data} />);
+    select("Kto? *", "Uczniowie");
+    fireEvent.click(screen.getByRole("button", { name: "Dodaj kategorię odbiorców do grupy Grupa 1" }));
+    fireEvent.click(screen.getByLabelText("Kolejna kategoria *"));
+    expect(screen.getByRole("option", { name: /Uczniowie/ })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("option", { name: "Opiekunowie" })).not.toHaveAttribute("aria-disabled", "true");
   });
 });
 
