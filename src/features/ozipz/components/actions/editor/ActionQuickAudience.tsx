@@ -1,27 +1,38 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { Autocomplete } from "@/components/ui/autocomplete";
+import { Select, type SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Plus, Trash2, Users } from "lucide-react";
+import { AlertTriangle, Copy, Plus, Trash2, Users } from "lucide-react";
 import type { AudienceGroupBlock, RecipientSubItem } from "./editor.types";
 import type { useActionEditorState } from "./useActionEditorState";
+import type { OzipzDictionaryItem } from "../../../types/ozipz.types";
 import { FIELD_INPUT, FIELD_LABEL, SECTION_HEADING } from "./formStyles";
+import { ActionQuickRecipientGroupAdd } from "./ActionQuickRecipientGroupAdd";
 
 type EditorState = ReturnType<typeof useActionEditorState>;
 
 interface Props {
   state: EditorState;
-  suggestions: string[];
+  /** Słownik „Kto?” (`recipientGroup`) – jedyne dozwolone wartości kategorii odbiorców. */
+  recipientGroups: OzipzDictionaryItem[];
+  /** Dodanie nowej grupy do słownika; bez tej funkcji lista jest tylko do wyboru. */
+  onAddRecipientGroup?: (data: Omit<OzipzDictionaryItem, "id" | "createdAt" | "updatedAt">) => Promise<OzipzDictionaryItem>;
 }
+
+/** Wiersz, dla którego otwarto okno dodawania nowej grupy (nazwa startowa to wpisana fraza). */
+interface CreatingTarget { groupId: string; itemId: string; name: string }
 
 const groupLabel = (group: AudienceGroupBlock, index: number) => group.name.trim() || `Grupa ${index + 1}`;
 
 /**
  * Odbiorcy działania. W typowym przypadku (jedna grupa) widać tylko wiersze "Kto? / Ile osób?";
  * nagłówki grup z nazwami pojawiają się dopiero przy podziale na kilka grup (np. klas).
+ * „Kto?” wybiera się wyłącznie ze słownika grup odbiorców; nową pozycję dodaje się z listy wyboru.
  */
-export function ActionQuickAudience({ state: s, suggestions }: Props) {
+export function ActionQuickAudience({ state: s, recipientGroups, onAddRecipientGroup }: Props) {
+  const [creating, setCreating] = useState<CreatingTarget | null>(null);
   const hasAges = s.audienceGroups.some((g) => g.items.some((i) => i.ageFrom != null || i.ageTo != null));
   const [showAges, setShowAges] = useState(hasAges);
   useEffect(() => { if (hasAges) setShowAges(true); }, [hasAges]);
@@ -61,7 +72,8 @@ export function ActionQuickAudience({ state: s, suggestions }: Props) {
         </div>}
 
         {group.items.map((item, ii) => <AudienceItemRow key={item.id} state={s} group={group} item={item} index={ii}
-          suggestions={suggestions} showAges={showAges} />)}
+          recipientGroups={recipientGroups} showAges={showAges} canCreate={Boolean(onAddRecipientGroup)}
+          onCreate={(name) => setCreating({ groupId: group.id, itemId: item.id, name })} />)}
 
         <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs text-primary hover:bg-primary/10 hover:text-primary"
           aria-label={`Dodaj kategorię odbiorców do grupy ${name}`} onClick={() => s.handleAddItemToGroup(group.id)}>
@@ -87,17 +99,44 @@ export function ActionQuickAudience({ state: s, suggestions }: Props) {
         {showAges ? "Ukryj wiek odbiorców" : "Dodaj wiek odbiorców"}
       </Button>
     </div>
+    {onAddRecipientGroup && <ActionQuickRecipientGroupAdd initialName={creating?.name ?? null}
+      groups={recipientGroups} onClose={() => setCreating(null)} onAddRecipientGroup={onAddRecipientGroup}
+      onCreated={(created) => {
+        if (creating) s.handleSelectRecipientGroup(creating.groupId, creating.itemId, created);
+        toast.success(`Dodano grupę „${created.label}” do słownika i wybrano w działaniu.`);
+      }}
+      onUseExisting={(existing) => { if (creating) s.handleSelectRecipientGroup(creating.groupId, creating.itemId, existing); }} />}
   </section>;
 }
 
-function AudienceItemRow({ state: s, group, item, index, suggestions, showAges }: {
-  state: EditorState; group: AudienceGroupBlock; item: RecipientSubItem; index: number; suggestions: string[]; showAges: boolean;
+function AudienceItemRow({ state: s, group, item, index, recipientGroups, showAges, canCreate, onCreate }: {
+  state: EditorState; group: AudienceGroupBlock; item: RecipientSubItem; index: number;
+  recipientGroups: OzipzDictionaryItem[]; showAges: boolean; canCreate: boolean; onCreate: (name: string) => void;
 }) {
+  // Ta sama kategoria nie powtarza się w jednej grupie – zsumowane osoby wpisuje się w jednym wierszu.
+  const takenElsewhere = new Set(group.items.filter((other) => other.id !== item.id && other.recipientGroupId).map((other) => other.recipientGroupId));
+  const options: SelectOption[] = recipientGroups
+    .map((g) => ({
+      value: g.id, label: g.label, description: g.description,
+      disabled: takenElsewhere.has(g.id), badge: takenElsewhere.has(g.id) ? "dodana" : undefined,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, "pl"));
+  // Świeżo dodana lub wybrana grupa musi być widoczna w polu także wtedy, gdy lista ze słownika jeszcze jej nie zawiera.
+  if (item.recipientGroupId && item.name.trim() && !options.some((o) => o.value === item.recipientGroupId)) {
+    options.push({ value: item.recipientGroupId, label: item.name.trim() });
+  }
+  // Wartość spoza słownika: starszy zapis albo szablon sprzed słownika „Kto?”.
+  const outsideDictionary = item.name.trim() && !item.recipientGroupId ? item.name.trim() : "";
+
   return <div className="space-y-1.5">
     <div className="grid grid-cols-[minmax(0,1fr)_7rem_2.25rem] items-end gap-2">
-      <Autocomplete id={`audience-${item.id}`} label={index === 0 ? "Kto? *" : "Kolejna kategoria *"} value={item.name}
-        options={suggestions} placeholder="Wybierz lub wpisz (np. Uczniowie, Opiekunowie)"
-        onChange={(v) => s.handleUpdateGroupItem(group.id, item.id, "name", v)} />
+      <Select id={`audience-${item.id}`} label={index === 0 ? "Kto? *" : "Kolejna kategoria *"} value={item.recipientGroupId ?? ""}
+        options={options} placeholder="Wybierz grupę odbiorców" searchPlaceholder="Szukaj grupy odbiorców..."
+        emptyText="Nie ma takiej grupy w słowniku" triggerClassName={FIELD_INPUT} dropdownClassName="sm:min-w-[24rem]"
+        error={Boolean(outsideDictionary)}
+        onChange={(id) => s.handleSelectRecipientGroup(group.id, item.id, recipientGroups.find((g) => g.id === id) ?? null)}
+        onCreate={canCreate ? onCreate : undefined}
+        createLabel={(query) => query ? `Dodaj „${query}” jako nową grupę odbiorców` : "Dodaj nową grupę odbiorców"} />
       <div>
         <label className={FIELD_LABEL} htmlFor={`count-${item.id}`}>Ile osób? *</label>
         <Input id={`count-${item.id}`} type="number" min={0} step={1} value={item.count || ""} placeholder="0" className={`${FIELD_INPUT} font-mono`}
@@ -109,6 +148,13 @@ function AudienceItemRow({ state: s, group, item, index, suggestions, showAges }
           onClick={() => s.handleDeleteItemFromGroup(group.id, item.id)}><Trash2 className="size-3.5" /></Button>
         : <span aria-hidden />}
     </div>
+    {outsideDictionary && <p role="status" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-amber-700 dark:text-amber-300">
+      <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
+      <span>„{outsideDictionary}” – wartość spoza słownika{s.audienceUntouched ? " (zapis archiwalny, zostanie zachowany, dopóki nie zmienisz odbiorców)" : ""}.</span>
+      {canCreate && <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => onCreate(outsideDictionary)}>
+        Dodaj do słownika
+      </Button>}
+    </p>}
     {showAges && <div className="flex flex-wrap items-end gap-2">
       {(["ageFrom", "ageTo"] as const).map((field) => <div key={field} className="w-28">
         <label className={FIELD_LABEL} htmlFor={`${item.id}-${field}`}>{field === "ageFrom" ? "Wiek od" : "Wiek do"}</label>

@@ -34,4 +34,11 @@ export interface SelectProps {
   required?: boolean;
   autoFocus?: boolean;
   emptyText?: string;
+  /**
+   * Akcja „dodaj nową pozycję” na dole listy (np. nowa grupa odbiorców). Dostaje wpisaną frazę wyszukiwania,
+   * żeby okno dodawania mogło ją podpowiedzieć jako nazwę.
+   */
+  onCreate?: (query: string) => void;
+  /** Podpis akcji dodawania; domyślnie „Dodaj nową pozycję”. */
+  createLabel?: (query: string) => string;
 }

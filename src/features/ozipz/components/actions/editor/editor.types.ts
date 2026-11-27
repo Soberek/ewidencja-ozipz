@@ -25,6 +25,8 @@ export type ActionFormOutput = z.output<typeof ActionFormSchema>;
 export interface RecipientSubItem {
   id: string;
   name: string;
+  /** Pozycja słownika „Kto?” (`recipientGroup`); brak oznacza wartość spoza słownika (starszy zapis). */
+  recipientGroupId?: string;
   count: number;
   ageFrom?: number | null;
   ageTo?: number | null;
@@ -86,6 +88,8 @@ export interface ActionEditorSectionProps {
   onCancel?: () => void;
   /** Szybkie dodanie miejsca do bazy placówek z formularza działania; bez tej funkcji przycisk jest ukryty. */
   onAddFacility?: (data: Omit<OzipzFacility, "id" | "createdAt" | "updatedAt">) => Promise<OzipzFacility>;
+  /** Szybkie dodanie grupy odbiorców („Kto?”) do słownika z formularza działania; bez tej funkcji przycisk jest ukryty. */
+  onAddRecipientGroup?: (data: Omit<OzipzDictionaryItem, "id" | "createdAt" | "updatedAt">) => Promise<OzipzDictionaryItem>;
   /** Szybkie dodanie materiału do katalogu z formularza działania; bez tej funkcji przycisk jest ukryty. */
   onAddMaterial?: (data: Omit<OzipzMaterial, "id" | "createdAt" | "updatedAt">) => Promise<OzipzMaterial>;
 }

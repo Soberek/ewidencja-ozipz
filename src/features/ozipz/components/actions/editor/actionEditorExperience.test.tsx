@@ -65,7 +65,7 @@ describe("Szkic nowego działania", () => {
     act(() => {
       result.current.setValue("actionType", "Prelekcja");
       result.current.setValue("title", "Higiena rąk");
-      result.current.setAudienceGroups([{ id: "g", name: "Grupa 1", items: [{ id: "i", name: "Uczniowie", count: 20 }] }]);
+      result.current.setAudienceGroups([{ id: "g", name: "Grupa 1", items: [{ id: "i", name: "Uczniowie", recipientGroupId: "r1", count: 20 }] }]);
       result.current.setValue("facilityName", "Szkoła testowa");
       result.current.setValue("municipality", "Myślibórz");
     });

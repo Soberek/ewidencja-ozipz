@@ -172,7 +172,7 @@ export function ActionQuickForm({ state: s, data }: {
       </div>
     </section>
     <div className="border-t border-border pt-4" data-field-error={Boolean(errors.audienceGroup || errors.participantsCount)}>
-      <ActionQuickAudience state={s} suggestions={dictionaries.filter((d) => d.dictType === "recipientGroup").map((d) => d.label)} />
+      <ActionQuickAudience state={s} recipientGroups={s.recipientGroupDict} onAddRecipientGroup={data.onAddRecipientGroup} />
     </div>
     <div className="space-y-2">
       <Disclosure title="Kancelaria" summary={officeSummary}>

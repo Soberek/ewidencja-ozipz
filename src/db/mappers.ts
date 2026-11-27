@@ -37,6 +37,18 @@ import type {
 import { normalizeActionType } from "../features/ozipz/components/actions/editor/editorUtils";
 import { SecondaryMappers } from "./secondary-mappers";
 
+/** Lista identyfikatorów zapisana jako tekst JSON; brak lub błędny zapis oznacza brak powiązań. */
+function parseIdList(value: string | null | undefined): string[] | undefined {
+  if (!value) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    const ids = Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string" && id !== "") : [];
+    return ids.length > 0 ? ids : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export const Mappers = {
   toAction(row: ActionSqlRow): OzipzAction {
     const raw = {
@@ -51,6 +63,7 @@ export const Mappers = {
       programName: row.program_name || undefined,
       topic: row.topic,
       audienceGroup: row.audience_group,
+      recipientGroupIds: parseIdList(row.recipient_group_ids),
       campaignId: row.campaign_id || undefined,
       campaignName: row.campaign_name || undefined,
       jrwaSign: row.jrwa_sign || undefined,

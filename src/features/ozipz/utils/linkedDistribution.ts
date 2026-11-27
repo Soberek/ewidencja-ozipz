@@ -58,6 +58,7 @@ export function buildLinkedDistribution(
     campaignName: action.campaignName,
     topic: action.topic,
     audienceGroup: linkedDistributionAudience(action.audienceGroup) ?? "",
+    recipientGroupIds: action.recipientGroupIds,
     jrwaSign: classificationSymbol?.trim() || undefined,
     ezdStatus: "nie_dotyczy",
     status: action.status,
@@ -89,6 +90,11 @@ export function linkedDistributionUpdates(
     if (previous[key] !== next[key] && distribution[key] !== value) {
       (updates as Record<string, unknown>)[key] = value;
     }
+  }
+  // Dystrybucja ma te same grupy odbiorców co działanie (powiązania wskazują ten sam słownik).
+  const sameIds = (a?: string[], b?: string[]) => JSON.stringify(a ?? []) === JSON.stringify(b ?? []);
+  if (!sameIds(previous.recipientGroupIds, next.recipientGroupIds) && !sameIds(distribution.recipientGroupIds, next.recipientGroupIds)) {
+    updates.recipientGroupIds = next.recipientGroupIds;
   }
   if (previous.title !== next.title && distribution.title === linkedDistributionTitle(previous.title)) {
     updates.title = linkedDistributionTitle(next.title);

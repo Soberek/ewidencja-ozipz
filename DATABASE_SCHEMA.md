@@ -1,6 +1,6 @@
 # Schemat Relacyjnej Bazy Danych SQLite (Ewidencja OZiPZ)
 
-Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VERSION = 17`). Zarówno aplikacja, jak i skrypt inicjalizacji używają tej samej migracji. Poniższy opis encji należy czytać wraz z ograniczeniami opisanymi niżej.
+Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VERSION = 18`). Zarówno aplikacja, jak i skrypt inicjalizacji używają tej samej migracji. Poniższy opis encji należy czytać wraz z ograniczeniami opisanymi niżej.
 
 ## Aktualizacja i integralność
 
@@ -10,6 +10,7 @@ Wykonywalnym źródłem schematu jest `src/db/sqlite-migrations.ts` (`SCHEMA_VER
 - v14 (2026-10-02): działanie jest wykonane albo odwołane/odroczone – zapisane `zaplanowane` i `w_toku` zmieniają się na `wykonane`. Kolumna `indirect_recipients_count` jest usuwana (odbiorcy to jedna liczba). Dystrybucja zapisana razem z innym działaniem (`linked_action_id`) wraca do 1 odbiorcy, z grupą odbiorców zapisaną z liczbą 1.
 - v15 (2026-10-05): zgłoszenie szkoły ma ręczny znacznik przeprowadzonej prelekcji (`lecture_done`, domyślnie 0). Prelekcje wpisane w rejestr działań (ten program, ta placówka, rok szkolny) aplikacja rozpoznaje sama; znacznik służy prelekcjom spoza rejestru.
 - v16 (2026-10-19): program ma znacznik `accepts_participations` (domyślnie 1) – czy szkoły zgłaszają się do niego formularzem. Program PROGRAMOWY bez zgłoszeń szkół (np. HIV/AIDS) ma 0: nie przyjmuje zgłoszeń i nie ma go w zestawieniu placówek bez zgłoszeń.
+- v18 (2026-11-20): działanie wskazuje grupy odbiorców („Kto?”) po identyfikatorze pozycji słownika `recipientGroup` – kolumna `recipient_group_ids` (tablica JSON identyfikatorów, `NULL` = brak powiązań); opis tekstowy `audience_group` pozostaje zapisem do sprawozdań i dokumentów. Słownik jest zamknięty: pozycja użyta w jakimkolwiek działaniu nie może zmienić nazwy, kodu ani typu ani zostać usunięta (wyzwalacze `guard_ozipz_recipient_group_change` i `guard_ozipz_recipient_group_delete`; opis można poprawiać), a działanie nie może wskazać identyfikatora spoza tego słownika (`guard_ozipz_actions_recipient_groups_insert/update`). Przy aktualizacji istniejące działania dostają powiązania tylko tam, gdzie nazwa odbiorców zgadza się dokładnie (bez wielkości liter) z nazwą lub kodem pozycji słownika – także w zamkniętych miesiącach, bez zmiany tekstu działania; pozostałe wartości zostają tekstem, a słownik nie jest uzupełniany automatycznie. Nowe grupy dodaje się ze słownika albo z listy „Kto?” w formularzu działania.
 - v5 (2026-09-27): placówki mają własne `email`/`phone` sekretariatu. Przy aktualizacji kontakt zapisany w polach koordynatora bez nazwiska przechodzi do tych kolumn, prefiks „Gmina” znika z nazwy gminy (zmiana spływa do powiązanych działań i zgłoszeń), a z `notes` usuwane są wyłącznie wpisy importu dublujące inne pola.
 - Migracja przebudowuje stare tabele w jednej transakcji, zachowuje rekordy i sprawdza klucze obce przed zatwierdzeniem. Duplikaty, błędne relacje lub nieznane kolumny przerywają migrację; rekordy nie są automatycznie usuwane ani scalane.
 - Obowiązuje 28 kluczy obcych. Udział placówki jest unikalny dla `(program_id, facility_id, school_year)`. Placówki ani programu z udziałami nie można usunąć (`RESTRICT`); usunięcie zgłoszenia jest osobną, jawną operacją.
@@ -155,7 +156,8 @@ Silnik SQLite działa z aktywnym `PRAGMA foreign_keys = ON;` w trybie `WAL` (`PR
 | `program_id` | `TEXT` | `FK -> ozipz_programs(id) ON DELETE SET NULL` | ID programu (jeśli działanie w programie) | `programId?: string` |
 | `program_name` | `TEXT` | | Nazwa programu | `programName?: string` |
 | `topic` | `TEXT` | `NOT NULL` | Temat merytoryczny działania | `topic: string` |
-| `audience_group` | `TEXT` | `NOT NULL` | Grupa odbiorców (ze słownika `recipientGroup` / JSON sub-grup) | `audienceGroup: string` |
+| `audience_group` | `TEXT` | `NOT NULL` | Opis odbiorców zapisany tekstem (np. `Uczniowie - 25, Opiekunowie - 3`; nazwy kategorii pochodzą ze słownika `recipientGroup`) | `audienceGroup: string` |
+| `recipient_group_ids` | `TEXT` | `CHECK json_valid` | Tablica JSON identyfikatorów pozycji słownika `recipientGroup` użytych w działaniu; użyta pozycja jest zablokowana (nazwa, kod, usunięcie) | `recipientGroupIds?: string[]` |
 | `campaign_id` | `TEXT` | | ID kampanii/akcji (ze słownika `campaign`) | `campaignId?: string` |
 | `campaign_name` | `TEXT` | | Nazwa kampanii | `campaignName?: string` |
 | `jrwa_sign` | `TEXT` | | Znak sprawy JRWA (np. `OZiPZ.966.1.12.2026`) | `jrwaSign?: string` |
@@ -482,7 +484,7 @@ Silnik SQLite działa z aktywnym `PRAGMA foreign_keys = ON;` w trybie `WAL` (`PR
 
 W systemie występuje **11 aktywnych kategorii słowników**:
 1. `activityType` – Formy działań oświatowo-zdrowotnych (np. `prelekcja`, `warsztat`, `stoisko`, `konkurs`, `dystrybucja`). Konsument: `ozipz_actions`, `ozipz_templates`.
-2. `recipientGroup` – Główne kategorie grup docelowych (np. `przedszkolaki`, `uczniowie_sp_1_3`, `uczniowie_sp_4_8`, `uczniowie_ponadpodstawowe`, `rodzice`, `nauczyciele`, `seniorzy`). Konsument: `ozipz_actions`, `ozipz_templates`.
+2. `recipientGroup` – Główne kategorie grup docelowych (np. `przedszkolaki`, `uczniowie_sp_1_3`, `uczniowie_sp_4_8`, `uczniowie_ponadpodstawowe`, `rodzice`, `nauczyciele`, `seniorzy`). Konsument: `ozipz_actions`, `ozipz_templates`. Słownik zamknięty: „Kto?” w działaniu wybiera się wyłącznie z niego (`ozipz_actions.recipient_group_ids`), a pozycja użyta w działaniu jest zablokowana.
 3. `locationType` – Typy placówek oświatowych i instytucji (np. `przedszkole`, `szkola_podstawowa`, `liceum`, `technikum`, `szkola_branzowa`, `uczelnia`, `inna`). Konsument: `ozipz_facilities`.
 4. `materialType` – Formaty materiałów edukacyjnych (np. `ulotka`, `plakat`, `broszura`, `prezentacja`, `zakladka`, `film`). Konsument: `ozipz_materials`, `ozipz_distributions`.
 5. `campaign` – Kampanie, akcje okolicznościowe i święta zdrowia (np. `Bezpieczne Wakacje`, `Bezpieczne Ferie`, `Europejski Tydzień Szczepień`, `Światowy Dzień Zdrowia`). Konsument: `ozipz_actions`, `ozipz_schedule`.

@@ -28,6 +28,9 @@ import { matchActionDistributions } from "../action-distribution-match";
 import { linkedDistributionUpdates } from "../../../features/ozipz/utils/linkedDistribution";
 import { actionDistributionData, type ActionDistributionItem } from "../action-distribution-data";
 
+/** Lista identyfikatorów w kolumnie JSON; pusta lista to brak powiązań (NULL). */
+const serializeIds = (ids: string[] | undefined): string | null => (ids && ids.length > 0 ? JSON.stringify(ids) : null);
+
 export class SqliteActionsRepository implements IActionsRepository {
   constructor(
     private readonly db: ISqlDatabase,
@@ -46,7 +49,7 @@ export class SqliteActionsRepository implements IActionsRepository {
     const now = new Date().toISOString();
     const newAction: OzipzAction = { ...action, id, createdAt: now, updatedAt: now };
     await this.db.execute(
-      "INSERT INTO ozipz_actions (id, title, action_type, date, facility_id, facility_name, municipality, program_id, program_name, topic, audience_group, campaign_id, campaign_name, jrwa_sign, jrwa_case_id, izrz_sign, ezd_status, status, source_info, schedule_event_id, material_id, number_of_actions, participants_count, materials_distributed_count, lead_educator, notes, created_at, updated_at, linked_action_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)",
+      "INSERT INTO ozipz_actions (id, title, action_type, date, facility_id, facility_name, municipality, program_id, program_name, topic, audience_group, campaign_id, campaign_name, jrwa_sign, jrwa_case_id, izrz_sign, ezd_status, status, source_info, schedule_event_id, material_id, number_of_actions, participants_count, materials_distributed_count, lead_educator, notes, created_at, updated_at, linked_action_id, recipient_group_ids) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)",
       [
         newAction.id, newAction.title, newAction.actionType, newAction.date, newAction.facilityId || null,
         newAction.facilityName, newAction.municipality, newAction.programId || null, newAction.programName || null,
@@ -57,6 +60,7 @@ export class SqliteActionsRepository implements IActionsRepository {
         newAction.participantsCount,
         newAction.materialsDistributedCount || 0, newAction.leadEducator, newAction.notes || null,
         newAction.createdAt, newAction.updatedAt, newAction.linkedActionId || null,
+        serializeIds(newAction.recipientGroupIds),
       ]
     );
     return newAction;
@@ -88,7 +92,7 @@ export class SqliteActionsRepository implements IActionsRepository {
     const merged = { ...current, ...updates, updatedAt: now };
     merged.jrwaCaseId = await this.caseIdMatchingSign(merged.jrwaSign, merged.jrwaCaseId);
     await this.db.execute(
-      "UPDATE ozipz_actions SET title = $1, action_type = $2, date = $3, facility_id = $4, facility_name = $5, municipality = $6, program_id = $7, program_name = $8, topic = $9, audience_group = $10, campaign_id = $11, campaign_name = $12, jrwa_sign = $13, jrwa_case_id = $14, izrz_sign = $15, ezd_status = $16, status = $17, source_info = $18, schedule_event_id = $19, material_id = $20, number_of_actions = $21, participants_count = $22, materials_distributed_count = $23, lead_educator = $24, notes = $25, updated_at = $26, linked_action_id = $27 WHERE id = $28",
+      "UPDATE ozipz_actions SET title = $1, action_type = $2, date = $3, facility_id = $4, facility_name = $5, municipality = $6, program_id = $7, program_name = $8, topic = $9, audience_group = $10, campaign_id = $11, campaign_name = $12, jrwa_sign = $13, jrwa_case_id = $14, izrz_sign = $15, ezd_status = $16, status = $17, source_info = $18, schedule_event_id = $19, material_id = $20, number_of_actions = $21, participants_count = $22, materials_distributed_count = $23, lead_educator = $24, notes = $25, updated_at = $26, linked_action_id = $27, recipient_group_ids = $28 WHERE id = $29",
       [
         merged.title, merged.actionType, merged.date, merged.facilityId || null, merged.facilityName,
         merged.municipality, merged.programId || null, merged.programName || null, merged.topic,
@@ -97,7 +101,7 @@ export class SqliteActionsRepository implements IActionsRepository {
         merged.sourceInfo || null, merged.scheduleEventId || null, merged.materialId || null,
         merged.numberOfActions || 1, merged.participantsCount,
         merged.materialsDistributedCount || 0, merged.leadEducator, merged.notes || null,
-        merged.updatedAt, merged.linkedActionId || null, id,
+        merged.updatedAt, merged.linkedActionId || null, serializeIds(merged.recipientGroupIds), id,
       ]
     );
   }

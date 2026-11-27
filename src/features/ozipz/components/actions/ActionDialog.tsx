@@ -58,6 +58,7 @@ export interface ActionDialogProps {
   ) => void | Promise<void>;
   onAddFacility?: ActionEditorSectionProps["onAddFacility"];
   onAddMaterial?: ActionEditorSectionProps["onAddMaterial"];
+  onAddRecipientGroup?: ActionEditorSectionProps["onAddRecipientGroup"];
 }
 
 export function ActionDialog(props: ActionDialogProps) {
@@ -120,7 +121,8 @@ export function ActionDialog(props: ActionDialogProps) {
         {isSelectedMonthClosed && <p role="alert" className="text-sm text-destructive">Miesiąc wybranej daty jest zamknięty. Wybierz datę z otwartego miesiąca, aby zapisać działanie.</p>}
         <fieldset disabled={isReadOnly} className="space-y-4">
           <ActionQuickForm state={state} data={{ ...props, municipalities,
-            dictionaryItems: props.dictionaryItems ?? dictStore.dictionaryItems }} />
+            dictionaryItems: props.dictionaryItems ?? dictStore.dictionaryItems,
+            onAddRecipientGroup: props.onAddRecipientGroup ?? dictStore.addDictionaryItem }} />
         </fieldset>
 
         {state.saveError && <p role="alert" className="text-sm text-destructive">{state.saveError}</p>}

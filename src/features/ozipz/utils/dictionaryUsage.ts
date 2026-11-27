@@ -51,7 +51,12 @@ const DICTIONARY_USAGE_SOURCES: Record<string, UsageSource[]> = {
     },
   ],
   recipientGroup: [
-    { module: "Działania", route: "/dzialania", collect: (d) => (d.actions ?? []).map((a) => [a.audienceGroup]) },
+    // Działanie wskazuje pozycje słownika po identyfikatorze (recipientGroupIds); opis tekstowy to starszy zapis.
+    {
+      module: "Działania",
+      route: "/dzialania",
+      collect: (d) => (d.actions ?? []).map((a) => [a.audienceGroup, ...(a.recipientGroupIds ?? [])]),
+    },
     { module: "Harmonogram", route: "/harmonogram", collect: (d) => (d.scheduleEvents ?? []).map((e) => [e.recipientGroup]) },
     { module: "Materiały", route: "/materialy", collect: (d) => (d.materials ?? []).map((m) => [m.targetAudience]) },
   ],
@@ -199,6 +204,18 @@ export function buildDictionaryUsageIndex(
   }
 
   return index;
+}
+
+/** Moduł, którego użycie blokuje grupę odbiorców (tak jak wyzwalacz w bazie: działania ją wskazują). */
+const RECIPIENT_GROUP_LOCKING_MODULE = "Działania";
+
+/**
+ * Grupa odbiorców („Kto?”) użyta w jakimkolwiek działaniu jest zablokowana: nazwy, kodu ani istnienia nie zmienia się wstecz.
+ * Zwraca liczbę działań, które ją wskazują (0 = pozycja swobodna).
+ */
+export function recipientGroupLockCount(item: Pick<OzipzDictionaryItem, "dictType">, usage: DictionaryItemUsage | undefined): number {
+  if (item.dictType !== "recipientGroup") return 0;
+  return usage?.byModule.find((m) => m.module === RECIPIENT_GROUP_LOCKING_MODULE)?.count ?? 0;
 }
 
 export function formatUsageSummary(usage: DictionaryItemUsage | undefined): string {

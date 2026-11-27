@@ -20,6 +20,7 @@ export interface ActionSqlRow {
   program_name: string | null;
   topic: string;
   audience_group: string;
+  recipient_group_ids?: string | null;
   campaign_id?: string | null;
   campaign_name?: string | null;
   jrwa_sign?: string | null;

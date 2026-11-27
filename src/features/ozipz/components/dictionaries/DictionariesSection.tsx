@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   getDictionaryUsageModules,
   isHiddenDictionaryItem,
+  recipientGroupLockCount,
   isUsageTracked,
   normalizeDictionaryValue,
 } from "../../utils/dictionaryUsage";
@@ -121,9 +122,14 @@ export function DictionariesSection(props: DictionariesSectionProps) {
   const requestDelete = useCallback(
     (id: string) => {
       const item = dictionaryItems.find((d) => d.id === id);
-      if (item) setPendingDelete(item);
+      if (!item) return;
+      if (recipientGroupLockCount(item, usageIndex.get(item.id)) > 0) {
+        toast.error("Grupa odbiorców jest użyta w działaniach – nie można jej usunąć.");
+        return;
+      }
+      setPendingDelete(item);
     },
-    [dictionaryItems]
+    [dictionaryItems, usageIndex]
   );
 
   const handleDuplicate = useCallback(

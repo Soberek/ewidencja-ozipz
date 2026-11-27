@@ -28,6 +28,8 @@ export interface BuildActionPayloadParams {
   isPublication: boolean;
   isNoJrwa: boolean;
   formattedAudienceString: string;
+  /** Pozycje słownika „Kto?” użyte w odbiorcach działania. */
+  recipientGroupIds?: string[];
   totalDirectParticipants: number;
   /** Symbol JRWA wybrany jako klasyfikacja (np. "966.7") — dla publikacji i dystrybucji zapisywany zamiast znaku sprawy. */
   classificationSymbol?: string;
@@ -52,7 +54,7 @@ export function buildActionCleanPayload(
 ): Omit<OzipzAction, "id" | "createdAt" | "updatedAt"> {
   const {
     data, campaignDict, activitiesDescription, additionalNotes,
-    isPublication, isNoJrwa, formattedAudienceString, totalDirectParticipants, classificationSymbol,
+    isPublication, isNoJrwa, formattedAudienceString, recipientGroupIds, totalDirectParticipants, classificationSymbol,
   } = params;
 
   const campaign = findCampaign(campaignDict, data.campaignId);
@@ -71,6 +73,7 @@ export function buildActionCleanPayload(
     campaignName: campaign ? campaign.label : undefined,
     topic: data.topic || "",
     audienceGroup: isPublication ? PUBLICATION_DEFAULTS.audienceGroup : formattedAudienceString,
+    recipientGroupIds: isPublication || !recipientGroupIds?.length ? undefined : recipientGroupIds,
     // Publikacje/dystrybucje nie mają sprawy w kancelarii, ale zachowują symbol JRWA jako klasyfikację do sprawozdań.
     jrwaSign: isNoJrwa ? (classificationSymbol?.trim() || undefined) : (data.jrwaSign?.trim() || undefined),
     jrwaCaseId: isNoJrwa ? undefined : (data.jrwaCaseId || undefined),
@@ -154,8 +157,8 @@ type ActionPayload = Omit<OzipzAction, "id" | "createdAt" | "updatedAt">;
 /** Wymagane pola, których jeszcze brakuje (podpowiedź w stopce przed zapisem; walidację i tak wykonuje schemat). */
 export function getMissingActionFields(
   values: Partial<ActionFormOutput>,
-  { isPublication, hasNamedAudience, hasIncompleteMaterials = false }:
-    { isPublication: boolean; hasNamedAudience: boolean; hasIncompleteMaterials?: boolean }
+  { isPublication, hasNamedAudience, hasIncompleteMaterials = false, hasUnlinkedAudience = false }:
+    { isPublication: boolean; hasNamedAudience: boolean; hasIncompleteMaterials?: boolean; hasUnlinkedAudience?: boolean }
 ): string[] {
   const missing: string[] = [];
   if (!values.actionType) missing.push("forma działania");
@@ -165,6 +168,8 @@ export function getMissingActionFields(
   if (!values.municipality) missing.push("gmina");
   if (!(values.leadEducator || "").trim()) missing.push("osoba prowadząca");
   if (!isPublication && !hasNamedAudience) missing.push("odbiorcy");
+  // „Kto?” to zamknięty słownik: wartość wpisana poza nim trzeba wybrać z listy albo dodać do słownika.
+  if (!isPublication && hasNamedAudience && hasUnlinkedAudience) missing.push("grupa odbiorców ze słownika");
   // Pusty wiersz materiału blokuje zapis — stopka nie może wtedy pokazywać „Gotowe do zapisu”.
   if (hasIncompleteMaterials) missing.push("materiał i liczba sztuk");
   return missing;

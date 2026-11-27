@@ -84,7 +84,7 @@ describe("Nowe działanie: znak JRWA i status EZD", () => {
     act(() => {
       result.current.setValue("actionType", "Prelekcja (warsztat)");
       result.current.handleProgramOrJrwaSelect("prog:prog-tf");
-      result.current.setAudienceGroups([{ id: "g1", name: "G1", items: [{ id: "i1", name: "Klasa 5", count: 20 }] }]);
+      result.current.setAudienceGroups([{ id: "g1", name: "G1", items: [{ id: "i1", name: "Klasa 5", recipientGroupId: "r1", count: 20 }] }]);
       result.current.setValue("facilityName", facility);
       result.current.setValue("municipality", "Myślibórz");
     });
@@ -109,7 +109,7 @@ describe("Nowe działanie: znak JRWA i status EZD", () => {
     expect(result.current.jrwaSign).toBe("OZiPZ.966.1.9.2026");
 
     act(() => {
-      result.current.setAudienceGroups([{ id: "g2", name: "G2", items: [{ id: "i2", name: "Klasa 6", count: 18 }] }]);
+      result.current.setAudienceGroups([{ id: "g2", name: "G2", items: [{ id: "i2", name: "Klasa 6", recipientGroupId: "r1", count: 18 }] }]);
       result.current.setValue("facilityName", "SP2");
       result.current.setValue("municipality", "Barlinek");
     });

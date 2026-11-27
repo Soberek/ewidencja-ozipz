@@ -50,6 +50,8 @@ export const ActionSchema = z.object({
   programName: z.string().optional(),
   topic: z.string().optional().default(""),
   audienceGroup: OzipzAudienceGroupSchema,
+  /** Pozycje słownika grup odbiorców (`recipientGroup`) użyte w działaniu – ścisłe powiązanie, blokuje ich zmianę. */
+  recipientGroupIds: z.array(z.string()).optional(),
   campaignId: z.string().optional(),
   campaignName: z.string().optional(),
   jrwaSign: z.string().optional(),

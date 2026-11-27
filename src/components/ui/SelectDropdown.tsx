@@ -1,5 +1,5 @@
 import type React from "react";
-import { Check, Search, X } from "lucide-react";
+import { Check, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "./badge";
 import type { SelectOption } from "./select.types";
@@ -22,6 +22,8 @@ export interface SelectDropdownProps {
   highlightedIndex: number;
   handleSelect: (val: string) => void;
   emptyText: string;
+  onCreate?: (query: string) => void;
+  createLabel?: (query: string) => string;
 }
 
 export function SelectDropdown({
@@ -42,6 +44,8 @@ export function SelectDropdown({
   highlightedIndex,
   handleSelect,
   emptyText,
+  onCreate,
+  createLabel,
 }: SelectDropdownProps) {
   return (
     <div
@@ -174,6 +178,19 @@ export function SelectDropdown({
           ))
         )}
       </div>
+
+      {onCreate && (
+        <div className="border-t border-border/60 p-1">
+          <button
+            type="button"
+            onClick={() => onCreate(searchQuery.trim())}
+            className="flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-xs font-medium text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Plus className="size-3.5 shrink-0" aria-hidden />
+            <span className="min-w-0 break-words">{createLabel ? createLabel(searchQuery.trim()) : "Dodaj nową pozycję"}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

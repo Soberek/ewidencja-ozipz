@@ -147,6 +147,7 @@ export function ActionEditorSection(props: ActionEditorSectionProps) {
     onUpdate,
     onCancel,
     onAddFacility: props.onAddFacility ?? facilitiesStore.addFacility,
+    onAddRecipientGroup: props.onAddRecipientGroup ?? dictStore.addDictionaryItem,
     onAddMaterial: props.onAddMaterial ?? materialsStore.addMaterial,
     initialTemplateId: props.initialTemplateId ?? (id ? undefined : locationState?.templateId),
   };
